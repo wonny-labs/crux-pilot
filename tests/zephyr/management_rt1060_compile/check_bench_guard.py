@@ -258,6 +258,56 @@ def check_cmake(tree):
             else:
                 said = squeeze(result.stderr).split("CMake Error at", 1)[-1]
                 TRANSCRIPT.append(("CMake", name, said.split(":", 1)[-1].split("(message):", 1)[-1].split(" Call Stack")[0].strip()))
+    failures += check_manifest(tree)
+    return failures
+
+
+def run_manifest(tree, directory, hash_value):
+    """crux_bench_manifest() in script mode, with the first account's hash recorded as prepare would, or not."""
+    root = HERE.parents[2]
+    with tempfile.NamedTemporaryFile("w", suffix=".cmake", delete=False) as script:
+        script.write("cmake_minimum_required(VERSION 3.20.0)\n")
+        script.write(f'set(CRUX_ROOT "{root}")\nset(CMAKE_BINARY_DIR "{directory}")\n')
+        script.write(f'set(CRUX_BENCH_DECLARATION_OVERRIDE "{tree.root / "bench_declaration.json"}")\n')
+        for symbol in tree.selected_forms():
+            script.write(f'set(CONFIG_{symbol} "y")\n')
+        if hash_value is not None:
+            script.write(f'set_property(GLOBAL PROPERTY CRUX_BENCH_FIRST_ACCOUNT_SHA256 "{hash_value}")\n')
+        script.write(f'include("{tree.root / "bench_guard.cmake"}")\ncrux_bench_manifest()\n')
+    result = subprocess.run(["cmake", "-P", script.name], capture_output=True, text=True, check=False)
+    Path(script.name).unlink()
+    return result
+
+
+def check_manifest(tree):
+    """The manifest records the first account's file hash, and refuses to be written without one (row C4)."""
+    failures = []
+    expected = "ab" * 32
+    with tempfile.TemporaryDirectory() as scratch:
+        good = Path(scratch) / "good"
+        good.mkdir()
+        result = run_manifest(tree, good, expected)
+        manifest = good / "bench-manifest.json"
+        if result.returncode != 0 or not manifest.is_file():
+            return [f"crux_bench_manifest() failed with the first account's hash recorded: {squeeze(result.stderr)}"]
+        record = json.loads(manifest.read_text())
+        account = record.get("first_account", {})
+        declared = tree.declaration["first_account"]
+        if (account.get("file_sha256"), account.get("user"), account.get("role")) != (expected, declared["user"],
+                                                                                      declared["role"]):
+            failures.append(f"the manifest does not record the first account's file hash, name and role: {account}")
+        if account.get("plaintext_in_image") is not True:
+            failures.append("the manifest does not say that the first account's plaintext is in the image")
+        if record["test_forms"]["first_account_file"].get("set") is not True:
+            failures.append("the manifest does not show the first account form as set")
+        bare = Path(scratch) / "bare"
+        bare.mkdir()
+        result = run_manifest(tree, bare, None)
+        if result.returncode == 0 or "was not checked before the manifest" not in squeeze(result.stderr):
+            failures.append("crux_bench_manifest() was written without a checked first account password file: "
+                            f"rc={result.returncode} {squeeze(result.stderr)}")
+        else:
+            TRANSCRIPT.append(("CMake", "a manifest with no checked first account file", "was not checked before the manifest"))
     return failures
 
 
@@ -273,6 +323,8 @@ C_GUARD_MESSAGES = (
     "HTTPS listener must listen on the bench address only",
     "SSH listener must listen on the bench address only",
     "declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY",
+    "declared only with CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE",
+    "did not reach the compiler: the first account's name and role",
 )
 
 
@@ -290,6 +342,9 @@ def good_c_definitions(tree):
         "CONFIG_CRUX_WEB_BIND_ADDRESS": f'"{net["address"]}"',
         "CONFIG_CRUX_SSH_BIND_ADDRESS": f'"{net["address"]}"',
         "CONFIG_CRUX_BENCH_TEST_HOST_KEY": "1",
+        "CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE": "1",
+        "CRUX_BENCH_FIRST_ACCOUNT_USER": f'"{tree.declaration["first_account"]["user"]}"',
+        "CRUX_BENCH_FIRST_ACCOUNT_ROLE": f'"{tree.declaration["first_account"]["role"]}"',
     }
 
 
@@ -322,7 +377,8 @@ def c_cases(tree):
 
 
 def compile_c(tree, path, definitions, header_only=False):
-    command = ["cc", "-std=c17", "-fsyntax-only", "-x", "c", str(path), f"-I{tree.root / 'src'}"]
+    command = ["cc", "-std=c17", "-fsyntax-only", "-x", "c", str(path), f"-I{tree.root / 'src'}",
+               f"-I{tree.root / 'first_account'}"]
     command += [f"-D{name}={value}" for name, value in definitions.items() if value is not None]
     return subprocess.run(command, capture_output=True, text=True, check=False)
 
@@ -362,11 +418,22 @@ def check_c(tree):
         if seen:
             failures.append(f"{source.name} in the declared bench image: refused by the guard ({seen}): {allowed.stderr}")
     # The test host key form is refused without its symbol, in the one source that holds it.
-    form = tree.form("test_host_key")["symbol"]
-    without = {k: v for k, v in good.items() if k != f"CONFIG_{form}"}
-    refused = compile_c(tree, tree.root / "src" / "ssh_target.c", without)
-    if not refused_for(refused, C_GUARD_MESSAGES[-1]):
-        failures.append(f"ssh_target.c without CONFIG_{form}: not refused: {refused.stderr}")
+    for form_name, source, message in (("test_host_key", "ssh_target.c", "declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY"),
+                                       ("first_account_file", "bench_first_account.c",
+                                        "declared only with CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE")):
+        form = tree.form(form_name)["symbol"]
+        without = {k: v for k, v in good.items() if k != f"CONFIG_{form}"}
+        refused = compile_c(tree, tree.root / "src" / source, without)
+        if not refused_for(refused, message):
+            failures.append(f"{source} without CONFIG_{form}: not refused: {refused.stderr}")
+        else:
+            TRANSCRIPT.append(("C", f"{source} without its form symbol", message))
+    # The first account's name and role come from the declaration, and a source that lacks them is refused.
+    for name in ("CRUX_BENCH_FIRST_ACCOUNT_USER", "CRUX_BENCH_FIRST_ACCOUNT_ROLE"):
+        refused = compile_c(tree, tree.root / "src" / "bench_first_account.c",
+                            {k: v for k, v in good.items() if k != name})
+        if not refused_for(refused, "did not reach the compiler: the first account's name and role"):
+            failures.append(f"bench_first_account.c without {name}: not refused: {refused.stderr}")
     return failures
 
 
@@ -482,6 +549,7 @@ def copy_tree(source_root, destination):
     for name in ("bench_declaration.json", "bench_guard.cmake", "Kconfig.bench"):
         shutil.copy(Path(source_root) / name, destination / name)
     shutil.copytree(Path(source_root) / "src", destination / "src")
+    shutil.copytree(Path(source_root) / "first_account", destination / "first_account")
 
 
 def replace_nth(text, needle, replacement, n):
@@ -514,10 +582,12 @@ def mutants(root):
         text = source.read_text()
         yield (f"{source.name}: the include of bench_guard.h is removed", f"src/{source.name}",
                text.replace('#include "bench_guard.h"\n', "", 1), "c")
-    ssh = (root / "src" / "ssh_target.c").read_text()
-    at = re.search(r"^#error", ssh, re.MULTILINE).start()
-    yield ("ssh_target.c: the test host key form #error only warns", "src/ssh_target.c",
-           ssh[:at] + "#warning" + ssh[at + len("#error"):], "c")
+    for name, label in (("ssh_target.c", "the test host key form"), ("bench_first_account.c", "the first account form")):
+        text = (root / "src" / name).read_text()
+        for index, found in enumerate(re.finditer(r"^#error", text, re.MULTILINE)):
+            at = found.start()
+            yield (f"{name}: {label} #error {index + 1} only warns", f"src/{name}",
+                   text[:at] + "#warning" + text[at + len("#error"):], "c")
     kconfig = (root / "Kconfig.bench").read_text().splitlines(keepends=True)
     for number, line in enumerate(kconfig):
         if line.strip().startswith("depends on"):

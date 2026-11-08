@@ -33,6 +33,9 @@ macro(crux_bench_read_declaration)
     string(JSON BENCH_PEER GET "${_bench_json}" network peer)
     string(JSON BENCH_HTTPS_PORT GET "${_bench_json}" listeners https_port)
     string(JSON BENCH_SSH_PORT GET "${_bench_json}" listeners ssh_port)
+    string(JSON BENCH_FIRST_ACCOUNT_USER GET "${_bench_json}" first_account user)
+    string(JSON BENCH_FIRST_ACCOUNT_ROLE GET "${_bench_json}" first_account role)
+    string(JSON BENCH_FIRST_ACCOUNT_ENV GET "${_bench_json}" first_account password_file_env)
     string(JSON BENCH_ZEPHYR_PIN GET "${_bench_json}" patched_zephyr zephyr_pin)
     string(JSON BENCH_PATCH_NAME GET "${_bench_json}" patched_zephyr patch_name)
     string(JSON BENCH_PATCH_SHA256 GET "${_bench_json}" patched_zephyr patch_sha256)
@@ -164,7 +167,9 @@ function(crux_bench_definitions target)
         "CRUX_BENCH_IMAGE_ID=\"${BENCH_IMAGE_ID}\""
         "CRUX_BENCH_ADDRESS=\"${BENCH_ADDRESS}\""
         "CRUX_BENCH_NETMASK=\"${BENCH_NETMASK}\""
-        CRUX_BENCH_PREFIX_LENGTH=${BENCH_PREFIX_LENGTH})
+        CRUX_BENCH_PREFIX_LENGTH=${BENCH_PREFIX_LENGTH}
+        "CRUX_BENCH_FIRST_ACCOUNT_USER=\"${BENCH_FIRST_ACCOUNT_USER}\""
+        "CRUX_BENCH_FIRST_ACCOUNT_ROLE=\"${BENCH_FIRST_ACCOUNT_ROLE}\"")
 endfunction()
 
 # Writes ${CMAKE_BINARY_DIR}/bench-manifest.json. Call it last, after every source is added. It records what
@@ -201,6 +206,27 @@ function(crux_bench_manifest)
                "{\"symbol\": \"${symbol}\", \"decision\": \"${decision}\", \"state\": \"${state}\", \"set\": ${on}}")
     endforeach()
     string(JSON manifest SET "${manifest}" test_forms "${forms}")
+
+    # The first account (D3, row C4): where its password comes from, and the hash of that file. Never the password.
+    # The plaintext is in the image, as the report says, and so the manifest says it too.
+    if(CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE)
+        get_property(first_account_hash GLOBAL PROPERTY CRUX_BENCH_FIRST_ACCOUNT_SHA256)
+        if("${first_account_hash}" STREQUAL "")
+            message(FATAL_ERROR "The first account's password file was not checked before the manifest: "
+                                "crux_bench_first_account_prepare() must run first")
+        endif()
+        set(first "{}")
+        string(JSON first SET "${first}" decision "\"D3\"")
+        string(JSON first SET "${first}" user "\"${BENCH_FIRST_ACCOUNT_USER}\"")
+        string(JSON first SET "${first}" role "\"${BENCH_FIRST_ACCOUNT_ROLE}\"")
+        string(JSON first SET "${first}" source
+               "\"a file outside the repository, named by the environment variable ${BENCH_FIRST_ACCOUNT_ENV}\"")
+        string(JSON first SET "${first}" file_sha256 "\"${first_account_hash}\"")
+        string(JSON first SET "${first}" plaintext_in_image true)
+        string(JSON first SET "${first}" plaintext_elsewhere
+               "\"none: not in this manifest, the configuration, a generated source, a log or the map\"")
+        string(JSON manifest SET "${manifest}" first_account "${first}")
+    endif()
 
     set(settings "{}")
     get_cmake_property(all_variables VARIABLES)
@@ -290,6 +316,7 @@ function(crux_bench_manifest)
     set(configuration_files
         "${CRUX_BENCH_DIR}/bench_declaration.json" "${CRUX_BENCH_DIR}/bench_guard.cmake"
         "${CRUX_BENCH_DIR}/management_target.cmake" "${CRUX_BENCH_DIR}/CMakeLists.txt"
+        "${CRUX_BENCH_DIR}/bench_first_account.cmake" "${CRUX_BENCH_DIR}/bench_first_account_file.py"
         "${CRUX_BENCH_DIR}/Kconfig" "${CRUX_BENCH_DIR}/Kconfig.bench" "${CRUX_BENCH_DIR}/prj.conf"
         "${CRUX_BENCH_DIR}/target.conf" "${CRUX_BENCH_DIR}/target.overlay")
     foreach(file IN LISTS configuration_files EXTRA_CONF_FILE DTC_OVERLAY_FILE)
