@@ -44,7 +44,6 @@ class PublicHeader(unittest.TestCase):
         included = [line.lstrip('. ').strip() for line in result.stderr.splitlines() if line.startswith('.')]
         crux = [path for path in included if '/crux/' in path]
         self.assertEqual(sorted(Path(p).name for p in crux), ['file.h', 'file_zephyr.h'])
-        self.assertTrue(all(path.startswith(str(ROOT)) or path.startswith('/') for path in included))
         # Everything else the header pulls in is outside this repository: the C library, never a native header.
         outside = [path for path in included if not path.startswith(str(ROOT))]
         for path in outside:
@@ -63,10 +62,37 @@ class PublicHeader(unittest.TestCase):
         found = sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / 'components').rglob('file_zephyr.h'))
         self.assertEqual(found, ['components/file/ports/zephyr/include/crux/file_zephyr.h'])
 
+    def test_lines_fit_the_column_limit_of_the_format_check(self):
+        for path in (PUBLIC_HEADER, PORT / 'file_native.h'):
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                self.assertLessEqual(len(line), 100, '%s:%d' % (path.name, number))
+
+    def test_the_lifetime_rule_matches_the_file_contract_and_the_provider(self):
+        text = ' '.join(PUBLIC_HEADER.read_text().replace('\n *', ' ').split())
+        self.assertIn('Do not unmount or remount while a File handle is open or a File call is in progress', text)
+        self.assertIn('CRUX_FILE_ERR_NOT_READY', text)
+        self.assertNotIn('must stay mounted while File calls can be made', text)
+
+    def test_the_header_is_usable_from_a_c_plus_plus_composition(self):
+        text = PUBLIC_HEADER.read_text()
+        self.assertIn('extern "C" {', text)
+        self.assertRegex(text, r'#ifdef __cplusplus\s*\n\}\s*\n#endif')
+
     def test_every_declaration_is_documented_for_ownership_and_context(self):
         text = PUBLIC_HEADER.read_text()
         for word in ('composition', 'mounted', 'once', 'concurrent', 'never mount'):
             self.assertIn(word, text.lower(), word)
+
+
+class Consumers(unittest.TestCase):
+    def test_every_build_that_compiles_the_sd_composition_links_the_target(self):
+        # sd_storage.c includes <crux/file_zephyr.h>, so every build that compiles it needs the include root.
+        builds = [p for p in ROOT.rglob('CMakeLists.txt')
+                  if p.relative_to(ROOT).parts[0] in ('samples', 'tests') and 'sd_storage.c' in p.read_text()]
+        self.assertGreaterEqual(len(builds), 9)
+        for path in builds:
+            with self.subTest(build=path.relative_to(ROOT).as_posix()):
+                self.assertIn('crux::file_zephyr', path.read_text())
 
 
 class Target(unittest.TestCase):
@@ -84,8 +110,9 @@ class Target(unittest.TestCase):
         self.assertIn('add_library(crux::file_zephyr ALIAS', text)
         self.assertIn('ports/zephyr/include', text)
         self.assertIn('INTERFACE crux_file', text)
-        for forbidden in ('zephyr_interface', '/src', 'PUBLIC', 'target_link_options'):
+        for forbidden in ('zephyr_interface', '/src', 'PUBLIC', 'target_link_options', 'target_compile'):
             self.assertNotIn(forbidden, text)
+        self.assertEqual(len(re.findall(r'^\s*target_', text, re.M)), 2)    # the include root and crux_file, nothing else
 
 
 if __name__ == '__main__':

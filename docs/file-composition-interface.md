@@ -35,7 +35,8 @@ flowchart LR
 | Public header with the three declarations and their ownership, lifetime, context and result documentation | `components/file/ports/zephyr/include/crux/file_zephyr.h` (new) |
 | `file_native.h` now only includes that header, so the provider, tests and samples that use the old spelling keep working | `components/file/ports/zephyr/file_native.h` |
 | Target `crux::file_zephyr`: an INTERFACE target that adds the include root and links `crux::file`; defined in each provider branch (RT1060 FatFs, Reliance Edge, simulators) | `components/file/ports/zephyr/CMakeLists.txt` |
-| Two consumers moved to the public target, without the private include path: the microSD sample and the FatFs `native_sim` test | `samples/storage_sd`, `tests/native/file_fatfs` |
+| The microSD sample and the FatFs `native_sim` test use the public target and no private include path | `samples/storage_sd`, `tests/native/file_fatfs` |
+| `sd_storage.c` now includes the public header, so the eight other builds that compile it link `crux::file_zephyr` too | `samples/storage_sd_interrupt`, `samples/storage_sd_probe`, `samples/storage_sd_replace`, `tests/native/file_sd_check`, `file_sd_composition`, `file_sd_interrupt`, `file_sd_probe`, `file_sd_replace` |
 | Host tests | `tests/build/test_file_zephyr_public.py` |
 
 ## Decisions taken
@@ -46,7 +47,8 @@ flowchart LR
 | 2 | The target does not link the provider library | The provider is selected by Kconfig and appended to the Zephyr link by the module. The target only gives the header, so a product that selects a provider through Kconfig does not pick a second one by linking. |
 | 3 | Only the declarations that already existed are published | No new function, no rename. The Linux names stay in `file_linux.h`. |
 | 4 | The private header stays | Renaming every user is a larger change with no consumer benefit. |
-| 5 | Management and HTTPS composition are not covered | They need a separate design that also depends on the Zephyr TLS socket route and licence decisions of the owner. |
+| 5 | The header lives under `components/file/ports/zephyr/include/crux/`, not `components/file/include/crux/` | `CONTRIBUTING.md` places public headers in the owning component's `include/crux/`. This header names a provider, so it stays with the port and is exposed only through `crux::file_zephyr`; the portable `<crux/file.h>` is unchanged. `crux::queue_linux` in the native interface policy is a precedent for a documented composition target. The owner approved the public target and header ("a안으로 진행해줘", chat of the Crux Pilot session, 8 November 2026); the location and the composition role are this change's reading of that approval. |
+| 6 | Management and HTTPS composition are not covered | They need a separate design that also depends on the Zephyr TLS socket route and licence decisions of the owner. |
 
 ## What a consuming product needs to do
 
@@ -57,6 +59,8 @@ A product that wants a strict boundary for its application code needs a composit
 | Check | Where | Status |
 |---|---|---|
 | Header compiles alone with only the File contract include root and pulls in no native header; the private header declares nothing a second time; the public path is unique; the target definition exposes only the include root | `tests/build/test_file_zephyr_public.py`, Host | run locally and in Host CI |
-| Both moved consumers build with the target and without the private include path | Zephyr CI: `scripts/test-file-rt1060-compile.sh` (RT1060 compile check of the sample) and `scripts/test-storage-simulators.sh` (`native_sim`) | **not run locally** (Docker, disk); left to CI |
+| Every build that compiles `sd_storage.c` links the target; header lines fit the 100-column format limit; the header has a C++ guard and a lifetime rule that matches the File contract | `tests/build/test_file_zephyr_public.py`, Host | run locally and in Host CI |
+| The ten builds that use the target (the FatFs `native_sim` test and the nine that compile `sd_storage.c`) | Zephyr CI: `scripts/test-file-rt1060-compile.sh` (RT1060 compile check of the samples) and `scripts/test-storage-simulators.sh` (`native_sim`) | **not run locally** (Docker, disk); left to CI |
+| `scripts/check-format.sh` (clang-format 18) | Host CI | **not run locally** (not installed); the changed lines were kept to 100 columns by hand |
 | A product repository builds against the target | not done; the first product consumer is the evaluation of this interface | open |
 | Any run on a board | none | not authorised and not part of this change |
