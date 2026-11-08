@@ -135,10 +135,11 @@ class PowerCutTest(unittest.TestCase):
                                   log=os.path.join(self.dir.name, "missing", "cut.log"))
         self.assertEqual(result.returncode, 5)
 
-    def test_summary_line_names_the_verdict_and_the_reading(self):
+    def test_summary_line_goes_to_stderr_and_names_the_verdict_and_the_reading(self):
         result = self.run_wrapper(py("pass"), py("print(21)"))
-        self.assertIn("power_removed", result.stdout)
-        self.assertIn("21", result.stdout)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("power_removed", result.stderr)
+        self.assertIn("21", result.stderr)
 
     def test_every_option_is_required(self):
         base = ["--off-cmd", py("pass"), "--read-cmd", py("print(0)"), "--pause", "0.05",
@@ -154,6 +155,83 @@ class PowerCutTest(unittest.TestCase):
             with self.subTest(option=option):
                 result = self.run_wrapper(py("pass"), py("print(0)"), **{option: value})
                 self.assertEqual(result.returncode, 2)
+
+    def test_non_finite_and_huge_numbers_are_refused_before_anything_runs(self):
+        off = py(f"open({self.marker!r}, 'w').close()")
+        for option in ("pause", "read_timeout"):
+            for value in ("nan", "inf", "-inf", "1e300", "61"):
+                with self.subTest(option=option, value=value):
+                    result = self.run_wrapper(off, py("print(0)"), **{option: value})
+                    self.assertEqual(result.returncode, 2)
+                    self.assertFalse(os.path.exists(self.marker))
+
+    def test_the_largest_accepted_pause_and_timeout_are_60_seconds(self):
+        # Parsed only: a wrapper that waited 60 s would make this test slow, so use the parser.
+        sys.path.insert(0, os.path.join(HERE, "..", "..", "scripts"))
+        import power_cut
+        args = power_cut.build_parser().parse_args(
+            ["--off-cmd", "x", "--read-cmd", "y", "--pause", "60", "--max-mv", "0",
+             "--read-timeout", "60", "--log", "z"])
+        self.assertEqual((args.pause, args.read_timeout), (60.0, 60.0))
+
+    def test_empty_or_unparsable_commands_are_refused_before_anything_runs(self):
+        for text in ("", "   ", "'unbalanced"):
+            for option in ("off", "read"):
+                with self.subTest(option=option, text=text):
+                    kwargs = {option: text}
+                    other = py(f"open({self.marker!r}, 'w').close(); print(0)")
+                    kwargs.setdefault("off", other)
+                    kwargs.setdefault("read", other)
+                    result = self.run_wrapper(**kwargs)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertFalse(os.path.exists(self.marker))
+
+    def test_missing_reader_binary_is_a_read_failure(self):
+        result = self.run_wrapper(py("pass"), "/nonexistent/reader --mv")
+        self.assertEqual(result.returncode, 4)
+        self.assertEqual(self.records()[-1]["verdict"], "read_failed")
+
+    def test_failed_off_record_has_no_reading_fields(self):
+        self.run_wrapper(py("import sys; sys.exit(1)"), py("print(0)"))
+        record = self.records()[-1]
+        self.assertNotIn("read_start_utc", record)
+        self.assertIsNone(record["mv"])
+
+    def test_off_command_that_hangs_is_an_off_failure(self):
+        sys.path.insert(0, os.path.join(HERE, "..", "..", "scripts"))
+        import power_cut
+        original = power_cut.OFF_TIMEOUT_S
+        power_cut.OFF_TIMEOUT_S = 0.5
+        self.addCleanup(setattr, power_cut, "OFF_TIMEOUT_S", original)
+        status = power_cut.main(["--off-cmd", py("import time; time.sleep(30)"),
+                                 "--read-cmd", py("print(0)"), "--pause", "0",
+                                 "--max-mv", "300", "--read-timeout", "2", "--log", self.log])
+        self.assertEqual(status, 3)
+        self.assertEqual(self.records()[-1]["verdict"], "off_failed")
+
+    def test_an_unexpected_error_after_the_cut_is_logged_and_exits_6_not_1(self):
+        sys.path.insert(0, os.path.join(HERE, "..", "..", "scripts"))
+        import power_cut
+        original = power_cut.time.sleep
+        def boom(_seconds):
+            raise RuntimeError("simulated")
+        power_cut.time.sleep = boom
+        self.addCleanup(setattr, power_cut.time, "sleep", original)
+        status = power_cut.main(["--off-cmd", py("pass"), "--read-cmd", py("print(0)"),
+                                 "--pause", "0.2", "--max-mv", "300", "--read-timeout", "2",
+                                 "--log", self.log])
+        self.assertEqual(status, 6)
+        record = self.records()[-1]
+        self.assertEqual(record["verdict"], "wrapper_error")
+        self.assertIn("simulated", record["error"])
+
+    def test_wrapper_is_callable_through_a_shell_as_the_host_scripts_do(self):
+        inner = " ".join(shlex.quote(part) for part in (
+            sys.executable, SCRIPT, "--off-cmd", py("pass"), "--read-cmd", py("print(5)"),
+            "--pause", "0.05", "--max-mv", "300", "--read-timeout", "2", "--log", self.log))
+        done = subprocess.run(inner, shell=True, capture_output=True, text=True, timeout=30)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.records()[-1]["mv"], 5)
 
 
 if __name__ == "__main__":
