@@ -1,0 +1,23 @@
+configured
+[534/546] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeout.c.obj
+[535/546] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timer.c.obj
+[536/546] Building C object zephyr/kernel/CMakeFiles/kernel.dir/poll.c.obj
+[537/546] Building C object zephyr/kernel/CMakeFiles/kernel.dir/usage.c.obj
+[538/546] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mempool.c.obj
+[539/546] Building C object zephyr/kernel/CMakeFiles/kernel.dir/dynamic_disabled.c.obj
+[540/546] Linking C static library zephyr/kernel/libkernel.a
+[541/546] Linking C executable zephyr/zephyr_pre0.elf
+[542/546] Generating linker.cmd
+[543/546] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[544/546] Building C object zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+[545/546] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[546/546] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      590496 B         8 MB      7.04%
+             RAM:     1360940 B        32 MB      4.06%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /build/bench_c3/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi

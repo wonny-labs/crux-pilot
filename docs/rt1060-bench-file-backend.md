@@ -10,7 +10,7 @@ It authorises no hardware operation, and **nothing here ran on a board or on a c
 | What is the file backend of the bench image? | **A RAM disk of 524,288 B in the SDRAM**, named `RAM`, mounted at `/RAM:`, under FatFs. The declared form is `ram_disk` (state `selected` in `bench_declaration.json`). |
 | Can any path of the image format a card? | **No.** Four independent barriers, each shown by a test that breaks it: [the barriers](#the-barriers). The image has **no card driver at all** (no SD card driver, no USDHC host, no microSD provider), so there is no card to mount, and the only function that names `fs_mkfs` is compiled in the RAM disk form only. |
 | What persists across a reset? | **Nothing.** Accounts, keys, the certificate and the events are lost, and every boot is a first boot: [what persists](#what-persists-and-what-does-not). |
-| How big, and what does it cost? | **524,288 B of SDRAM** for the disk, @RAM_DELTA@ more than the C1 image in the linker's RAM figure. The bench needs about 300 KB at the worst: [the sizing](#sizing). |
+| How big, and what does it cost? | **524,288 B of SDRAM** for the disk, **523,136 B** more than the C1 image in the linker's RAM figure (1,360,940 B against 837,804 B; the disk's 524,288 B less 1,152 B that the card drivers took). The bench needs about 300 KB at the worst: [the sizing](#sizing). |
 | Is the microSD provider still there? | **Yes, as a second declared state** (`microsd_card`, `reserved`), that a later run takes by changing the declaration. It is not selectable in this image until then: [the two states](#the-two-declared-states). |
 | Can the image run? | **No**, as before. [What still blocks a board run](rt1060-management-image-feasibility.md#what-still-blocks-a-board-run). |
 
@@ -59,10 +59,10 @@ A card is kept from a format by four independent barriers. Each has a test that 
 
 | # | Barrier | Where | Shown by |
 | --- | --- | --- | --- |
-| 1 | **There is no card in the image.** The File provider of the RAM disk (`CRUX_FILE_FATFS_RT1060_RAM_DISK`) depends on `!DISK_DRIVER_SDMMC`, its CMake and `file_native.c` refuse a build with the SD card driver, the USDHC host, a flash disk or the microSD provider, and so do the bench guards at three levels | Kconfig, CMake, C | `check_bench_guard.py`: 12 CMake and 8 C refusals for these settings, each for its reason, and the mutants of the guards killed |
+| 1 | **There is no card in the image.** The File provider of the RAM disk (`CRUX_FILE_FATFS_RT1060_RAM_DISK`) depends on `!DISK_DRIVER_SDMMC`, its CMake and `file_native.c` refuse a build with the SD card driver, the USDHC host, a flash disk or the microSD provider, and so do the bench guards at three levels | Kconfig, CMake, C | `check_bench_guard.py`: 13 CMake and 12 C refusals for these settings, each for its reason, and 53 of 53 mutants of the guards killed. **The first configure of the real image showed barrier 1 working**: Zephyr turns the SD card driver on by default on this board, which dropped the RAM disk form to `n`, and the CMake guard refused the build ([evidence](evidence/rt1060-management-image-feasibility/ram-disk-c3/build-first-configure/configure-refused.log)). `target.conf` now turns it off, and a test pins that. |
 | 2 | **The decision never passes a card to a format.** `bench_medium_prepare()` calls `format` only for the RAM disk kind, and refuses any other value of the kind before any call | `src/bench_medium.c` | `test_bench_medium.c`: every mount error value for a card, a fake card that a format would cure, every kind value from -1000 to 1000 and every power of two: a format is reached for the RAM disk kind alone |
 | 3 | **The glue has no format function for a card.** In the microSD form `BENCH_MEDIUM_FORMAT` is `NULL`, and the identifier `fs_mkfs` does not occur in the object. In the RAM disk form the call names the disk `"RAM:"` and no other | `src/bench_medium_fs.c` | The glue built for each form against a fake file system layer with a fake `RAM:` and a fake `SD:`; `nm` on both objects; a weakened glue that offers a card format function is seen by the object check and still stopped by barrier 2 |
-| 4 | **Nothing else names a format function.** `fs_mkfs`, `f_mkfs`, `fatfs_mkfs` and `CONFIG_FS_FATFS_MOUNT_MKFS` occur in no other source of the image, and `CONFIG_FS_FATFS_MOUNT_MKFS` is refused at every level | Every source of the image | `test_management_bench_medium.py` scans the 95 sources of the image (comments removed), and `check_mkfs_callers.py` reads the linked objects of the real build: @CALLERS@ |
+| 4 | **Nothing else names a format function.** `fs_mkfs`, `f_mkfs`, `fatfs_mkfs` and `CONFIG_FS_FATFS_MOUNT_MKFS` occur in no other source of the image, and `CONFIG_FS_FATFS_MOUNT_MKFS` is refused at every level | Every source of the image | `test_management_bench_medium.py` scans the 57 sources of the image (comments removed), and `check_mkfs_callers.py` reads the objects of the real target build: **`fs_mkfs` is referenced by `bench_medium_fs.c.obj` and by no other object, and `f_mkfs` only by Zephyr's FatFs glue `fat_fs.c.obj`** ([output](evidence/rt1060-management-image-feasibility/ram-disk-c3/build/mkfs-callers.txt)). The linked image has no SD card driver, no USDHC host and no `sdmmc` or `usdhc` function ([symbols](evidence/rt1060-management-image-feasibility/ram-disk-c3/build/medium-symbols.txt)) |
 
 ```mermaid
 flowchart TB
@@ -95,7 +95,7 @@ A later run changes the declaration to `ram_disk: reserved` and `microsd_card: s
 
 ## What persists and what does not
 
-The RAM disk is the `.bss` of the RAM disk driver, in the SDRAM. Zephyr clears `.bss` at every boot, and the board brings the SDRAM up before that, so the disk is zero at every boot and `fs_mount` fails on it. That is the trigger of the format above.
+The RAM disk is the `.bss` of the RAM disk driver, in the SDRAM: the linked image has the symbol `disk_buf_0`, 0x80000 B, in the SDRAM range ([symbols](evidence/rt1060-management-image-feasibility/ram-disk-c3/build/medium-symbols.txt)). Zephyr clears `.bss` at every boot, and all RAM of this image is in the SDRAM, so the SDRAM must be up before that or the image could not run at all. So the disk is zero at every boot and `fs_mount` fails on it, which is the trigger of the format above. **That is a reading of the build, not an observation on a board.**
 
 | Item | Where it lives | After a reset |
 | --- | --- | --- |
@@ -148,12 +148,40 @@ The method: the pinned FatFs (`modules/fs/fatfs` at the `west.yml` pin) with the
 | The disk | **524,288 B** (512 KiB) | `ram_disk.overlay`, the `.bss` of the RAM disk driver, in the SDRAM |
 | Share of the SDRAM | 1.6 % of 32 MB | |
 | ITCM, DTCM, OCRAM | 0 B | The disk is in SDRAM with everything else, as the linker's report of C1 shows for the image |
-| The RAM figure of the image | @RAM_FIGURE@ | The linker's report of the target build ([the build](#the-target-build)) |
+| The RAM figure of the image | **1,360,940 B** (4.06 % of the SDRAM), C1: 837,804 B, so **+523,136 B** | The linker's report of the target build ([the build](#the-target-build)) |
 
+
+### The target build
+
+The same method as C1 (`commands/tbuild.sh`: the Dev Container under emulation, 2 CPUs, 2 GB, `-j2`, one build; the pinned Zephyr v4.4.2 copy with the wolfSSL TLS socket patch of the C1 build, mounted read-only, which the bench guard checks by marker, pin and hash; the crypto modules of the C1 build, read-only), on the **committed tree `052a772d`**. The manifest says `source_tree_modified: false`. The bench guards ran inside the real configure and passed.
+
+| Item | C1 | C3 |
+| --- | ---: | ---: |
+| FLASH (`0x60000000`, 8 MB) | 601,004 B | **590,496 B** (7.04 %), 10,508 B less: the SD card driver and the USDHC host are out, the medium sources are in |
+| RAM = SDRAM (`0x80000000`, 32 MB) | 837,804 B | **1,360,940 B** (4.06 %), **523,136 B** more: the disk's `disk_buf_0` is 524,288 B |
+| ITCM, DTCM, OCRAM, OCRAM2 | 0 B | 0 B |
+| `size`: text, data, bss | 596,504, 4,480, 833,254 | 586,308, 4,168, 1,356,706 |
+| Steps, warnings | 551, 3 | 546, **the same 3**, all in wolfSSH `wolfsftp.c`, outside `-Werror` |
+| `zephyr.bin` SHA-256 | `8b557969...a420` | `8b5a19e6cc5c1aae0c40ccc84831c0cefd887c33669b731719df201d6b91ba0e` |
+| `zephyr.elf` SHA-256 | `f6765d53...b7fb` | `907fed56056ddbb2114eccfb549246d38e2dfb282850944c876cf7ca284aee9e` (the build path differs, so the hash may) |
+
+The resolved configuration of the file backend: `CONFIG_DISK_DRIVER_RAM=y`, `CONFIG_DISK_DRIVER_SDMMC` and `CONFIG_SDHC` not set, `CONFIG_FS_FATFS_MOUNT_MKFS` not set, `CONFIG_FILE_SYSTEM_MKFS=y` (the RAM disk's format needs it), the two C3 symbols set. `strings -a` on the image finds the `BENCH file-medium ram-disk ... nothing persists across a reset` line, and finds `composition test password` **0 times**. The manifest has the `file_backend` object above, with `persists_across_reset: false`.
+
+Two things the build showed. The first target build **failed at the first configure**, which is the guard working ([above](#the-barriers)); the second **failed to link** `bench_medium_mount`, because the image's `CMakeLists.txt` did not list the two new sources (fixed, and a unit test lists them now). One observation, not acted on: `disk_buf_0` is a plain byte array, so its address (`0x8002093f`) is not aligned. The RAM disk driver only copies to and from it, so this is harmless on a Cortex-M7 in normal memory, and nothing reads it by DMA.
+
+Evidence: [`evidence/.../ram-disk-c3/`](evidence/rt1060-management-image-feasibility/ram-disk-c3/README.md).
 
 ## What was and was not run
 
-@CHECKS@
+| Check | Result | Who ran it |
+| --- | --- | --- |
+| `python3 -m unittest` of `test_management_bench_medium.py`, `test_management_bench_declaration.py`, `test_management_target_lists.py` | **Pass** (the medium test: the decision core over fake devices, the glue per backend, the objects, the source scan, the sizing constants, the sources of the image, `target.conf`; and the control that each barrier breaks alone). The copy test pins the new edit of `mgmt_start.c`. | The author, on the host |
+| `check_bench_guard.py --verbose` | **Pass**: 54 CMake and 29 C refusals each for their reason (13 and 12 are C3's), the declared RAM disk bench passing at every level, **the microSD state of the declaration accepted with the card's provider and driver and refusing the RAM disk's settings**, and **53 of 53 mutants killed** (37 in C1) | The author, on the host |
+| The decision core, with fake devices | A card is never formatted: every mount error value, a fake card that a format would cure, every kind value from -1000 to 1000; a RAM disk is formatted once and mounted, never twice, and a format failure stops | The author, on the host |
+| `tests/native/management_rt1060_ram_disk` on `native_sim/native/64`, the real FatFs, the disk of `ram_disk.overlay` | **5 of 5 pass**: a blank disk is not formatted by the mount, the geometry is the overlay's, the worst case fits with **208,896 B and 205,824 B free**, a disk filled by something that bypasses the service refuses with `ENOSPC`. The numbers equal those of the host run on the pinned FatFs. | The author, in the Dev Container ([log](evidence/rt1060-management-image-feasibility/ram-disk-c3/host/native_sim-ram-disk-size-run.log)) |
+| Compile and link for `mimxrt1060_evk@B//qspi` | **Linked**, [numbers above](#the-target-build) | The author, in the Dev Container |
+| `check_mkfs_callers.py` on the objects of that build | **Pass** | The author, in the Dev Container |
+| Not run | **A board, a card, a card reader, the image, any client.** The decision core and the glue **on a target**: they were run on the host with fakes and compiled for the target, and the native_sim test does not link them (`bench_guard.h` refuses `native_sim` on purpose). The microSD state of the declaration as a build for the target: the guard accepts it, **no card build was made**. SDRAM clearing of `.bss` on a board. The CI workflows (`.github/` is protected and not changed). | |
 
 ## Decisions taken in C3
 

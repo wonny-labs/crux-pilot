@@ -1,0 +1,57 @@
+/build/bench_c3/zephyr/zephyr.elf  :
+section                                        size         addr
+rom_start                                      8896   1610612736
+text                                         496508   1610621632
+.ARM.exidx                                        8   1611118140
+initlevel                                       304   1611118148
+device_area                                     532   1611118452
+sw_isr_table                                   1280   1611118984
+_static_thread_data_area                         48   1611120264
+entropy_driver_api_area                           8   1611120312
+gpio_driver_api_area                             36   1611120320
+wdt_driver_api_area                              16   1611120356
+clock_control_driver_api_area                    28   1611120372
+mdio_driver_api_area                             16   1611120400
+uart_driver_api_area                             20   1611120416
+ethphy_driver_api_area                           40   1611120436
+net_l3_register_area                             32   1611120476
+net_socket_register_area                         32   1611120508
+http_service_desc_area                           52   1611120540
+log_const_area                                   16   1611120592
+log_backend_area                                 16   1611120608
+tbss                                             44   1611120624
+rodata                                        78212   1611120624
+nocache                                         112   2147483648
+nocache_load                                     16   2147483760
+.ramfunc                                          0   2147483776
+datas                                          3260   2147483776
+device_states                                    40   2147487036
+log_mpsc_pbuf_area                               68   2147487076
+log_msg_ptr_area                                  4   2147487144
+k_mem_slab_area                                 192   2147487148
+k_heap_area                                      24   2147487340
+k_mutex_area                                    280   2147487364
+k_sem_area                                       72   2147487644
+net_buf_pool_area                               120   2147487716
+net_if_area                                      64   2147487836
+net_if_dev_area                                  40   2147487904
+net_l2_area                                      20   2147487944
+http_resource_desc_crux_web_service_area         88   1611203040
+http_content_type_area                           72   1611203128
+http_header_name_area                            28   1611203200
+.comment                                         31            0
+.debug_aranges                                47648            0
+.debug_info                                 4818141            0
+.debug_abbrev                                289642            0
+.debug_line                                 1263730            0
+.debug_frame                                 152676            0
+.debug_str                                   364758            0
+.debug_loc                                  1870760            0
+.debug_ranges                                174168            0
+.ARM.attributes                                  50            0
+.last_section                                     4   1611203228
+bss                                          658762   2147488000
+noinit                                       697772   2148146816
+Total                                      10928786
+
+
