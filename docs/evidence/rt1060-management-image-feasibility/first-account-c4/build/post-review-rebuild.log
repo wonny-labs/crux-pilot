@@ -1,0 +1,50 @@
+ninja: Entering directory `/build/c4_bench'
+[0/2] Re-checking globbed directories...
+[1/413] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/39] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/ports/psa/access_psa.c.obj
+[3/39] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/ports/psa/credential_psa.c.obj
+[4/39] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/ports/psa/web_session_psa.c.obj
+[5/39] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/tls_certificate/ports/psa/tls_certificate_psa.c.obj
+[6/39] Generating linker_zephyr_pre0.cmd
+[7/39] Linking C static library app/libapp.a
+[8/39] Building C object zephyr/subsys/random/CMakeFiles/subsys__random.dir/random_psa.c.obj
+[9/39] Linking C static library zephyr/subsys/random/libsubsys__random.a
+[10/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_aead.c.obj
+[11/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_api_stub.c.obj
+[12/39] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/tcp.c.obj
+[13/39] Linking C static library zephyr/subsys/net/ip/libsubsys__net__ip.a
+[14/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_asymmetric.c.obj
+[15/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_asymmetric_api.c.obj
+[16/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_chacha20_poly1305.c.obj
+[17/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_crypto.c.obj
+[18/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_cipher.c.obj
+[19/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_ecc.c.obj
+[20/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_ed25519_ed448.c.obj
+[21/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_engine.c.obj
+[22/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_hash_engine.c.obj
+[23/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_kem.c.obj
+[24/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_key_derivation.c.obj
+[25/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_key_storage.c.obj
+[26/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_key_wrap.c.obj
+[27/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_mac.c.obj
+[28/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_montgomery.c.obj
+[29/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_pq.c.obj
+[30/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_random.c.obj
+[31/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_rsa.c.obj
+[32/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_xof.c.obj
+[33/39] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/zephyr_init.c.obj
+[34/39] Linking C static library modules/wolfpsa/lib..__..__ws__modules__crypto__wolfpsa__zephyr.a
+[35/39] Linking C executable zephyr/zephyr_pre0.elf
+[36/39] Generating linker.cmd
+[37/39] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[38/39] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[39/39] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      601744 B         8 MB      7.17%
+             RAM:      837804 B        32 MB      2.50%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /build/c4_bench/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi
