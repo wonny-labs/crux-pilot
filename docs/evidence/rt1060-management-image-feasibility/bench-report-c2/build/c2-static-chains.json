@@ -1,0 +1,196 @@
+{
+ "printk": {
+  "bytes": 416,
+  "chain": [
+   "printk",
+   "z_log_vprintk",
+   "z_log_msg_runtime_vcreate",
+   "z_log_msg_finalize",
+   "z_log_msg_commit",
+   "z_log_msg_post_finalize",
+   "z_impl_log_process",
+   "z_log_msg_local_claim",
+   "mpsc_pbuf_claim",
+   "z_impl_k_sem_give",
+   "z_handle_obj_poll_events",
+   "signal_poll_event.isra.0",
+   "z_work_submit_to_queue",
+   "submit_to_queue_locked"
+  ],
+  "frames": [
+   16,
+   24,
+   64,
+   16,
+   8,
+   16,
+   16,
+   0,
+   32,
+   16,
+   16,
+   24,
+   16,
+   24
+  ]
+ },
+ "vprintk": "not found",
+ "z_log_printk": "not found",
+ "z_log_msg_runtime_vcreate": {
+  "bytes": 376,
+  "chain": [
+   "z_log_msg_runtime_vcreate",
+   "z_log_msg_finalize",
+   "z_log_msg_commit",
+   "z_log_msg_post_finalize",
+   "z_impl_log_process",
+   "z_log_msg_local_claim",
+   "mpsc_pbuf_claim",
+   "z_impl_k_sem_give",
+   "z_handle_obj_poll_events",
+   "signal_poll_event.isra.0",
+   "z_work_submit_to_queue",
+   "submit_to_queue_locked",
+   "notify_queue_locked.isra.0",
+   "z_sched_wake"
+  ],
+  "frames": [
+   64,
+   16,
+   8,
+   16,
+   16,
+   0,
+   32,
+   16,
+   16,
+   24,
+   16,
+   24,
+   0,
+   16
+  ]
+ },
+ "k_thread_foreach_unlocked": {
+  "bytes": 24,
+  "chain": [
+   "k_thread_foreach_unlocked"
+  ],
+  "frames": [
+   24
+  ]
+ },
+ "k_thread_stack_space_get": "not found",
+ "malloc_runtime_stats_get": {
+  "bytes": 192,
+  "chain": [
+   "malloc_runtime_stats_get",
+   "malloc_lock",
+   "z_impl_k_mutex_lock",
+   "z_pend_curr",
+   "add_to_waitq_locked",
+   "unready_thread",
+   "z_reset_time_slice",
+   "z_add_timeout",
+   "sys_clock_set_timeout",
+   "elapsed",
+   "sys_clock_elapsed"
+  ],
+  "frames": [
+   8,
+   0,
+   32,
+   24,
+   16,
+   16,
+   16,
+   40,
+   24,
+   0,
+   16
+  ]
+ },
+ "bench_report_core_snapshot": {
+  "bytes": 592,
+  "chain": [
+   "bench_report_core_snapshot",
+   "emit",
+   "crux_tls_certificate_port_event",
+   "crux_security_event_emit",
+   "crux_semaphore_give",
+   "crux_semaphore_impl_give",
+   "z_impl_k_sem_give",
+   "z_handle_obj_poll_events",
+   "signal_poll_event.isra.0",
+   "z_work_submit_to_queue",
+   "submit_to_queue_locked",
+   "notify_queue_locked.isra.0",
+   "z_sched_wake",
+   "ready_thread"
+  ],
+  "frames": [
+   72,
+   80,
+   40,
+   152,
+   16,
+   8,
+   16,
+   16,
+   24,
+   16,
+   24,
+   0,
+   16,
+   16
+  ]
+ },
+ "report_loop": {
+  "bytes": 632,
+  "chain": [
+   "report_loop",
+   "bench_report_core_snapshot",
+   "emit",
+   "crux_tls_certificate_port_event",
+   "crux_security_event_emit",
+   "crux_semaphore_give",
+   "crux_semaphore_impl_give",
+   "z_impl_k_sem_give",
+   "z_handle_obj_poll_events",
+   "signal_poll_event.isra.0",
+   "z_work_submit_to_queue",
+   "submit_to_queue_locked",
+   "notify_queue_locked.isra.0",
+   "z_sched_wake"
+  ],
+  "frames": [
+   40,
+   72,
+   80,
+   40,
+   152,
+   16,
+   8,
+   16,
+   16,
+   24,
+   16,
+   24,
+   0,
+   16
+  ]
+ },
+ "collect": {
+  "bytes": 80,
+  "chain": [
+   "collect",
+   "bench_report_sanitize_name"
+  ],
+  "frames": [
+   48,
+   32
+  ]
+ },
+ "k_mutex_lock": "not found",
+ "k_msleep": "not found"
+}

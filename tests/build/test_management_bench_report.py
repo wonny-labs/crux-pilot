@@ -184,7 +184,9 @@ class Grammar(unittest.TestCase):
 
     def test_too_long_line_fails(self):
         long = capture().replace("thread=main", "thread=" + "m" * 200, 1)
-        self.assertEqual(run_checker(long).returncode, 1)
+        result = run_checker(long)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("over the limit", result.stdout)
 
     def test_needs_a_boot_report_and_a_client_report(self):
         self.assertEqual(run_checker(capture(reports=[report(1, "boot")])).returncode, 1)

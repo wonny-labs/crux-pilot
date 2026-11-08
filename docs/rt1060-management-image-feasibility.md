@@ -183,6 +183,190 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | The CMake guard inside a real configure, for every setting | The target build passes it, and six broken configurations were configured for real ([below](#checks-and-controls)). The other settings of the 40 run in script mode only. |
 | The CI workflow | `.github/` is protected and not changed. The script and the unit tests are not wired into a workflow. |
 
+## Stage 2, row C2: the UART report
+
+Row C2 makes the bench image **say, on the UART, what a board run has to read**: the stack watermark of every thread, the Wolf heap's in-use and peak, and the fingerprint of the listener certificate (D4). It adds a host script that judges the capture. It adds no hardware step. **It measures nothing by itself, and nothing here ran on a board**: the figures of a report come from a run, and the numbers below are the cost of the code (a target build) and what the host and `native_sim` tests showed. The image still refuses to start: C1's switch is untouched.
+
+| Question | Answer |
+| --- | --- |
+| What does the image print? | `BENCH-CERT` once at boot, after the certificate exists (D4). Then **reports**: one `BENCH-STACK` row per thread and one `BENCH-HEAP` row, between a `begin` and an `end` line, at boot, after the traffic of a client has stopped, and once at idle. [Grammar](#the-lines-of-the-report). |
+| How does a host read it? | `tests/zephyr/management_rt1060_compile/check_bench_uart.py CAPTURE [--manifest bench-manifest.json] [--connect 192.168.77.2:443]`. It fails a run whose **HTTP server thread leaves less than 25 percent of its stack unused** (2,048 B of 8,192 B), whose heap peak is over 80 percent of the arena, whose report is torn, short a line or out of sequence, whose sizes differ from the build's manifest, or whose certificate fingerprint is not the one the listener serves. [Margin](#the-http-server-stack-headroom-in-c2). |
+| Is the HTTP stack different? | **No: 8,192 B**, as C1 set it. C2 adds the means to read it. The next size is **16,384 B**, taken when a run leaves under 2,048 B unused ([when](#the-next-size-and-when-to-take-it)). |
+| Did a guard change? | **No.** `bench_guard.h`, `bench_guard.cmake`, `Kconfig.bench`, `bench_declaration.json` and `check_bench_guard.py` are untouched. The new file in `src/` includes `bench_guard.h`, as the script requires, and the script's 38 mutants (37 in C1, one more for the new source's include) are all killed. |
+| What else changed in product code? | One optional setting, **off by default, and then every other image is unchanged**: `CONFIG_CRUX_SSH_STACK_REPORT` in `zephyr/Kconfig`, read by the SSH provider ([why](#why-the-ssh-provider-changed)). |
+| Cost on the target | **Flash +5,000 B** (601,004 B to 606,004 B, 7.22 % of 8 MB), **RAM +4,736 B** (837,804 B to 842,540 B, in SDRAM, 2.51 % of 32 MB). Stack of the printing thread: 2,048 B configured, about 0.5 KB by a static estimate. [Cost](#what-the-report-costs). |
+| What ran | Host: the formatter and the policy built with `-Wall -Wextra -Werror` and the address and undefined-behaviour sanitizers, 42 unit tests, the guard script, three boundary scripts, 9 + 13 mutants killed. `native_sim`: the kernel side with 66 threads and a minute of kernel time. Target: compile and link of the bench image and, for the delta, of `origin/main`. [Checks](#checks-in-c2). |
+
+```mermaid
+flowchart LR
+    subgraph image["Bench image, on the board"]
+        kernel["Kernel thread list<br/>http_server_tid, ssh_listener, ssh_worker,<br/>crux workers, network threads, logging"]
+        ended["Threads that are gone<br/>main (recorded as main() returns)<br/>ssh_worker (kept by the provider)"]
+        heap["malloc_runtime_stats_get<br/>in use, peak, free"]
+        net["Interface TCP segment counter"]
+        cert["Certificate module<br/>crux_tls_certificate_fingerprint"]
+        policy["Policy: boot, quiet after a burst, idle<br/>never closer than 5 s"]
+        core["Thread bench_report<br/>2,048 B stack, 48 rows, one 160 B line buffer"]
+        net --> policy --> core
+        kernel --> core
+        ended --> core
+        heap --> core
+    end
+    core -->|"printk, one line, then 15 ms"| log["Deferred log buffer, 4 KiB"]
+    cert -->|"printk once at boot"| log
+    log --> uart["LPUART1, 115,200 baud"]
+    uart --> capture["Capture on the host"]
+    capture --> check["check_bench_uart.py"]
+    manifest["bench-manifest.json<br/>declared stack and arena"] --> check
+    listener["openssl s_client<br/>the certificate the listener serves"] --> check
+    check --> verdict["PASS or FAIL, a table, JSON with --json"]
+```
+
+### The lines of the report
+
+Every line starts with a marker that nothing else prints, and is at most 159 characters, **whole or absent**: the formatter returns nothing when a line does not fit, and the checker rejects a line over the limit. The capture may hold other lines, and log prefixes in front of a marker.
+
+| Line | Fields | When |
+| --- | --- | --- |
+| `BENCH-CERT v=1 sha256=<32 upper-case pairs joined by colons> source=generated\|stored` | The SHA-256 of the certificate's DER, in the form that `openssl x509 -fingerprint -sha256` prints after its label | Once at boot, after the services started, before the SSH start. If it cannot be read, the image prints `BENCH-CERT unavailable` and stops: it must not look ready. |
+| `BENCH-REPORT v=1 begin seq=N reason=boot\|quiet\|idle uptime_ms=T bursts=B` | `seq` counts reports from 1 at each boot, `bursts` the bursts of traffic seen | Opens a report |
+| `BENCH-STACK seq=N thread=NAME size=S used=U unused=F state=live\|ended` | Bytes of the usable stack, its high-water mark, and what was never touched. `U + F = S` | One per live thread, and one per recorded thread that is gone |
+| `BENCH-HEAP seq=N arena=A in_use=I peak=P free=R` | The configured arena (`CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE`) and `sys_memory_stats`. TLS, wolfSSH and wolfPSA all allocate here. | One per report |
+| `BENCH-REPORT v=1 end seq=N lines=L missed=M` | `L` is the number of `BENCH-STACK` and `BENCH-HEAP` lines before it. `M` is the threads that the 48-row table could not hold, or whose row did not format. | Closes a report. The checker fails on an `L` that is not what arrived, and on `M` above 0. |
+
+A thread name is cut to 23 characters, and any byte other than `A-Z a-z 0-9 _ . [ ] -` becomes `_`. A thread without a name prints as `thread@<address>`.
+
+### When it prints
+
+The report thread wakes every 250 ms and reads a counter of the TCP segments that crossed the one interface (received plus sent). No component has a hook: a client is "something moved the counter". The policy is a function of the time and the counter only, and a host test runs it over traces, including the wrap of both 32-bit values.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Waiting: boot report printed
+    Waiting --> Active: the counter moves
+    Active --> Active: the counter moves
+    Active --> Waiting: still for 2 s and 5 s since the last print: quiet report
+    Waiting --> Waiting: still for 30 s and 5 s since the last print: one idle report
+```
+
+| Rule | Value | What it bounds |
+| --- | ---: | --- |
+| Poll | 250 ms | The delay between the end of a burst and the decision |
+| Quiet period | 2,000 ms | A burst has ended when the counter has not moved for this long. A long SFTP transfer is one burst. An SSH shell that the client keeps open, and that is silent for 2 s, reports with its worker alive. |
+| Minimum gap | 5,000 ms | **No two reports are closer.** The output has a ceiling of one report per 5 s whatever arrives: about 20 lines of 100 to 150 characters, which is about 0.5 KB/s, 4 percent of 115,200 baud. |
+| Idle period | 30,000 ms | One `idle` report after boot and after each burst |
+| Pause after a line | 15 ms | 160 characters take 14 ms on the wire, so the 4 KiB log buffer (it drops on overflow) holds a line or two, and a report is not cut by a dropped message. The `native_sim` run used the same log settings and printed 84 lines with none dropped. |
+
+A stack figure is a **high-water mark**, so a report after a burst shows the deepest use up to then, and no report per request is needed. The one exception is a worker that ends and whose slot starts the next session: the kernel paints that stack again ([below](#why-the-ssh-provider-changed)).
+
+### Which threads
+
+| Thread | Source | Name in the report | Note |
+| --- | --- | --- | --- |
+| HTTP server | The kernel list: Zephyr's `K_THREAD_DEFINE(http_server_tid, ...)` | `http_server_tid` | 8,192 B. Runs each TLS handshake inside `accept`. |
+| SSH listener | The kernel list, named by the provider | `ssh_listener` | 4,096 B |
+| SSH workers | The kernel list while alive, named `ssh_worker`. The provider's figure for the ones that ended, as a `state=ended` row of the same name. | `ssh_worker` | 16,384 B each. The checker takes the lowest unused over every row of a name. |
+| Main | The kernel list until `main()` returns, then the figure that `main()` records on every way out | `main` | 16,384 B. The main thread ends at `BENCH ready`, so its row is `state=ended` in every report after that. |
+| Crux workers, logging, system work queue, network threads, the report thread, idle | The kernel list | The kernel's name, or `thread@<address>` where Zephyr gives none | The report thread's own row shows what printing costs on its stack. The first report cannot show it all: the deepest part, `printk`, runs after the row is read. |
+
+The table holds 48 rows. A 49th thread is counted in `missed=` and fails the check, so a thread that is not seen is never silent. The `native_sim` run with 66 threads printed 48 rows and `missed=18`, and the checker failed it for that reason and for the HTTP row that fell outside the table.
+
+### The HTTP server stack headroom in C2
+
+The stack is **8,192 B** (`CONFIG_HTTP_SERVER_STACK_SIZE` in `target.conf`, the owner's request), 1.9 times the static estimate of one handshake path (4,272 B). The static chain is neither an upper nor a lower bound, so C2 builds the means to read the real figure, and states a rule for what is enough.
+
+**The proposed margin: at least 25 percent of the stack unused at the lowest point of any report, which is 2,048 B of 8,192 B (used at most 6,144 B).** It is the script's default, `--http-margin-percent 25`.
+
+| Part of the margin | Bytes | Why |
+| --- | ---: | --- |
+| A path that the run did not take | 1,672 | The static chains of the two handshake paths in the [thread table](#thread-stacks) differ by this much: 4,272 B for a P-256 client share, about 2.6 KB for X25519 (4,272 − 2,600). A run that exercises only the shallower path under-reads the deeper one by up to this. |
+| Exception frames on the thread stack | 240 | Stage 0's allowance for interrupt frames with the FPU, which the static chains leave out |
+| Sum | 1,912 | |
+| Margin | **2,048** | 25 percent of 8,192 B: the sum rounded up to a quarter of the stack |
+
+This is a proposal for the owner to adopt or change, **not a measurement**, and the script takes it as a parameter.
+
+### The next size and when to take it
+
+| Question | Answer |
+| --- | --- |
+| Next size | **16,384 B** (`CONFIG_HTTP_SERVER_STACK_SIZE=16384`). It costs **8,192 B more RAM** in SDRAM, 0.02 percent of its 32 MB, and no Flash. The same rule then asks for used at most 12,288 B. |
+| When | When a board run's lowest unused HTTP stack is **under 2,048 B** (used over 6,144 B). The checker prints the verdict and the next size. A smaller stack is not proposed: the owner asked for 8,192 B, and a run that shows less use does not take it back. |
+| What a run must do to count | It must exercise the deepest path, because a report of a run of only `curl` can flatter. The [plan](#the-plan-outline-for-the-board-stage) asks for `openssl s_client -groups P-256`, `-groups X25519`, a client that rejects the certificate, `curl` and a browser, with 3 s between clients. The checker cannot know which ran: the plan's list is the control. |
+| How it is read | The lowest `unused` of `http_server_tid` over all reports of the capture, because the stack is painted once when the thread is created and the mark only grows |
+
+### Why the SSH provider changed
+
+A worker's stack is painted again each time its slot starts a connection, so a read after the fact shows the newest session and not the deepest, and a worker that has ended is in no thread list. A host cannot recover either from outside the provider. The change is under `CONFIG_CRUX_SSH_STACK_REPORT` (Kconfig, **off by default**, so every other image is unchanged):
+
+| Change | Where | Cost |
+| --- | --- | --- |
+| The listener and each worker get a name (`ssh_listener`, `ssh_worker`) | `crux_ssh_wolf_provider.c`, a call after each thread is created | Two calls and two strings |
+| A worker that ends records `k_thread_stack_space_get()` of itself, the lowest of all, with a compare-and-swap | The end of `connection_thread`, before its slot is freed | One pass over the stack when a connection ends |
+| `crux_ssh_wolf_worker_stack_ended()` returns that figure | `crux_ssh_wolf_provider.h`, under the same symbol | 60 B of Flash and 8 B of RAM |
+
+### What the report costs
+
+Measured from the linker's report of two target builds of the same recipe: the bench image of this change, and `origin/main` at `a47c1590` (C1). The base build reproduces C1's recorded `zephyr.bin` SHA-256 `8b557969...`, so the delta is against the merged image. The partition below is read from the symbol tables (`build/c2-symbol-diff.txt`) and is approximate; the totals are the linker's.
+
+| Item | C1 (`a47c1590`) | C2 | Delta |
+| --- | ---: | ---: | ---: |
+| FLASH | 601,004 B | **606,004 B** (7.22 %) | **+5,000 B** (0.83 %) |
+| RAM (SDRAM) | 837,804 B | **842,540 B** (2.51 %) | **+4,736 B** |
+| `size`: text, data, bss | 596,504, 4,480, 833,254 | 601,320, 4,668, 837,802 | +4,816, +188, +4,548 |
+| Steps, warnings | 551, 3 | 557, the same 3 (wolfSSH `wolfsftp.c`) | +6, 0 |
+| `zephyr.bin` SHA-256 | `8b557969dc8c...` | `8b3bd6a54eaf...` | |
+
+| Where the bytes go | Flash | RAM |
+| --- | ---: | ---: |
+| The report's own code (formatter, policy, thread, glue; 24 symbols) | about 2,430 B | |
+| Stack of the report thread (2,048 B and 64 B that Zephyr adds to a stack object) | | 2,112 B |
+| The thread table (48 rows of 36 B) | | 1,728 B |
+| Thread object, line buffer (160 B), rows of ended threads (144 B) | | 504 B |
+| Kernel and certificate functions that the report is the first caller of (`k_thread_foreach_unlocked`, heap statistics, the fingerprint) | about 330 B | |
+| `CONFIG_NET_STATISTICS` with the per-interface TCP counters (the report's activity signal) | about 1,300 B | about 390 B with the report's lock and counters |
+| The SSH provider's change | about 160 B | 8 B |
+| The rest: strings of the lines, alignment | about 780 B | |
+
+| Cost | Value |
+| --- | --- |
+| Stack of the printing thread | **2,048 B** configured. A static estimate along direct calls is **528 B**: the loop 40 B, the snapshot 72 B, `printk` and the log core 416 B (`build/c2-static-chains.json`). That is not a measurement: the report thread's row says what a run used. |
+| CPU | A report reads each thread's stack once (the longest, 16 KiB, is one pass) and sleeps 15 ms per line, so about 0.3 s of wall time at the lowest priority for 20 lines. The activity counter is read every 250 ms. `NET_STATISTICS` adds a counter update per TCP segment. |
+| Printing bound | At most one report per 5 s, each of at most 48 + 2 + 1 + 2 lines, each at most 159 characters, from static buffers. No allocation in the path. |
+
+### Checks in C2
+
+| Check | Result | Who ran it |
+| --- | --- | --- |
+| The formatter and the policy, `bench_report_host_test.c`, built with `-Wall -Wextra -Werror` and the address and undefined-behaviour sanitizers | Pass. Red first: four checks failed (a 134-character certificate line against a 128-character limit, now 160, and an unclean buffer after a refusal). **9 of 9 mutants killed**; two survived at first (idle not re-armed by a burst, the clock wrap tested on the wrong side of the wrap) and two cases were added. [Output](evidence/rt1060-management-image-feasibility/bench-report-c2/host/c-mutants.txt) | The author, on the host |
+| `check_bench_uart.py`, `tests/build/test_management_bench_report.py` | 28 tests pass, over hand-made captures and over the C code's own sample report. Red first (no script). **13 of 13 mutants of the script killed**; one survived at first (the line limit, which a malformed line also trips) and its test now asserts the reason. [Output](evidence/rt1060-management-image-feasibility/bench-report-c2/host/checker-mutants.txt) | The author, on the host |
+| `python3 -m unittest` of that file and the two C1 files | 42 tests pass | The author, on the host |
+| `check_bench_guard.py --verbose` | CMake, C and Kconfig levels ok, **38 of 38 mutants killed** ([output](evidence/rt1060-management-image-feasibility/bench-report-c2/host/check_bench_guard-verbose.txt)) | The author, on the host |
+| `check-ssh-boundaries.py`, `check-native-interfaces.py`, `check-mgmt-services-boundary.py` | Pass | The author, on the host |
+| clang-format 18 over the new and changed C | Clean after formatting | The author, in the Dev Container |
+| `native_sim` run of the kernel side (`tests/native/bench_report`) | Built with `-Werror` and no warning. The run (`-no-rt`) printed 4 reports with the bench image's log settings, **no dropped message**, no duplicate line: boot at 0 ms, quiet at 12.8 s (the burst ended at 10.5 s), idle at 40.9 s, and the overflow report `lines=51 missed=18`. `check_bench_uart.py` passes reports 1 to 3 and fails report 4, as it must. **The stack numbers of `native_sim` mean nothing** (a thread runs on a host stack). [Output](evidence/rt1060-management-image-feasibility/bench-report-c2/native/run-no-rt.txt) | The author, in the Dev Container |
+| Compile and link for `mimxrt1060_evk@B//qspi` | **Linked** from the committed tree `ff1946db`, `source_tree_modified: false`, the bench guards inside the configure, three warnings as before. [Cost](#what-the-report-costs) | The author, in the Dev Container |
+| `strings` on the linked image | The marker strings are in it. The public test password occurs 0 times. | The author |
+| **Not run** | A board and any client, the image's own boot and its report lines, the TLS handshake and its stack, the log path on the real UART, the script against a real capture, `--connect` against a listener (the openssl step ran against a certificate that openssl made), the CI workflows | |
+
+### Decisions taken in C2
+
+Taken without the owner, each the narrower choice. The owner's decisions are recorded above.
+
+| # | Decision | Why |
+| --- | --- | --- |
+| C2-1 | The margin is **25 percent of the stack**, a parameter of the script, for the owner to adopt or change | The stack is the owner's concern ("big enough that it is no problem"). The rule gives a run a number to fail on, and the arithmetic is above. |
+| C2-2 | A client is **traffic**, not a hook in a component: the TCP segment counter of the interface moves | No component changes for a report. Any TCP segment counts, a refused connection too. The report cannot say which kind of client it follows: the host knows the order of its own steps. |
+| C2-3 | The reports print **after** a burst and at idle, and never closer than 5 s | A watermark only grows, so a report after a burst holds what the burst did, and the output has a ceiling |
+| C2-4 | Every thread is listed, up to 48 rows, and one that does not fit fails the check | "Every thread that matters" is not a list that stays in step with Zephyr's own threads. 48 is a guess for about 25 threads that nobody counted on a target. |
+| C2-5 | The certificate fingerprint is the **module's** (`crux_tls_certificate_fingerprint`), and the host checks it against what the listener serves | The module hashes the bytes that `crux_tls_certificate_material_take` hands to the TLS credentials. The comparison with `openssl s_client` is what shows that the listener serves them. A second hash in the image would check nothing the host does not. |
+| C2-6 | One small change to the SSH provider, under an off-by-default symbol | No other way gives the worker figure after the thread is gone: [why](#why-the-ssh-provider-changed) |
+| C2-7 | The formatter and the policy have no libc formatting and no Zephyr, and live in `report/`, outside `src/` | A host compiler tests them with the sanitizers. `check_bench_guard.py` requires every file in `src/` to include the guard, and these hold no test form. |
+| C2-8 | `check_bench_uart.py` sits beside the image, as `check_bench_guard.py` does, and not in `scripts/` | `scripts/` is protected |
+| C2-9 | A thread other than the HTTP server **warns** under the margin, and fails only with `--strict` or `--fail-thread` | The task asks for the HTTP stack to fail a run. The other figures are findings for C6 and the owner, and some of those stacks have defaults that nobody here chose. |
+| C2-10 | A heap peak over 80 percent of the arena fails | A proposal in the same spirit, as a parameter. The paper rule is 60 percent and `native_sim` read 19 percent. |
+| C2-11 | `CONFIG_NET_STATISTICS` (TCP, per interface) is on in the bench image | It is the signal for "a client is talking" without touching a component, for about 1.7 KB in all. Row C6 may want the network buffer counts as well: not added here. |
+
 ## What the vehicle is and is not
 
 This section and the ones below it are the report of stage 0. Where C1 changed a statement, the row says so, and [Stage 2, row C1](#stage-2-row-c1-the-bench-composition) is the current state. The word "vehicle" is the same image, now under the bench declaration.

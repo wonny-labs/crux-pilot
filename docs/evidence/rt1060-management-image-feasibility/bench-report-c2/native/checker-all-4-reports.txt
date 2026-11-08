@@ -1,0 +1,63 @@
+4 reports (boot 1, quiet 1, idle 2)
+thread                      size  used max  unused min  unused %
+bench_report                2048        40        2008     98.0%
+http_server_tid             8192        40        8152     99.5%
+idle                         256        40         216     84.4%
+logging                     2048        40        2008     98.0%
+main                        4096        40        4056     99.0%
+ssh_worker                 16384     10384        6000     36.6%
+thread@4144c0                512        40         472     92.2%
+thread@4145a8                512        40         472     92.2%
+thread@414690                512        40         472     92.2%
+thread@414778                512        40         472     92.2%
+thread@414860                512        40         472     92.2%
+thread@414948                512        40         472     92.2%
+thread@414a30                512        40         472     92.2%
+thread@414b18                512        40         472     92.2%
+thread@414c00                512        40         472     92.2%
+thread@414ce8                512        40         472     92.2%
+thread@414dd0                512        40         472     92.2%
+thread@414eb8                512        40         472     92.2%
+thread@414fa0                512        40         472     92.2%
+thread@415088                512        40         472     92.2%
+thread@415170                512        40         472     92.2%
+thread@415258                512        40         472     92.2%
+thread@415340                512        40         472     92.2%
+thread@415428                512        40         472     92.2%
+thread@415510                512        40         472     92.2%
+thread@4155f8                512        40         472     92.2%
+thread@4156e0                512        40         472     92.2%
+thread@4157c8                512        40         472     92.2%
+thread@4158b0                512        40         472     92.2%
+thread@415998                512        40         472     92.2%
+thread@415a80                512        40         472     92.2%
+thread@415b68                512        40         472     92.2%
+thread@415c50                512        40         472     92.2%
+thread@415d38                512        40         472     92.2%
+thread@415e20                512        40         472     92.2%
+thread@415f08                512        40         472     92.2%
+thread@415ff0                512        40         472     92.2%
+thread@4160d8                512        40         472     92.2%
+thread@4161c0                512        40         472     92.2%
+thread@4162a8                512        40         472     92.2%
+thread@416390                512        40         472     92.2%
+thread@416478                512        40         472     92.2%
+thread@416560                512        40         472     92.2%
+thread@416648                512        40         472     92.2%
+thread@416730                512        40         472     92.2%
+thread@416818                512        40         472     92.2%
+thread@416900                512        40         472     92.2%
+thread@4169e8                512        40         472     92.2%
+thread@416ad0                512        40         472     92.2%
+thread@416bb8                512        40         472     92.2%
+thread@416ca0                512        40         472     92.2%
+thread@416d88                512        40         472     92.2%
+thread@416e70                512        40         472     92.2%
+thread@416f58                512        40         472     92.2%
+thread@417040               1024        40         984     96.1%
+heap: peak 0 B of 65536 B (0.0 percent, limit 80), in use at most 0 B
+certificate: None
+FAIL report seq=4: 18 threads missed (the table was full)
+FAIL report seq=4: no row for http_server_tid
+FAIL
+rc=1

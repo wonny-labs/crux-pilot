@@ -1,0 +1,14 @@
+killed    margin compared with <= (off by one)
+killed    lowest unused not kept over reports
+killed    row that does not add up accepted
+killed    lost line not noticed
+killed    gap in seq accepted
+killed    different certificate accepted
+killed    first boot compared instead of the last
+killed    heap limit ignored
+killed    missed threads accepted
+killed    declared stack size not compared
+killed    missing client report accepted
+killed    missing boot report accepted
+killed    over-long line accepted
+13 of 13 killed
