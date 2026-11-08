@@ -116,6 +116,8 @@ class Nic(unittest.TestCase):
             adapter.parse_interface(without_address)                      # an active link without the address is not the isolated NIC
         with self.assertRaisesRegex(Exception, 'mismatch'):
             adapter.parse_interface(up.replace(MAC, '00:24:9b:00:00:01'))
+        with self.assertRaisesRegex(Exception, 'mismatch'):               # a link that is down still must not show another address
+            adapter.parse_interface(up.replace('status: active', 'status: inactive').replace(HOST, '192.168.99.1'))
         with self.assertRaisesRegex(Exception, 'mismatch'):
             adapter.parse_interface(real.text('ifconfig_en13_link_down').replace(MAC, '00:24:9b:00:00:01'))
 
@@ -124,6 +126,12 @@ class Nic(unittest.TestCase):
         self.assertEqual(adapter.parse_direct_route(route, HOST)['route_destination'], '192.168.77.0')
         with self.assertRaises(Exception):
             adapter.parse_direct_route(route.replace('destination: 192.168.77.0', 'destination: default').replace('interface: en13', 'interface: en0'), HOST)
+
+    def test_the_cloned_host_route_form_is_accepted_and_a_router_flag_is_not(self):
+        route = real.text('route_get_cloned_host_proxy')
+        self.assertEqual(adapter.parse_direct_route(route, HOST)['route_flags'], ['UP', 'HOST', 'DONE', 'LLINFO', 'WASCLONED', 'IFSCOPE', 'IFREF'])
+        with self.assertRaises(Exception):
+            adapter.parse_direct_route(route.replace('<UP,', '<UP,GATEWAY,'), HOST)
 
     def test_the_route_and_carrier_check_accepts_the_active_forms_and_stops_without_carrier(self):
         def checked(texts):

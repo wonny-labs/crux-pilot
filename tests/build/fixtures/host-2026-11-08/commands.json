@@ -24,6 +24,7 @@
    "-Fp",
    "<cu node held by this process>"
   ],
+  "note": "PROXY: a scratch file held open by the capturing Python process stands in for the cu node (the UART was never opened to capture this); the tty path is the real node, unopened. The output format is the real lsof format; pyserial opens the cu node with one descriptor, here the stand-in has one or two",
   "returncode": 0,
   "stderr": "",
   "stdout": "p%PID%\nf4\nf5\n"
@@ -35,6 +36,7 @@
    "<cu node held by this process>",
    "/dev/tty.usbmodem11402"
   ],
+  "note": "PROXY: a scratch file held open by the capturing Python process stands in for the cu node (the UART was never opened to capture this); the tty path is the real node, unopened. The output format is the real lsof format; pyserial opens the cu node with one descriptor, here the stand-in has one or two",
   "returncode": 1,
   "stderr": "",
   "stdout": "p%PID%\nf4\nf5\n"
@@ -45,6 +47,7 @@
    "-Fp",
    "<cu node held through two descriptors>"
   ],
+  "note": "PROXY: a scratch file held open by the capturing Python process stands in for the cu node (the UART was never opened to capture this); the tty path is the real node, unopened. The output format is the real lsof format; pyserial opens the cu node with one descriptor, here the stand-in has one or two",
   "returncode": 0,
   "stderr": "",
   "stdout": "p%PID%\nf4\nf5\nf6\n"
@@ -109,6 +112,18 @@
   "returncode": 0,
   "stderr": "",
   "stdout": "14581 /Library/Develop Sun Nov  8 06:41:05 2026    \n"
+ },
+ "route_get_cloned_host_proxy": {
+  "command": [
+   "route",
+   "-n",
+   "get",
+   "192.168.77.2"
+  ],
+  "note": "PROXY: real route -n get of an ARP-resolved neighbour on the active host interface en0 (the cloned host route form) with the address and interface name replaced",
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "   route to: 192.168.77.2\ndestination: 192.168.77.2\n  interface: en13\n      flags: <UP,HOST,DONE,LLINFO,WASCLONED,IFSCOPE,IFREF>\n recvpipe  sendpipe  ssthresh  rtt,msec    rttvar  hopcount      mtu     expire\n       0         0         0         0         0         0      1500      1196 \n"
  },
  "route_get_direct_network_proxy": {
   "command": [

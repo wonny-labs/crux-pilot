@@ -453,6 +453,8 @@ class OwnerInventory(unittest.TestCase):
                 for name, key, answer in (
                         ('a second owner', 'cu', subprocess.CompletedProcess([], 0, (self.REAL % os.getpid()) + 'p999\nf3\n', '')),
                         ('exit 1 from the cu listing', 'cu', subprocess.CompletedProcess([], 1, self.REAL % os.getpid(), '')),
+                        ('stderr from the cu listing', 'cu', subprocess.CompletedProcess([], 0, self.REAL % os.getpid(), 'lsof: WARNING')),
+                        ('the tty listing exits 0 with nothing', 'tty', subprocess.CompletedProcess([], 0, '', '')),
                         ('someone holds the tty node', 'tty', subprocess.CompletedProcess([], 0, 'p999\nf3\n', '')),
                         ('stderr from the tty listing', 'tty', subprocess.CompletedProcess([], 1, '', 'lsof: WARNING'))):
                     with self.subTest(name):

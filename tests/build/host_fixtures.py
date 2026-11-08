@@ -1,10 +1,18 @@
 """Real output of the read-only host commands that the stage 1 code parses, captured on 2026-11-08.
 
 ``fixtures/host-2026-11-08/commands.json`` holds command, exit status, stdout and stderr as the Mac
-produced them (only the process id of lsof is a ``%PID%`` placeholder, user names, hex digits of the
-boot session UUID and process lists are trimmed, and the two entries marked PROXY are real output of
-the active DHCP interface with the bench identity substituted). The fakes of the tests are built from
-these, so a parser that disagrees with the real tool fails here and not on the first real run.
+produced them. Edits: the process id of lsof is a ``%PID%`` placeholder, user names, hex digits of the
+boot session UUID and process lists are trimmed. Entries with a ``note`` starting with PROXY are not
+captured from the bench itself: the ``lsof_cu_held_*`` entries hold a scratch file open in the capturing
+Python process in place of the cu node (the UART was never opened for this), and three entries are real
+output of the active DHCP interface en0 with the bench identity substituted (ifconfig, connected network
+route, cloned host route). The fakes of the tests are built from these, so a parser that disagrees with
+the real tool fails here and not on the first real run.
+
+``jlink-loadfile-verifybin-restart.log`` is a real J-Link Commander V9.86a transcript of this probe and
+target (``usb 602003106``, ``loadfile``, ``verifybin``, ``r``, ``g``, ``q``), copied from the owner's local
+backup folder (``crux-backup/rt1060/codesys-night-20261104/n50-restore.log``, file dated 2026-11-05) with the
+image path replaced by ``<image>.bin``; it is another firmware and another day than this run.
 """
 import json
 import os
