@@ -130,7 +130,8 @@ call, and no retry. The existing functions keep their behaviour on root 0.
 
 - **Roots.** A root is a directory that the composition binds, once per index, with
   `crux_file_linux_bind_root` or `crux_file_zephyr_bind_root`. `crux_file_linux_bind` and
-  `crux_file_zephyr_bind` bind root 0. A path that is equal to, inside or a parent of another
+  `crux_file_zephyr_bind` bind root 0. A product reaches the Zephyr functions through the
+  composition target `crux::file_zephyr` ([File root binding](file-composition-interface.md)). A path that is equal to, inside or a parent of another
   bound root returns INVALID_STATE, comparing path text only, so a FAT case alias or a Linux
   symbolic link in a composition's paths is not caught. An unbound or out-of-range root
   returns NOT_READY, after argument checks. `CRUX_FILE_ROOTS_MAX` is a build setting, default 8.
