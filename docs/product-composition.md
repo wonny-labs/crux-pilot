@@ -1,6 +1,6 @@
 # Product Composition Guide
 
-**Status: adopted practice, 2026-11-04.** The routes below are provisional until the first products have tried them. No Crux release tag exists yet: the first tag waits for that trial. The release bundle is a convention with no schema or checker yet, and the baseline gate warns by default until consumers reach the baseline. This guide records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
+**Status: adopted practice, 2026-11-04.** The routes below are provisional until the first products have tried them. No Crux release tag exists yet: the first tag waits for that trial. The release bundle is a convention. A first schema and checker exist in a product repository, and Crux has adopted neither. The baseline gate warns by default until consumers reach the baseline. This guide records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
 
 Use it with the [product template](../samples/product_template/README.md), a small directory you copy to start a product repository. For other ways to consume Crux, see the [Build and Integration Guide](build.md).
 
@@ -15,7 +15,7 @@ Dependencies run one way: product to Crux to Zephyr. Crux knows nothing about an
 | Checks | `west crux-pins`, the Zephyr baseline gate and `scripts/record-build-provenance.py` | Running them in its own CI and keeping the results |
 | Third-party changes | Only what Crux itself needs | The route it takes and the pin in its manifest. The organisation, not a product, owns each fork and vendor repository, its tags, its `-acmeN` counter and its carried-changes list |
 | Versions | Its own tags, once they exist | The product version and its security counter |
-| Release | No bundle schema or checker, signing or SBOM reduction tool | The release branch, the lock file, signing and what goes outward |
+| Release | No adopted bundle schema or checker, and no signing or SBOM reduction tool | The release branch, the lock file, signing and what goes outward. A public product repository publishes hashes only, see [Release bundle](#release-bundle) |
 | Commercial modules | Nothing. Crux's manifest names only public modules | Their names, URLs and licences, in product or organisation manifests |
 
 ## Structure
@@ -43,7 +43,7 @@ flowchart TB
 
 The product uses west's T2 topology: the product repository is the manifest repository, and Crux and Zephyr are projects in its workspace.
 
-The active part of the [template manifest](../samples/product_template/west.yml):
+The active part of the [template manifest](../samples/product_template/west.yml), comments included:
 
 ```yaml
 manifest:
@@ -54,7 +54,9 @@ manifest:
   projects:
     - name: crux-pilot
       remote: crux
-      revision: main # No Crux tag exists yet. Pin a tag or SHA for a release.
+      # No Crux tag exists yet, so this follows main. For a release,
+      # pin a tag or SHA here and freeze the manifest. See the guide in README.md.
+      revision: main
       import: true
   self:
     path: product-x
@@ -63,13 +65,13 @@ manifest:
 This resolves Zephyr and every allowlisted module at the revisions Crux pins. The product repeats no revision. Importing is recommended, not required. See [Pinning by hand](#pinning-by-hand).
 
 - **First definition wins.** West uses the first definition of a project name. Entries in the product manifest beat anything imported.
-- **Optional groups are off by default.** Crux keeps its secure management stacks in the `crux-secure-management` group. An ordinary workspace does not fetch them. The wolfSSL TLS backend of those stacks needs a [Zephyr patch](../patches/zephyr/README.md#wolfssl-tls-socket-backend) that is not stored in this repository. How a product applies it is the owner's open decision under Issue #185: [HTTPS composition](https-composition.md#how-a-product-applies-the-wolfssl-patch) recommends that the product's own manifest pin a Zephyr fork with the patch applied (option B), and adopts nothing.
+- **Optional groups are off by default.** Crux keeps its secure management stacks in the `crux-secure-management` group. An ordinary workspace does not fetch them. A second group, `crux-reliance`, holds the Reliance Edge file system source, which is GPLv2 only, and is off for the same reason. The wolfSSL TLS backend of those stacks needs a [Zephyr patch](../patches/zephyr/README.md#wolfssl-tls-socket-backend) that is not stored in this repository. How a product applies it is the owner's open decision under Issue #185: [HTTPS composition](https-composition.md#how-a-product-applies-the-wolfssl-patch) recommends that the product's own manifest pin a Zephyr fork with the patch applied (option B), and adopts nothing.
 - **A filter only narrows.** A product `name-allowlist` on the Crux import can remove what Crux allows. It cannot add what Crux left out.
 
 | Goal | What to write | `west crux-pins` reports |
 | --- | --- | --- |
 | Use what Crux pins | `import: true` | `OK` |
-| Enable an optional set | `group-filter: [+crux-secure-management]`, with no revision | `OK` |
+| Enable an optional set | `group-filter: [+crux-secure-management]` or `[+crux-reliance]`, with no revision | `OK` |
 | Add a product-only module | A plain project entry with its revision | `PRODUCT` |
 | Replace a project Crux pins | An entry with the same name, its path, and `userdata: crux-override` | `OVERRIDE` |
 | Use fewer modules | `import: name-allowlist: [...]` on `crux-pilot`, including `zephyr` | `OK` for what remains |
@@ -259,7 +261,7 @@ Give the edition a different project name, so that it reports `PRODUCT`.
 - **Group or filter.** With the Crux group off, the original is inactive but still holds its path, and west rejects a second project on it. Use another path. To keep the path, or to enable the group for its other projects, filter the original out with `name-allowlist` on the Crux import.
 - **Record.** The original gets no line of its own and the new name reports `PRODUCT`, with no stated reason. So list each replaced module in `release-manifest.json`.
 - **Name.** Do not reuse the name unless the repository contains the commit Crux pins, because `west crux-pins` errors otherwise.
-- **Licence.** A public edition's licence may not suit a closed product. For example, the public wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence, so check [their terms](../patches/zephyr/README.md#wolfssl-tls-socket-backend) before enabling the optional group.
+- **Licence.** A public edition's licence may not suit a closed product. For example, the public wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence, so check [their terms](../patches/zephyr/README.md#wolfssl-tls-socket-backend) before enabling `crux-secure-management`. The public Reliance Edge source is GPLv2 only, so check its licence in the same way before enabling `crux-reliance` in a product that distributes a binary.
 
 ### Soft forks
 
@@ -302,9 +304,9 @@ Use it for short-term development checks only. At Zephyr v4.4.2:
 - There is no `reverse` subcommand. The subcommands are `apply`, `clean`, `gh-fetch` and `list`.
 - With `git apply`, a pin move that does not touch the file carried the diff across, and one that touches it failed.
 
-### One file in this repository
+### Sources replaced in this repository
 
-This public repository carries two replaced Zephyr sources, each as a [build-local replacement](../patches/zephyr/README.md) of one file. For each, a script checks the original hash and patches a temporary copy, and CMake swaps exactly that one source in the build. It never edits the Zephyr checkout. This suits a single file. For anything larger, use the routes above.
+This public repository replaces some Zephyr sources in the build without editing the Zephyr checkout. Three are single-file corrections in [patches/zephyr](../patches/zephyr/README.md): NXP ENET MDIO, Mbed TLS entropy and MMC cache flush. The fourth case is the Settings File backend: `zephyr/CMakeLists.txt` takes corrected copies of three of its sources from `tests/native/configuration_settings_file` when `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE` is set, apart from one `native_sim` test fixture, so a product build reaches a file under `tests/`. For each, a script checks the original against the pinned Zephyr source and patches a temporary copy, and CMake replaces only those sources in the build. This suits a few files. For anything larger, use the routes above.
 
 ## Versions
 
@@ -432,11 +434,11 @@ west spdx -d product-x/build/app
 
 ### Release bundle
 
-This is a convention. Its schema and checker come at the first product release.
+This is a convention. A first schema and checker exist in a product repository. Crux has adopted neither.
 
 | Item | Source | Audience |
 | --- | --- | --- |
-| Firmware image | `build/app/zephyr/zephyr.bin` | Outward |
+| Firmware image | `build/app/zephyr/zephyr.bin` | Outward to customers through a private delivery channel only. In a public repository, publish only its SHA-256, in the release manifest. Never attach the image, `.elf` or `.map` as a release asset or CI artefact |
 | `licences/` | The licence texts of what the image contains | Outward |
 | Outward SBOM | Reduced by the product from the full set | Customers |
 | `release-manifest.json` | Product version, security counter, release tag, SDK version, container image, hashes of the bundle's items. Per vendor project, its delivery tag and the hash of its hash list. Each module replaced under a new name. Any other delivery the build record does not cover | Internal |
@@ -446,6 +448,8 @@ This is a convention. Its schema and checker come at the first product release.
 | Carried-changes list | For each fork and vendor branch, the history of local commits, `git log --no-merges <last-delivery-tag>..HEAD`, and what is actually carried, `git diff <last-delivery-tag> HEAD`. A fork names its upstream tag in place of the delivery tag | Internal |
 | Full SBOM | `build/app/spdx/` | Internal. Authorities receive it on request |
 | Debug files | `build/app/zephyr/zephyr.elf` and `zephyr.map` | Internal only |
+
+A public repository publishes hashes only. This is the owner's binaries policy for public repositories: the firmware image, `.elf` and `.map` are never a release asset or a CI artefact, and customers receive the image through a private delivery channel.
 
 Repairing identity and adding prebuilt libraries applies from the first release, also for the internal set. See [SBOM](#sbom). The reduction tool waits until an SBOM first goes outward.
 
@@ -475,7 +479,7 @@ At Zephyr v4.4.2:
 - `zspdx/walker.py` `_build_purl` accepts only `git@` and `http(s)://` URLs, so a fork on an `ssh://` URL gets no purl.
 - Only an exact `vX.Y.Z` tag gives the package version and the CPE, so a fork tag such as `v4.4.2-acme1` does not. A release step can add the upstream base identity back. A fork on an `https://` URL was not tested.
 - A repair step must cover each modified package, including the module dependency records in `modules-deps.spdx`, whose references come from `module.yml` and not from the fork.
-- `_build_purl` on an `https://` URL gives a purl that carries the host and path, so a reduction must remove it for an internal host. `https://git.example/scm/acme/zephyr` gives `pkg:git/scm/acme/zephyr`.
+- `_build_purl` on an `https://` URL gives a purl that carries the host and path, so a reduction must remove it for an internal host. The host without its last label becomes the purl type, and the tag, when one is passed, follows `@`. `https://git.example/scm/acme/zephyr` gives `pkg:git/scm/acme/zephyr`, and `@v4.4.2` is appended for that tag.
 - The walker builds a purl for each tag on the Zephyr commit, so an organisation string in a fork tag on an `https://` URL appears in the outward SBOM unless it is removed.
 
 A real product must scan its own image for private strings. `.elf` and `.map` stay internal.
@@ -490,16 +494,16 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 
 - A throwaway proof of concept built one small application that links `crux::time`. It used Zephyr v4.4.2, west 1.4.0 and SDK 1.0.1, in the amd64 Dev Container image under emulation. It was a cross-build only, for the current EVKB target. Nothing ran on a board. It exercised the composition, fork, `west patch`, SBOM, frozen-manifest and two-path image comparisons. Its copy of the application is not byte-for-byte the template's.
 - That proof of concept ran prototype versions of the pin check and the gate, not the ones in this repository. Its `.config` comparison across paths also removed `# CONFIG_X is not set`, which `firmware_identity` keeps.
-- `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. It uses local throwaway repositories in place of every remote and builds nothing with Zephyr.
+- `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. West 1.4.0 is the version that the Zephyr workflow and the Dev Container pin, and the Host CI job has no west and skips the tests that need it. The tests use local throwaway repositories in place of every remote and build nothing with Zephyr.
 - A one-off check on a GitHub runner followed the release flow in this guide through the template's own manifest, against the real upstream repositories. It used the tools in this repository, with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, at two workspace paths. `west crux-pins` reported `OK`, the build record passed, and `firmware_identity` and `zephyr.bin` were identical. Builds with `-DBUILD_VERSION` set were also byte-identical across the two paths. With Zephyr v4.4.0 in the manifest, `west crux-pins` failed on `zephyr` and `hal_nxp`, a default configure warned and continued, and the required option stopped it. That check is not part of CI.
-- `scripts/test-product-template.sh <board>` runs in the Zephyr CI job. It runs the west-based tests, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`.
+- `scripts/test-product-template.sh <board>` runs in one shard of the Zephyr workflow, `storage`, and that workflow does not run for [documentation-only changes](ci-zephyr-shards.md#documentation-only-changes). It runs the west-based tests, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`.
 - `tests/build/test_product_template.py` also takes these routes through real west 1.4.0 and `west crux-pins`: a vendor branch across two deliveries, delivery lines with a fix on the older one, the hash-list check, a commercial edition under a new project name, a reused project name that must fail, a hand-pinned manifest with no import or with a Zephyr-only import, and the steps for a Zephyr patch release. All of these used invented local repositories. None of these routes built anything with Zephyr.
 - `tests/build/test_crux_pins.py` runs `west crux-pins` through real west 1.4.0 on local throwaway repositories, and `tests/build/test_zephyr_baseline.py` evaluates the gate in `zephyr/CMakeLists.txt` with a mock Zephyr. Neither uses a real Zephyr build.
 
 **What was not run**
 
-- A regular CI build through the template's own manifest. `scripts/test-product-template.sh <board>` runs in the Zephyr CI job, but it builds inside Crux's own workspace.
-- A real git server such as Bitbucket. Local repositories stood in for it, so server behaviour, authentication and clone URL forms are untested.
+- A regular CI build through the template's own manifest. `scripts/test-product-template.sh <board>` runs in the `storage` shard of the Zephyr workflow, but it builds inside Crux's own workspace.
+- A real hosted git server. Local repositories stood in for it, so server behaviour, authentication and clone URL forms are untested.
 - A real commercial module or vendor delivery. `vendor-runtime` was an invented stand-in. A vendor merge with a conflict was not tried.
 - The comparison of a soft fork with patch files on a fresh workspace.
 - `west blobs`, or a delivery kept outside the checkout. What this guide says of `west blobs` comes from reading its source at v4.4.2.
