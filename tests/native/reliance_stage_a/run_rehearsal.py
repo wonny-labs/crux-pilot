@@ -106,9 +106,20 @@ def judge_replace(lines, restarts):
             "cmp_bad": sum(1 for entry in judged if entry["cmp"] == "bad")}
 
 
-def progress(state, kind):
-    """How far the run being watched has got: ACKs (append) or generations (replace) printed."""
-    return state.get("last_ack" if kind == "append" else "last_gen", 0)
+def observe(state, kind, text):
+    """Parse one console line of the run being watched and count it if it is this run's own ACK
+    (append) or GEN (replace) line. The counter is of events printed by this process: the numbers
+    in the lines cannot stand for it, because a replace run starts at the generation after the
+    highest one on the medium. A corrupt line is not counted."""
+    event = (APPEND if kind == "append" else REPLACE).parse_line(text, state)
+    if event == ("ack" if kind == "append" else "gen"):
+        state["events"] = state.get("events", 0) + 1
+    return event
+
+
+def progress(state):
+    """The number of ACK or GEN lines that the watched run has printed so far."""
+    return state.get("events", 0)
 
 
 def status_line(text, name):
@@ -161,35 +172,37 @@ def one_status(lines, name, what):
     return values[0]
 
 
-def run_until_killed(exe, image, profile, kind, target, pause, timeout=300):
-    """Run an image that never returns until `target` ACKs or generations are printed, then SIGKILL.
+def run_until_killed(exe, image, profile, kind, target, pause, label, timeout=300):
+    """Run an image that never returns until it has printed `target` ACK or GEN lines, then SIGKILL.
 
-    The kill follows after `pause` seconds, so that it lands at varying points of the loop.
+    The kill follows after `pause` seconds, so that it lands at varying points of the loop. `label`
+    names the run in a failure message.
 
-    Returns the console lines, including what was still in the pipe when the process died."""
-    module = APPEND if kind == "append" else REPLACE
+    Returns (console lines, ACK or GEN lines printed), including what was still in the pipe when
+    the process died."""
+    where = f"{label}, target {target}, pause {pause:.3f} s"
     with tempfile.TemporaryFile() as errors:
         proc = subprocess.Popen(command(exe, image, profile), stdout=subprocess.PIPE, stderr=errors)
         fd = proc.stdout.fileno()
         lines, state, buffer = [], {}, b""
         deadline = time.monotonic() + timeout
         try:
-            while progress(state, kind) < target:
+            while progress(state) < target:
                 remaining = deadline - time.monotonic()
-                expect(remaining > 0, f"{kind}: {progress(state, kind)} of {target} before the "
-                                      f"timeout; last lines {lines[-3:]}")
+                expect(remaining > 0, f"{where}: {progress(state)} lines before the timeout; "
+                                      f"last lines {lines[-3:]}")
                 if not select.select([fd], [], [], min(remaining, 1.0))[0]:
                     continue
                 chunk = os.read(fd, 65536)
                 if not chunk:
                     errors.seek(0)
-                    raise AssertionError(f"{kind}: the image ended after {progress(state, kind)} of "
-                                         f"{target}; {lines[-3:]} {errors.read()[-400:]}")
+                    raise AssertionError(f"{where}: the image ended after {progress(state)} "
+                                         f"lines; {lines[-3:]} {errors.read()[-400:]}")
                 buffer += chunk
                 while b"\n" in buffer:
                     raw, buffer = buffer.split(b"\n", 1)
                     lines.append(raw.decode("ascii", "replace").strip())
-                    module.parse_line(lines[-1], state)
+                    observe(state, kind, lines[-1])
             time.sleep(pause)
         finally:
             proc.send_signal(signal.SIGKILL)
@@ -198,8 +211,12 @@ def run_until_killed(exe, image, profile, kind, target, pause, timeout=300):
         # dropped by the parsers, so it cannot move a counter.
         rest = buffer + proc.stdout.read()
         proc.stdout.close()
-        lines.extend(raw.decode("ascii", "replace").strip() for raw in rest.split(b"\n") if raw)
-    return lines
+        for raw in rest.split(b"\n"):
+            if raw:
+                lines.append(raw.decode("ascii", "replace").strip())
+                observe(state, kind, lines[-1])
+    expect(progress(state) >= target, f"{where}: only {progress(state)} lines")
+    return lines, progress(state)
 
 
 # ---- the scenarios ------------------------------------------------------------------------------
@@ -255,29 +272,32 @@ def scenario_start(args, image, profile):
 
 def interrupted(args, image, profile, kind, exe, judge):
     prepare(args, image, profile)
-    log = []
+    log, counts = [], []
     rng = random.Random(args.seed)
     for run in range(args.restarts + 1):
-        lines = run_until_killed(exe, image, profile, kind, args.target + rng.randrange(40),
-                                 rng.uniform(0.0, 0.03))
+        lines, count = run_until_killed(exe, image, profile, kind, args.target + rng.randrange(40),
+                                        rng.uniform(0.0, 0.03), f"{kind} run {run + 1}")
         starts = [status_line(text, "sd_storage_start") for text in lines]
         expect([value for value in starts if value is not None][:1] == [0],
-               f"run {run + 1}: the start status was not 0: {lines[:3]}")
+               f"{kind} run {run + 1}: the start status was not 0: {lines[:3]}")
         log.extend(lines)
-    return judge(log, args.restarts)
+        counts.append(count)
+    return judge(log, args.restarts) | {"counts": counts}
 
 
 def scenario_append(args, image, profile):
     result = interrupted(args, image, profile, "append", args.append_exe, judge_append)
     return (f"{result['judged']} restarts, no acknowledged record lost, no damaged record; "
             f"{result['with_torn_tail']} with a torn tail, "
-            f"{result['with_unacked_present']} with records past the last ACK seen")
+            f"{result['with_unacked_present']} with records past the last ACK seen; ACK lines per run "
+            f"{result['counts']}")
 
 
 def scenario_replace(args, image, profile):
     result = interrupted(args, image, profile, "replace", args.replace_exe, judge_replace)
     return (f"{result['judged']} restarts, cfg never none, bad or stale; leftover cmp: "
-            f"{result['cmp_valid']} valid, {result['cmp_bad']} incomplete")
+            f"{result['cmp_valid']} valid, {result['cmp_bad']} incomplete; GEN lines per run "
+            f"{result['counts']}")
 
 
 def main():
@@ -292,14 +312,15 @@ def main():
                         help="host file for the simulated medium; it is overwritten")
     parser.add_argument("--restarts", type=int, default=5)
     parser.add_argument("--target", type=int, default=200,
-                        help="at least this many ACK lines (append) or GEN lines (replace) before "
-                             "each SIGKILL")
+                        help="at least this many ACK lines (append) or GEN lines (replace) printed by "
+                             "the run itself before each SIGKILL (a seeded 0-39 more)")
     parser.add_argument("--profile", choices=[name for name, _ in PROFILES], action="append",
                         help="run only this simulator profile (repeatable); the default is both")
     parser.add_argument("--seed", type=int, default=1,
                         help="seed of the extra lines and the pause before each kill")
     args = parser.parse_args()
 
+    print(f"rehearsal: seed {args.seed}, target {args.target}, restarts {args.restarts}", flush=True)
     checks = 0
     for name, scenario in (("format", scenario_format), ("start", scenario_start),
                            ("append", scenario_append), ("replace", scenario_replace)):

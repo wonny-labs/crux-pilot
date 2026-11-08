@@ -58,7 +58,7 @@ class AppendJudgement(unittest.TestCase):
         log = append_run(1, 40) + [
             "sd_storage_start: 0", line("BOOT 2"),
             line("RECOVER run=1 present=1 last_valid=40 torn=32 damaged=1")]
-        with self.assertRaisesRegex(AssertionError, "damaged"):
+        with self.assertRaisesRegex(AssertionError, "a damaged record"):
             run_rehearsal.judge_append(log, restarts=1)
 
     def test_a_garbled_ack_does_not_move_the_count(self):
@@ -80,8 +80,8 @@ class AppendJudgement(unittest.TestCase):
     def test_acks_are_counted_for_the_run_that_has_to_stop(self):
         state = {}
         for text in append_run(1, 200):
-            run_rehearsal.APPEND.parse_line(text, state)
-        self.assertEqual(run_rehearsal.progress(state, "append"), 200)
+            run_rehearsal.observe(state, "append", text)
+        self.assertEqual(run_rehearsal.progress(state), 200)
 
 
 class ReplaceJudgement(unittest.TestCase):
@@ -92,17 +92,17 @@ class ReplaceJudgement(unittest.TestCase):
 
     def test_a_cfg_that_is_none_after_a_restart_is_rejected(self):
         log = replace_run(1, 40) + replace_run(2, 3, cfg=("none", 0), first=41)
-        with self.assertRaisesRegex(AssertionError, "cfg"):
+        with self.assertRaisesRegex(AssertionError, "cfg after a restart is"):
             run_rehearsal.judge_replace(log, restarts=1)
 
     def test_a_cfg_older_than_a_printed_generation_is_rejected(self):
         log = replace_run(1, 40) + replace_run(2, 3, cfg=("valid", 38), first=41)
-        with self.assertRaisesRegex(AssertionError, "cfg"):
+        with self.assertRaisesRegex(AssertionError, "cfg after a restart is"):
             run_rehearsal.judge_replace(log, restarts=1)
 
     def test_a_damaged_cfg_is_rejected(self):
         log = replace_run(1, 40) + replace_run(2, 3, cfg=("bad", 40), first=41)
-        with self.assertRaisesRegex(AssertionError, "cfg"):
+        with self.assertRaisesRegex(AssertionError, "cfg after a restart is"):
             run_rehearsal.judge_replace(log, restarts=1)
 
     def test_a_leftover_valid_cmp_is_accepted_and_counted(self):
@@ -120,6 +120,24 @@ class ReplaceJudgement(unittest.TestCase):
         log = replace_run(1, 40) + replace_run(2, 3, first=41)
         with self.assertRaisesRegex(AssertionError, "judged"):
             run_rehearsal.judge_replace(log, restarts=1)
+
+
+class Progress(unittest.TestCase):
+    def test_a_replace_run_counts_its_own_generations_not_the_generation_number(self):
+        # The run after a restart continues at the next generation number, here 241.
+        state = {}
+        for text in replace_run(2, 1, cfg=("valid", 240), first=241):
+            run_rehearsal.observe(state, "replace", text)
+        self.assertEqual(run_rehearsal.progress(state), 1)
+        for text in replace_run(2, 199, first=242)[2:]:
+            run_rehearsal.observe(state, "replace", text)
+        self.assertEqual(run_rehearsal.progress(state), 200)
+
+    def test_a_corrupt_line_is_not_counted(self):
+        state = {}
+        run_rehearsal.observe(state, "replace", "GEN 7 *00")
+        run_rehearsal.observe(state, "append", "ACK 7")
+        self.assertEqual(run_rehearsal.progress(state), 0)
 
 
 class Console(unittest.TestCase):
