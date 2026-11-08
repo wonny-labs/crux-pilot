@@ -287,6 +287,8 @@ def check_cmake(tree):
         card = run_cmake(tree, good_cmake_settings(tree, declared_with(tree, card_states)), zephyr, declaration)
         if card.returncode != 0 or "bench guard passed" not in card.stderr + card.stdout:
             failures.append(f"bench_guard.cmake refused the microSD state of the declaration: {squeeze(card.stderr)}")
+        else:
+            TRANSCRIPT.append(("CMake", "control: the microSD state of the declaration, with the card's provider and driver", "accepted"))
         zephyr, declaration = make_zephyr_base(tree, card_dir, states=card_states)
         under_card = run_cmake(tree, good_cmake_settings(tree), zephyr, declaration)
         if under_card.returncode == 0 or "is declared selected" not in squeeze(under_card.stderr):

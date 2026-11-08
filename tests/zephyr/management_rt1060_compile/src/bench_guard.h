@@ -56,7 +56,8 @@ _Static_assert(__builtin_strcmp(CONFIG_CRUX_SSH_BIND_ADDRESS, CRUX_BENCH_ADDRESS
 #endif
 #if defined(CONFIG_CRUX_FILE_FATFS_RT1060) || defined(CONFIG_DISK_DRIVER_SDMMC) ||                 \
     defined(CONFIG_IMX_USDHC) || defined(CONFIG_DISK_DRIVER_FLASH)
-#error "The RAM disk image has no card: the microSD provider and the SD card driver are refused"
+#error                                                                                             \
+    "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
 #endif
 #endif
 #if defined(CONFIG_CRUX_BENCH_FILE_MICROSD)

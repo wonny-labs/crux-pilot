@@ -1,3 +1,4 @@
+  refused  CMake control: the microSD state of the declaration, with the card's provider and driver: accepted
   refused  CMake no declaration: This build is not a declared RT1060-EVKB bench image: set CRUX_MANAGEMENT_BENCH_IMAGE only in the bench image, tests/zephyr/management_rt1060_compile
   refused  CMake a native test image's declaration only: This build is not a declared RT1060-EVKB bench image: set CRUX_MANAGEMENT_BENCH_IMAGE only in the bench image, tests/zephyr/management_rt1060_compile
   refused  CMake native_sim: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
@@ -33,10 +34,10 @@
   refused  CMake an unknown bench test form: CONFIG_CRUX_BENCH_INVENTED_FORM is a bench test form that bench_declaration.json does not list
   refused  CMake no RAM disk provider: The RAM disk form needs the RAM disk File provider and the RAM disk driver: CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK and CONFIG_DISK_DRIVER_RAM
   refused  CMake no RAM disk driver: The RAM disk form needs the RAM disk File provider and the RAM disk driver: CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK and CONFIG_DISK_DRIVER_RAM
-  refused  CMake the SD card driver in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and any other disk driver are refused
-  refused  CMake the USDHC host in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and any other disk driver are refused
-  refused  CMake the microSD provider in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and any other disk driver are refused
-  refused  CMake a flash disk in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and any other disk driver are refused
+  refused  CMake the SD card driver in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk driver are refused
+  refused  CMake the USDHC host in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk driver are refused
+  refused  CMake the microSD provider in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk driver are refused
+  refused  CMake a flash disk in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk driver are refused
   refused  CMake both file forms declared selected and set: The bench image has exactly one file backend: the RAM disk and the microSD card forms are both set
   refused  CMake no file form declared selected and none set: The bench image needs a file backend: exactly one of the RAM disk and the microSD card forms
   refused  CMake the microSD form declared selected, with no microSD provider: The microSD form needs the microSD File provider and the SD card driver: CONFIG_CRUX_FILE_FATFS_RT1060 and CONFIG_DISK_DRIVER_SDMMC
@@ -73,10 +74,10 @@
   refused  C     both file forms: "The bench image has exactly one file backend, and both of its forms are set"
   refused  C     the RAM disk form without its provider: "The RAM disk form needs the RAM disk File provider and the RAM disk driver"
   refused  C     the RAM disk form without its driver: "The RAM disk form needs the RAM disk File provider and the RAM disk driver"
-  refused  C     the SD card driver in the RAM disk image: "The RAM disk image has no card: the microSD provider and the SD card driver are refused"
-  refused  C     the USDHC host in the RAM disk image: "The RAM disk image has no card: the microSD provider and the SD card driver are refused"
-  refused  C     the microSD provider in the RAM disk image: "The RAM disk image has no card: the microSD provider and the SD card driver are refused"
-  refused  C     a flash disk in the RAM disk image: "The RAM disk image has no card: the microSD provider and the SD card driver are refused"
+  refused  C     the SD card driver in the RAM disk image: "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
+  refused  C     the USDHC host in the RAM disk image: "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
+  refused  C     the microSD provider in the RAM disk image: "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
+  refused  C     a flash disk in the RAM disk image: "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
   refused  C     the microSD form without its provider: "The microSD form needs the microSD File provider and the SD card driver"
   refused  C     the microSD form without the SD card driver: "The microSD form needs the microSD File provider and the SD card driver"
   refused  C     the microSD form with the RAM disk provider: "The microSD image has no RAM disk: the RAM disk provider and driver are refused"
@@ -111,12 +112,12 @@
   killed   bench_guard.h: the #error at line 28 only warns
   killed   bench_guard.h: the #error at line 31 only warns
   killed   bench_guard.h: the #error at line 37 only warns
-  killed   bench_guard.h: the #error at line 47 only warns
-  killed   bench_guard.h: the #error at line 50 only warns
-  killed   bench_guard.h: the #error at line 54 only warns
-  killed   bench_guard.h: the #error at line 58 only warns
-  killed   bench_guard.h: the #error at line 63 only warns
-  killed   bench_guard.h: the #error at line 66 only warns
+  killed   bench_guard.h: the #error at line 48 only warns
+  killed   bench_guard.h: the #error at line 51 only warns
+  killed   bench_guard.h: the #error at line 55 only warns
+  killed   bench_guard.h: the #error at line 59 only warns
+  killed   bench_guard.h: the #error at line 65 only warns
+  killed   bench_guard.h: the #error at line 68 only warns
   killed   bench_guard.h: static assertion 1 always holds
   killed   bench_guard.h: static assertion 2 always holds
   killed   bench_first_account.c: the include of bench_guard.h is removed

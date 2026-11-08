@@ -79,7 +79,7 @@ flowchart TB
         s["no other source names a format function<br/>no object but the glue references fs_mkfs"]
     end
     b1 --> b2 --> b3 --> b4
-    x["a path that formats a card"] -. "needs all four to fail" .-> b1
+    x["a path that formats a card"] -. "needs every barrier to fail; barrier 4 is a check at build and test time" .-> b1
 ```
 
 ## The two declared states
@@ -104,7 +104,7 @@ The RAM disk is the `.bss` of the RAM disk driver, in the SDRAM: the linked imag
 | The listener certificate | Generated at boot from the key | **Lost and generated again.** |
 | Security events, and every `file.*` event | The ring in RAM, and Crux Logging to the UART | **Lost** from the device. The UART capture is the record. |
 | Files of the File service (`files` area) | RAM disk | **Lost.** |
-| Configuration saved by the Configuration service | RAM disk | **Lost.** Defaults again. |
+| Configuration | **Not stored anywhere.** The image links `configuration_no_provider.c`, whose write returns `NOT_SUPPORTED`: there is no Configuration provider | Every parameter keeps its default at every boot. Nothing is saved, on the RAM disk or elsewhere. |
 | The image | QSPI Flash | Kept. Flash holds only the image. |
 
 So **every boot is a first boot**, a client sees a **new SSH host key fingerprint and a new certificate fingerprint after every reset**, and a client that remembered the old ones will warn. That is expected. **The changed fingerprints show that the entropy source varies from one boot to the next, which is all they show. They are not a statement on the quality of the entropy**: that needs a test of the generator, which no row of the plan is.
@@ -123,15 +123,15 @@ What the disk must hold, from the limits of the image's own File service area (`
 | The credential store | 2 slot files of 16,384 B = 32,768 B | `CRUX_CREDENTIAL_SLOT_BYTES` |
 | Directories | 3 (`secure-a`, `secure-b`, `files`) | `src/mgmt_start.c` |
 
-The File service reserves bytes against `max_area_bytes` before it writes, so the area can never hold more than that, and the disk can only be filled by something that bypasses the service. **The numbers in the owner's brief (1 MiB per file, 3 MiB per area, 16 entries) are the design limits of [the SFTP design](sftp-design.md#limits), and the image does not declare them**: the image declares 64 KiB, 256 KiB and 16 (the native composition's own area, which the bench copy is pinned to). The disk is sized for what the image declares, and the table below says what the design limits would need.
+The File service reserves bytes against `max_area_bytes` before it writes, so the area can never hold more than that, and the disk can only be filled by something that bypasses the service. **The numbers in the owner's brief (1 MiB per file, 3 MiB per area, 16 entries) are the limits that [the SFTP design](sftp-design.md#limits) records for its own image (the WinSCP run), and this image does not declare them**: the image declares 64 KiB, 256 KiB and 16 (the native composition's own area, which the bench copy is pinned to). The disk is sized for what the image declares, and the table below says what those limits would need.
 
 The method: the pinned FatFs (`modules/fs/fatfs` at the `west.yml` pin) with the bench image's options (long names on the stack, 127 characters, code page 437) and Zephyr's `fs_mkfs` options (one FAT, 512 root entries, automatic cluster size), on a RAM disk of a given number of 512 B sectors. The worst case is built in the order that leaves the least room: **the area full first, the store's two slots after it.** Two patterns: four files of 64 KiB, and 16 entries with 63-character names, each one byte over a cluster boundary where the limit allows it (the most slack and the most directory entries).
 
-| Disk | File system | Data clusters | After the worst case: free | Share free |
+| Disk | File system | Data clusters | After the worst case: free | Share free (of the data clusters) |
 | --- | --- | ---: | ---: | ---: |
-| **512 KiB, 1,024 sectors (this image)** | FAT12, 512 B clusters | 987 (505,344 B) | **208,896 B** (pattern A), **205,824 B** (pattern B) | **41 %** |
-| 1 MiB, 2,048 sectors (for comparison) | FAT12, 512 B clusters | 2,008 (1,028,096 B) | 731,648 B, 728,576 B | 70 % |
-| 4 MiB, 8,192 sectors, with the **design** limits (1 MiB per file, 3 MiB per area, 16 entries) | FAT12, 2,048 B clusters | 2,038 (4,173,824 B) | 989,184 B, 987,136 B | 24 % |
+| **512 KiB, 1,024 sectors (this image)** | FAT12, 512 B clusters | 987 (505,344 B) | **208,896 B** (pattern A), **205,824 B** (pattern B) | **41 %** (the `native_sim` log prints 39 %, the share of the whole 524,288 B disk) |
+| 1 MiB, 2,048 sectors (for comparison) | FAT12, 512 B clusters | 2,008 (1,028,096 B) | 731,648 B, 728,576 B | 71 % |
+| 4 MiB, 8,192 sectors, with the SFTP design's limits (1 MiB per file, 3 MiB per area, 16 entries) | FAT12, 2,048 B clusters | 2,038 (4,173,824 B) | 989,184 B, 987,136 B | 24 % |
 
 | Quantity | Value |
 | --- | ---: |
@@ -139,9 +139,9 @@ The method: the pinned FatFs (`modules/fs/fatfs` at the `west.yml` pin) with the
 | What the limits sum to before the file system's own use | 262,144 B + 32,768 B = 294,912 B |
 | The file system's own use (FAT, three directories, cluster slack) | about 4,600 B |
 | The disk of this image | **524,288 B**, which is 1.78 times the 294,912 B of the limits (a unit test requires at least 1.25 times) |
-| A disk filled by something that bypasses the File service | refuses with a plain error after 8 files of 64 KiB (the host run: result `FR_DENIED`), no hang |
+| A disk filled by something that bypasses the File service | refuses with a plain error after 8 files of 64 KiB (the host run: result `FR_DENIED`; `native_sim`: `ENOSPC`), no hang |
 
-**What the bench needs: about 300 KB at the worst, so 512 KiB.** It is also the size of the partition that the native composition has always run this File service on, so no new size is introduced. The bench's SFTP put and get (step 5 of the plan) are files of at most 64 KiB, the image's per-file limit, so a disk larger than this buys nothing the limits would let a client use. **If the area limits were raised to the design's 1 MiB and 3 MiB, the disk would need about 3.2 MiB, and a 4 MiB disk (8,192 sectors) leaves 24 %**; that is a change of the copy of `mgmt_services.c`, which the copy test pins to the native file, and of `ram_disk.overlay`, and it is not made here.
+**What the bench needs: about 300 KB at the worst, so 512 KiB.** It is also the size of the partition that the native composition has always run this File service on, so no new size is introduced. The bench's SFTP put and get (step 5 of the plan) are files of at most 64 KiB, the image's per-file limit, so a disk larger than this buys nothing the limits would let a client use. **If the area limits were raised to those 1 MiB and 3 MiB, the disk would need about 3.2 MiB, and a 4 MiB disk (8,192 sectors) leaves 24 %**; that is a change of the copy of `mgmt_services.c`, which the copy test pins to the native file, and of `ram_disk.overlay`, and it is not made here.
 
 | RAM cost | Value | Source |
 | --- | ---: | --- |

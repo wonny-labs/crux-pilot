@@ -2,8 +2,11 @@
  * options of Zephyr's fs_mkfs (FM_ANY | FM_SFD, one FAT, 512 root entries, automatic cluster size)
  * and the worst-case content of the bench image (docs/rt1060-bench-file-backend.md). Not part of
  * the build: a stand-in for the native_sim test. */
-#include "diskio.h"
+/* ff.h defines the types that diskio.h uses, so it comes first. */
+// clang-format off
 #include "ff.h"
+#include "diskio.h"
+// clang-format on
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,16 +26,18 @@ DSTATUS disk_initialize(BYTE p)
 DRESULT disk_read(BYTE p, BYTE *b, LBA_t s, UINT c)
 {
     (void)p;
-    if (s + c > sectors)
+    if (s + c > sectors) {
         return RES_PARERR;
+    }
     memcpy(b, disk + s * SS, c * SS);
     return RES_OK;
 }
 DRESULT disk_write(BYTE p, const BYTE *b, LBA_t s, UINT c)
 {
     (void)p;
-    if (s + c > sectors)
+    if (s + c > sectors) {
         return RES_PARERR;
+    }
     memcpy(disk + s * SS, b, c * SS);
     return RES_OK;
 }
@@ -60,8 +65,9 @@ static FRESULT put(const char *path, unsigned bytes)
 {
     FIL f;
     FRESULT r = f_open(&f, path, FA_CREATE_ALWAYS | FA_WRITE);
-    if (r)
+    if (r) {
         return r;
+    }
     memset(chunk, (int)bytes, sizeof chunk);
     for (unsigned d = 0; d < bytes;) {
         unsigned n = bytes - d < sizeof chunk ? bytes - d : sizeof chunk;
