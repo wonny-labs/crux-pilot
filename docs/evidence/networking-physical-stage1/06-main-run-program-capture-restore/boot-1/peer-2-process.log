@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<ws>/crux-pilot-3/tests/target/m5_network_peer.py", line 86, in <module>
+    with open(args.output,'x') as output:serve(args.token,args.phase,args.count,args.mode,output,stopping=lambda:state['stop'])
+  File "<ws>/crux-pilot-3/tests/target/m5_network_peer.py", line 42, in serve
+    tcp.bind((bind,ports[0]));udp.bind((bind,ports[1]));tcp.listen(1)
+OSError: [Errno 49] Can't assign requested address

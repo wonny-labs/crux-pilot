@@ -1,0 +1,6 @@
+{
+  "mode": "identify",
+  "error": "HardwareStop('Exclusive UART ownership changed')",
+  "steps": 1,
+  "automatic_retry": false
+}
