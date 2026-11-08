@@ -224,6 +224,19 @@ class RamDiskSize(unittest.TestCase):
                                   "max_area_bytes": declared["BENCH_AREA_MAX_BYTES"],
                                   "max_entries": declared["BENCH_AREA_MAX_ENTRIES"]})
 
+    def test_the_disk_holds_the_declared_worst_case_with_a_quarter_to_spare(self):
+        # The measured worst case is in docs/rt1060-bench-file-backend.md. This keeps the disk from being lowered, or a
+        # limit from being raised, without the sizing being looked at again.
+        overlay = (BENCH / "ram_disk.overlay").read_text()
+        disk = int(re.search(r"sector-size = <(\d+)>", overlay).group(1)) * int(
+            re.search(r"sector-count = <(\d+)>", overlay).group(1))
+        port = (ROOT / "components/credential/src/credential_port.h").read_text()
+        slot = int(re.search(r"#define CRUX_CREDENTIAL_SLOT_BYTES (\d+)u", port).group(1))
+        services = (BENCH / "src/mgmt_services.c").read_text()
+        area = int(re.search(r"\.max_area_bytes = (\d+)u", services[services.index("CRUX_NATIVE_MANAGEMENT_SSH"):]).group(1))
+        need = area + 2 * slot
+        self.assertGreaterEqual(disk, need * 5 // 4, f"the disk of {disk} B is under 125 % of the {need} B that the limits allow")
+
     def test_the_host_shim_has_the_geometry_of_the_overlay(self):
         overlay = (BENCH / "ram_disk.overlay").read_text()
         shim = (HOST / "shim/zephyr/devicetree.h").read_text()

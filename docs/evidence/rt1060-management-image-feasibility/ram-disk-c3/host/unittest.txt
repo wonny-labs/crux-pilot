@@ -1,0 +1,33 @@
+test_decision_core_never_formats_a_card_and_formats_a_ram_disk_only (tests.build.test_management_bench_medium.BenchMedium) ... ok
+test_decision_core_test_fails_when_the_core_formats_a_card (tests.build.test_management_bench_medium.BenchMedium) ... ok
+test_each_barrier_stands_alone (tests.build.test_management_bench_medium.BenchMedium) ... ok
+test_glue_on_a_card_never_formats (tests.build.test_management_bench_medium.BenchMedium) ... ok
+test_glue_on_a_ram_disk_formats_only_the_ram_disk (tests.build.test_management_bench_medium.BenchMedium) ... ok
+test_glue_refuses_no_backend_and_both_backends (tests.build.test_management_bench_medium.BenchMedium) ... ok
+test_the_caller_check_finds_a_second_caller (tests.build.test_management_bench_medium.BenchMedium) ... ok
+test_the_card_glue_object_has_no_reference_to_fs_mkfs_and_the_ram_glue_has_one (tests.build.test_management_bench_medium.BenchMedium) ... ok
+test_the_disk_holds_the_declared_worst_case_with_a_quarter_to_spare (tests.build.test_management_bench_medium.RamDiskSize) ... ok
+test_the_host_shim_has_the_geometry_of_the_overlay (tests.build.test_management_bench_medium.RamDiskSize) ... ok
+test_the_native_sizing_test_uses_the_limits_of_the_images_file_area (tests.build.test_management_bench_medium.RamDiskSize) ... ok
+test_only_the_ram_glue_names_the_format_functions (tests.build.test_management_bench_medium.SourcesOfTheImage) ... ok
+test_the_copy_of_the_start_source_does_not_format (tests.build.test_management_bench_medium.SourcesOfTheImage) ... ok
+test_the_format_call_is_for_the_ram_disk_name_and_inside_the_ram_disk_form (tests.build.test_management_bench_medium.SourcesOfTheImage) ... ok
+test_board_names_agree (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_both_listeners_are_bound_by_the_product_code_only_when_asked (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_http_server_stack_starts_at_8192_and_the_declaration_does_not_pin_it (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_kconfig_names_the_declared_test_forms_and_each_depends_on_the_declaration (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_network_is_one_consistent_bench (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_patched_zephyr_matches_the_prepare_script_and_the_manifest (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_target_conf_carries_the_declaration (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_the_certificate_names_the_bench_address (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_the_public_test_password_and_the_native_declaration_are_not_in_the_bench_image (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_the_refusal_in_main_stays_until_a_reviewed_change_removes_it (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_every_guard_refuses_and_every_mutant_is_killed (tests.build.test_management_bench_declaration.BenchGuardBreaks) ... ok
+test_component_sources_match_the_native_composition (tests.build.test_management_target_lists.ManagementTargetLists) ... ok
+test_no_native_test_declaration_reaches_the_bench_image (tests.build.test_management_target_lists.ManagementTargetLists) ... ok
+test_vehicle_copies_are_the_native_files_with_only_the_declared_edits (tests.build.test_management_target_lists.ManagementTargetLists) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 74.579s
+
+OK

@@ -7,6 +7,6 @@
 #define DT_PROP_(node, prop) node##_##prop
 #ifndef bench_ram_disk_sector_size
 #define bench_ram_disk_sector_size 512
-#define bench_ram_disk_sector_count 2048
+#define bench_ram_disk_sector_count 1024
 #endif
 #endif
