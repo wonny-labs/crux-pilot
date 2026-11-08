@@ -1,0 +1,8 @@
+60018204 T crux_entropy_boot_check
+80000d90 d entropy_mcux_config
+6007e4c8 r entropy_mcux_trng_api_funcs
+60060090 t entropy_mcux_trng_get_entropy
+600600a4 t entropy_mcux_trng_init
+6003a9d8 T wc_GenerateSeed
+6001c9e0 T z_impl_sys_csrand_get
+6001c93c T z_impl_sys_rand_get

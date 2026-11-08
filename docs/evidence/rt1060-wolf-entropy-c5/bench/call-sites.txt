@@ -1,0 +1,13 @@
+== calls made by wc_GenerateSeed
+      1 6007cb74 <z_impl_device_is_ready>
+== calls made by crux_entropy_boot_check
+      1 6004f390 <psa_crypto_init>
+      1 60051ae8 <psa_generate_random>
+      1 6005419c <snprintf>
+      1 60059ed6 <printk>
+      1 6007cb74 <z_impl_device_is_ready>
+== who calls sys_rand_get / sys_csrand_get
+      1 <eth_nxp_enet_init>: <z_impl_sys_rand_get>
+      1 <find_available_port.constprop.0>: <z_impl_sys_rand_get>
+      1 <tcp_derive_rto>: <z_impl_sys_rand_get>
+      1 <tcp_init_isn>: <z_impl_sys_rand_get>
