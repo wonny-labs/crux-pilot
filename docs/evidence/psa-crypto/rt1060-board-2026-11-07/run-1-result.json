@@ -1,0 +1,18 @@
+{
+  "result": "stopped",
+  "reason": "bytes arrived on the port before the reset of boot 1",
+  "events": [
+    "16:03:25 lock taken: /var/tmp/crux-board-locks/mimxrt1060-evkb-revB%2Fjlink-602003106.lock for mimxrt1060-evkb-revB/jlink-602003106",
+    "16:03:25 DAPLink serial port: /dev/cu.usbmodem1402",
+    "16:03:26 preflight ok; image copied and hashed",
+    "16:03:29 serial port opens and reads (this does not show that data arrives)",
+    "16:03:29 run /usr/local/bin/JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 400 -NoGui 1 -ExitOnError 1 -CommandFile <psa-board>/evidence/rt1060-run-1/1-identify.jlink",
+    "16:03:33 1-identify exit code 0",
+    "16:03:33 FCFB word 42464346, IVT word 412000D1, SBMR1 00000000, SBMR2 02000009 (BOOT_CFG1[7:4] of SBMR1 recorded, not gated)",
+    "16:03:33 target identified as QSPI internal boot; first 128 KB saved",
+    "16:03:33 run /usr/local/bin/JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 400 -NoGui 1 -ExitOnError 1 -CommandFile <psa-board>/evidence/rt1060-run-1/2-flash-verify.jlink",
+    "16:03:43 2-flash-verify exit code 0",
+    "16:03:43 image programmed and verified",
+    "16:03:45 STOP: bytes arrived on the port before the reset of boot 1"
+  ]
+}

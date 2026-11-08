@@ -89,7 +89,7 @@ Each runs on every invocation of `scripts/test-psa-crypto.sh host`.
 | `native_sim`, with the wolfSSL TLS layer in the image | Not applicable | 44 pass and 2 skipped. The cases do not use TLS, and there is no TLS socket backend. |
 | RT1060-EVKB `mimxrt1060_evk@B//qspi` | Compile only, in CI and locally, [results below](#rt1060-evkb-entropy-source) | Compile only, locally, [results below](#rt1060-evkb-entropy-source) |
 
-Retained logs: [`docs/evidence/psa-crypto/v4.4.2-revised/`](evidence/psa-crypto/v4.4.2-revised/), from a local run with these 45 cases, revision `a0fa506`. The earlier [`v4.4.2/`](evidence/psa-crypto/v4.4.2/) logs, including CI run 41891057428, are of the 41-case form, in which a deviation stopped its case early: they stay unchanged as a record of that state. Host, `native_sim`, cross-build, CI and physical evidence are separate, and physical evidence does not exist.
+Retained logs: [`docs/evidence/psa-crypto/v4.4.2-revised/`](evidence/psa-crypto/v4.4.2-revised/), from a local run with these 45 cases, revision `a0fa506`. The earlier [`v4.4.2/`](evidence/psa-crypto/v4.4.2/) logs, including CI run 41891057428, are of the 41-case form, in which a deviation stopped its case early: they stay unchanged as a record of that state. Host, `native_sim`, cross-build, CI and physical evidence are separate, and physical evidence is limited to the [RT1060-EVKB board record](evidence/psa-crypto/rt1060-board-2026-11-07/README.md) of 2026-11-07.
 
 ### What CI keeps running
 
@@ -141,7 +141,7 @@ The review of `00db0bf` found that these two used to be declared on whole cases.
 | --- | --- | --- |
 | 1 | UBSan reports 4 issues inside wolfSSL under wolfPSA's standalone Host settings: signed overflow in `sp_256_num_bits_29_9` in `sp_c32.c`, and misaligned loads and stores in `ByteReverseWords64` in `misc.c` and the 64-bit `GMULT` in `aes.c`. The cases still pass, and the script pins the count, so a new one fails. Whether the Zephyr builds reach them: `sp_c32.c` and `aes.c` are compiled on `native_sim` and RT1060, and `misc.c` is included. Preprocessed with their own flags, neither `sp_256_num_bits_29_9` nor that `GMULT` is present on either, so the Zephyr settings select other variants. `ByteReverseWords64` is defined there with no caller in `aes.c`. UBSan itself ran only on Host, so this shows only that those functions are absent. | Recorded, not fixed. Vendor code. [Reports](evidence/psa-crypto/v4.4.2-revised/host-wolfpsa-ubsan-reports.txt), [source check](evidence/psa-crypto/v4.4.2-revised/zephyr-ubsan-sources.txt). |
 | 2 | `native_sim` random repeats on every run, for both providers. | [Declared test-only](#provider-declarations) |
-| 3 | Zephyr's glue for TF-PSA-Crypto falls back to `sys_rand_get()` when the entropy read fails (`allow_non_cs` is `true` in `mbedtls_platform_get_entropy`, `zephyr_entropy.c`), and reports full entropy. wolfCrypt's seed returns `RNG_FAILURE_E` instead, which weighs for the Wolf profile. On RT1060 `sys_rand_get()` is a non-cryptographic generator. The fallback is reachable on RT1060 at Zephyr v4.4.2, where `entropy_mcux_trng.c` returns `-EIO` on a failed read. At v4.4.0 it asserted and returned success, so a read failure did not reach the fallback there. | **Corrected for TF-PSA-Crypto on the entropy driver route**: see [Entropy failure](#entropy-failure). Whether a TRNG read can fail in practice is untested, and nothing ran on a board. |
+| 3 | Zephyr's glue for TF-PSA-Crypto falls back to `sys_rand_get()` when the entropy read fails (`allow_non_cs` is `true` in `mbedtls_platform_get_entropy`, `zephyr_entropy.c`), and reports full entropy. wolfCrypt's seed returns `RNG_FAILURE_E` instead, which weighs for the Wolf profile. On RT1060 `sys_rand_get()` is a non-cryptographic generator. The fallback is reachable on RT1060 at Zephyr v4.4.2, where `entropy_mcux_trng.c` returns `-EIO` on a failed read. At v4.4.0 it asserted and returned success, so a read failure did not reach the fallback there. | **Corrected for TF-PSA-Crypto on the entropy driver route**: see [Entropy failure](#entropy-failure). Whether a TRNG read can fail in practice is untested; the [board run](evidence/psa-crypto/rt1060-board-2026-11-07/README.md) did not exercise it. |
 | 4 | `CSPRNG_ENABLED` depends only on `ENTROPY_HAS_DRIVER`, so it is `y` with the test generator and certifies nothing. | Source and configuration read |
 | 5 | Zephyr's module has no `MBEDTLS_THREADING_C` option at this pin, so TF-PSA-Crypto's core has no lock, and on the Mbed profile TLS threads call the same core. wolfPSA defaults `CONFIG_WOLFPSA_THREAD_SAFE=y`. | Source and configuration read. Concurrency is untested for both. #242 (#263, #291) gives the core locks in its test composition: [locks on the Mbed profile](native-management-composition.md#locks-on-the-mbed-profile). The [services image](native-composition-242.md) ran HTTPS on both profiles, and the [integrated image](ssh-integrated-image.md) of #197 ran HTTPS and SSH on the Wolf profile. Concurrency is still untested: a `native_sim` thread that does not sleep is never preempted, and no case was written for the race. |
 | 6 | `tf-psa-crypto` is a commit in Zephyr's fork, whose relation to the upstream `v1.1.0` tag was not established. | Open, unchanged |
@@ -158,7 +158,7 @@ API conformance does not establish these four, so each is declared apart, for ea
 | --- | --- | --- |
 | Linux Host | The subset without Ed25519. Run. Everything else in its default configuration is not qualified. | The subset with Ed25519. Run. Uses wolfPSA's standalone settings, unedited. |
 | `native_sim` | The subset without Ed25519, built from only the `PSA_WANT` symbols in [`prj.conf`](../tests/psa_crypto/zephyr/prj.conf). Run. | The subset with Ed25519, on the wolfSSL module's Kconfig settings, the route a management image must use. Run, with and without the TLS layer. |
-| RT1060-EVKB | The same configuration compiled. Compile only. | The same configuration compiled. Compile only. |
+| RT1060-EVKB | The same configuration compiled, and its conformance image ran on a board ([record](evidence/psa-crypto/rt1060-board-2026-11-07/README.md)). | The same configuration compiled. Compile only. |
 
 ### Key storage
 
@@ -166,7 +166,7 @@ API conformance does not establish these four, so each is declared apart, for ea
 | --- | --- | --- |
 | Linux Host | Volatile keys, checked by `ecdsa_p256_import_is_volatile`. Persistent storage not examined. | Volatile keys, checked the same way. The standalone build has a POSIX store, not used or examined. |
 | `native_sim` | Volatile. 16 static key slots (`MBEDTLS_PSA_STATIC_KEY_SLOTS`). `MBEDTLS_PSA_CRYPTO_STORAGE_C` off. Run. | Volatile, in wolfPSA's in-memory list. Zephyr secure storage is off, and no case uses a persistent key. Run. |
-| RT1060-EVKB | The same. Compile only. | The same. Compile only. |
+| RT1060-EVKB | The same. Compiled, and the conformance image ran on a board; persistent storage not examined. | The same. Compile only. |
 
 Crux does not use PSA persistent keys. The credential store owns persistence, and this issue makes no secure-storage, provisioning or key-confidentiality claim.
 
@@ -176,7 +176,7 @@ Crux does not use PSA persistent keys. The credential store owns persistence, an
 | --- | --- | --- |
 | Linux Host | The kernel through `mbedtls_platform_get_entropy`. Two processes differ. Run. Quality is the host's, and not assessed. | The kernel through `wc_GenerateSeed`, seeding a Hash-DRBG. Two processes differ. Run. Quality not assessed. |
 | `native_sim` | **Test-only.** `fake_entropy_native_sim`, through `MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG`. Repeats on every run. Run. | **Test-only.** The same driver seeding the Hash-DRBG. Repeats on every run. Run. |
-| RT1060-EVKB | The TRNG, [below](#rt1060-evkb-entropy-source). Sources and compile only. | The TRNG, [below](#rt1060-evkb-entropy-source). Sources and compile only. |
+| RT1060-EVKB | The TRNG, [below](#rt1060-evkb-entropy-source). Sources and compile, and the board run, which does not show the TRNG as the seed source. | The TRNG, [below](#rt1060-evkb-entropy-source). Sources and compile only. |
 
 The reasoning and its consequence for later compositions are in [What "real" means](psa-crypto-design.md#what-real-means-on-native_sim).
 
@@ -192,7 +192,7 @@ The reasoning and its consequence for later compositions are in [What "real" mea
 
 ## RT1060-EVKB entropy source
 
-**Evidence status: from sources and compile only. Not executed on a target, and target execution needs separate approval.**
+**Evidence status: from sources and compile, plus one run of the TF-PSA-Crypto conformance image on an RT1060-EVKB ([record](evidence/psa-crypto/rt1060-board-2026-11-07/README.md)) that does not show the TRNG as the seed source. Other target execution needs separate approval.**
 
 | Point | Finding | Evidence |
 | --- | --- | --- |
@@ -267,7 +267,9 @@ What ran, and where. All of it on Zephyr v4.4.2 in CI, [first without the correc
 
 Each configuration also requires that the test entropy device was read, so a pass cannot come from another source.
 
-**Not covered.** The test fails the read before initialisation. A reseed after a successful start goes through the same function, and was not exercised. The test device is not the RT1060 TRNG, and no TRNG read ran on a board. The correction is applied to the TF-PSA-Crypto conformance image. Any other composition on the Mbed legacy RNG route, such as the Mbed web adapter compile for RT1060-EVKB, must call `crux_mbedtls_fail_closed_entropy()` before it generates a key, and does not yet. The `native_sim` compositions use the external RNG, which does not fall back to `sys_rand_get()` when a read fails (unless `CONFIG_MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG_ALLOW_NON_CSPRNG` is set), but accepts whatever its entropy driver returns, and that source is test-only (finding 2). The test image differs from the RT1060-EVKB image at boot: the test device starts at `POST_KERNEL`, so the test sets `CONFIG_MBEDTLS_INIT=n` and initialises PSA itself, while the TRNG starts earlier and the RT1060-EVKB image initialises PSA at boot. That boot path, a TRNG start failure and heap-backed key slots are untested. The failing case asserts only that initialisation fails, and the healthy configuration, which differs from it only in the failing device, rules out an unrelated cause. The evidence comes from heads `6b2287a` and `5e31a3b`, and the head moved after it by comment wrapping and documentation. wolfPSA is unaffected, because wolfCrypt's seed fails on a failed read.
+Physical board, separate from the CI table above: the TF-PSA-Crypto conformance image ran on an RT1060-EVKB (rev B) flashed with a J-Link, in three warm resets. Each boot passed 43 and skipped 3 (the declared Ed25519 gaps) with 0 failed (46 counting the case-list check), and the three random probe values differ ([record](evidence/psa-crypto/rt1060-board-2026-11-07/README.md)). That run does not show that the TRNG was the seed source, and it covers no power-on boot, no reseed, and not the entropy-failure path.
+
+**Not covered.** The test fails the read before initialisation. A reseed after a successful start goes through the same function, and was not exercised. The test device is not the RT1060 TRNG, and the [board run](evidence/psa-crypto/rt1060-board-2026-11-07/README.md) does not show that the TRNG was the seed source. The correction is applied to the TF-PSA-Crypto conformance image. Any other composition on the Mbed legacy RNG route, such as the Mbed web adapter compile for RT1060-EVKB, must call `crux_mbedtls_fail_closed_entropy()` before it generates a key, and does not yet. The `native_sim` compositions use the external RNG, which does not fall back to `sys_rand_get()` when a read fails (unless `CONFIG_MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG_ALLOW_NON_CSPRNG` is set), but accepts whatever its entropy driver returns, and that source is test-only (finding 2). The test image differs from the RT1060-EVKB image at boot: the test device starts at `POST_KERNEL`, so the test sets `CONFIG_MBEDTLS_INIT=n` and initialises PSA itself, while the TRNG starts earlier and the RT1060-EVKB image initialises PSA at boot. That boot path, a TRNG start failure and heap-backed key slots are untested. The failing case asserts only that initialisation fails, and the healthy configuration, which differs from it only in the failing device, rules out an unrelated cause. The evidence comes from heads `6b2287a` and `5e31a3b`, and the head moved after it by comment wrapping and documentation. wolfPSA is unaffected, because wolfCrypt's seed fails on a failed read.
 
 ### Licence basis
 
@@ -297,4 +299,4 @@ The first trial, at Zephyr v4.4.0 and `f57ff22`, covered 22 cases on TF-PSA-Cryp
 | RT1060-EVKB entropy source identified with its evidence status | Met, from sources and compile only |
 | Hardware acceleration declared unsupported unless evidenced | Met |
 
-Not run: any physical-board operation, `psa-arch-tests`, TLS through either provider, secure storage, a consumer calling a real provider, and concurrency.
+Not run: the entropy-failure path on a physical board, any other physical-board operation than the one recorded above, `psa-arch-tests`, TLS through either provider, secure storage, a consumer calling a real provider, and concurrency.
