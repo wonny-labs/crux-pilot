@@ -549,3 +549,31 @@ on the stored record at every verification. The extra projects do not enter the 
 discovery. The environment variables `ZEPHYR_EXTRA_MODULES` and `EXTRA_ZEPHYR_MODULES` would still add modules;
 the freeze must run with both unset (the recorded `compile_commands.json` and the manifest hash do not refuse
 an added module by themselves). Not shown: a real `west list` against a relocated project.
+
+### First real run: a wedged volume, and arm mode
+
+The first root start (`guard-1`, 2026-11-08 Korea time, 21:46 GMT on 2026-11-07) failed closed: `APPROVAL_REGISTERED`, then `UNMOUNT`, then 20 s later
+`START_FAILED host command timed out: /sbin/umount /Volumes/RT1060-EVK` and `STOPPED reason=start_failed`. No
+record was written and no guard was left running. Read-only `ps` and a mount-table read afterwards showed:
+
+| Observation | Meaning |
+| --- | --- |
+| `/sbin/umount` and, started after it, three `mount` listings in state `U` for minutes | They wait inside the kernel; `SIGKILL` cannot end them. The guard's own first `/sbin/mount` listing, just before its `umount`, did return and showed the volume; the listings hung only once the unmount was pending. |
+| `com.apple.fskit.msdos` (the user-space FAT driver of the DAPLink volume) running since the volume was mounted, state `Us`, about 39 % CPU on average | The file system is served by that process, and `unmount(2)` waits on it. The busy driver predates the guard (the owner had already seen `diskutil` stall on this volume); that the guard's own `umount` request then made later `statfs` calls of the mount block is the observed order, not something shown to be independent of it. |
+| `getfsstat64(MNT_NOWAIT)` returned in 0.05 s and listed `/dev/disk4 on /Volumes/RT1060-EVK (msdos)` | The kernel's cached mount list can be read without asking the wedged file system. `/sbin/mount` asks each file system, and it blocked once the unmount was pending. |
+
+Consequences and changes:
+
+| Question | Answer / change |
+| --- | --- |
+| Can the guard's own mount-table reads hang the same way? | They could: the first version ran `/sbin/mount`. `SystemHost.mounts()` now reads the table with `getfsstat64(MNT_NOWAIT)` in a short-lived `python3 -I -S` child (10 s limit, killed and not waited for). The repository's own `_guard_check` still runs `mount`, so while a wedged mount exists every operation is refused (fail closed, after its 10 s limit); the volume must be gone before a capture. |
+| What does the guard do on a hung `umount`? | It stops at once, does not read the mount table again, and says: unplug the DAPLink USB, wait for the mount to disappear, then start with `--arm`. |
+| Is there a way that avoids unmounting? | Yes: `start --arm`. The DAPLink is unplugged first (this powers the board off). The guard checks that the DAPLink is absent, registers the veto and prints `ARMED`. The owner plugs the DAPLink in; macOS asks to mount the new volume; the guard vetoes that real request (`DENIED exact_DAPLink_USB_serial=… disk=…`, the evidence), waits up to 20 s for the disk and the reviewed serial port to show in the I/O registry (exactly one disk, the vetoed one, and exactly one callout device), checks that nothing is mounted, and writes the record (`evidence`: `armed_replug_veto`, `mode`: `arm`). No self-test mount and no unmount happen. |
+| Progress | The parent prints `ARMED …` as soon as the veto is registered, then `READY …` or `FAILED …`; it waits at most the arm wait (default 600 s, allowed 60 to 1800) plus 90 s. |
+| Names | A failed start leaves its root-owned log. A new start needs new `--session` and `--log` names; the guard never overwrites. |
+
+Not shown on a device: that macOS asks for the mount of a replugged DAPLink through the approval callback of a
+root process before any other program mounts it, that the serial port keeps the name `usbmodem11402` after the
+replug, and the real `getfsstat64` reader on a wedged mount (it ran once, read-only, and answered in 0.05 s).
+
+The arm wait and the ancestry wait are approximate: one `ioreg` call can take up to 30 s, during which the run loop does not answer DiskArbitration (as in the normal start), and the deadline is checked after each call. In arm mode the lifetime counts from `READY`, so `deadline_in` is the real time left. The mount-table reader allocates room for 16 more mounts than the first call counted and fails if the table still overflows it.

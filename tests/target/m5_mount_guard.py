@@ -12,7 +12,15 @@ DAPLink volume, never programs, never touches the probe, and does nothing to any
 disk.
 
     sudo /usr/bin/python3 tests/target/m5_mount_guard.py start --session S --log L
+    sudo /usr/bin/python3 tests/target/m5_mount_guard.py start --arm --session S --log L
     python3 tests/target/m5_mount_guard.py probe        # no root, read-only
+
+Two ways to start. The default expects the DAPLink to be present: it unmounts its volume, proves its
+veto with a self-test mount, then writes the record. That needs the volume to unmount, and an FSKit FAT
+volume of the DAPLink can wedge so that ``umount`` never returns (state U in ps; it cannot be killed).
+``--arm`` is for that case: the DAPLink USB is unplugged first, the guard registers its veto and waits,
+the owner replugs, macOS tries to mount the new volume, the guard vetoes that real request (the veto
+evidence), checks the ancestry and writes the record. It never touches a mount in this mode.
 
 ``start`` sequence (every step fails closed; nothing is left running on failure):
   1. refuse unless root, arguments valid and neither output file exists;
@@ -59,6 +67,9 @@ UART = BENCH['uart']
 DENY_STATUS = 0xF8DA0008          # kDAReturnNotPermitted
 MOUNT_ARGUMENTS = ('rdonly', 'nobrowse')   # the self-test mount, if it ever happens, is read-only and hidden
 REPORT_TIMEOUT = 90                       # seconds the parent waits for READY or FAILED
+ARM_WAIT, MIN_ARM_WAIT, MAX_ARM_WAIT = 600, 60, 1800   # seconds to wait for the replugged DAPLink's mount request
+ANCESTRY_WAIT = 20                        # seconds for the replugged device to show its disk and serial port
+TERMINAL = ('READY', 'FAILED')
 DEFAULT_LIFETIME, MIN_LIFETIME, MAX_LIFETIME = 7200, 300, 14400
 EVIDENCE_WAIT = 20
 UMOUNT_TIMEOUT = 20
@@ -110,6 +121,43 @@ def usb_disks(tree, serial=SERIAL):
     return disks, uarts
 
 
+def usb_present(tree, serial=SERIAL):
+    """True if any node of the I/O registry is the DAPLink USB device."""
+    if isinstance(tree, dict):
+        if tree.get('USB Serial Number') == serial:
+            return True
+        return any(usb_present(child, serial) for child in tree.values())
+    if isinstance(tree, list):
+        return any(usb_present(child, serial) for child in tree)
+    return False
+
+
+# The mount table is read with getfsstat64(MNT_NOWAIT), which answers from the kernel's cached entries and never
+# calls into a file system. `/sbin/mount` asks every file system and blocks on a wedged one. It runs in its own
+# short-lived interpreter so that even a kernel stall cannot hold the guard.
+MOUNT_READER = '''
+import ctypes, ctypes.util
+libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+class Statfs(ctypes.Structure):
+    _fields_ = [("f_bsize", ctypes.c_uint32), ("f_iosize", ctypes.c_int32), ("f_blocks", ctypes.c_uint64),
+                ("f_bfree", ctypes.c_uint64), ("f_bavail", ctypes.c_uint64), ("f_files", ctypes.c_uint64),
+                ("f_ffree", ctypes.c_uint64), ("f_fsid", ctypes.c_int32 * 2), ("f_owner", ctypes.c_uint32),
+                ("f_type", ctypes.c_uint32), ("f_flags", ctypes.c_uint32), ("f_fssubtype", ctypes.c_uint32),
+                ("f_fstypename", ctypes.c_char * 16), ("f_mntonname", ctypes.c_char * 1024),
+                ("f_mntfromname", ctypes.c_char * 1024), ("f_flags_ext", ctypes.c_uint32),
+                ("f_reserved", ctypes.c_uint32 * 7)]
+assert ctypes.sizeof(Statfs) == 2168
+libc.getfsstat64.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+count = libc.getfsstat64(None, 0, 2)
+assert count > 0
+buffer = (Statfs * (count + 16))()   # room for mounts added between the two calls
+filled = libc.getfsstat64(buffer, ctypes.sizeof(buffer), 2)
+assert 0 < filled < len(buffer)
+for entry in buffer[:filled]:
+    print("%s on %s (%s)" % (entry.f_mntfromname.decode(), entry.f_mntonname.decode(), entry.f_fstypename.decode()))
+'''
+
+
 def mounted_points(mount_text, disk):
     """(device, mount point) for every mounted partition of ``disk``."""
     found = []
@@ -140,7 +188,7 @@ class SystemHost:
                 os.killpg(process.pid, signal.SIGKILL)
             except OSError:
                 pass
-            raise GuardError('host command timed out: ' + ' '.join(command))
+            raise GuardError('host command timed out: ' + ' '.join(command[:3]))
         return process.returncode, out.decode(errors='replace'), err.decode(errors='replace')
 
     def ioreg(self):
@@ -150,9 +198,9 @@ class SystemHost:
         return plistlib.loads(out.encode())
 
     def mounts(self):
-        code, out, _ = self.run(['/sbin/mount'])
-        if code != 0:
-            raise GuardError('mount listing failed')
+        code, out, err = self.run([sys.executable, '-I', '-S', '-c', MOUNT_READER])
+        if code != 0 or ' on / (' not in out:
+            raise GuardError('mount table could not be read: ' + err.strip()[-200:])
         return out
 
     def umount(self, point):
@@ -176,8 +224,9 @@ class Guard:
     """The guard core. ``da`` offers register_mount_approval, request_mount and run_for."""
 
     def __init__(self, da, host, clock, session_path, log_path, lifetime=DEFAULT_LIFETIME,
-                 executable=None, interpreter=None, evidence_wait=EVIDENCE_WAIT, serial=SERIAL):
+                 executable=None, interpreter=None, evidence_wait=EVIDENCE_WAIT, serial=SERIAL, arm=False, arm_wait=ARM_WAIT):
         self.da, self.host, self.clock = da, host, clock
+        self.arm, self.arm_wait, self.vetoed, self.progress = arm, arm_wait, [], (lambda text: None)
         self.session_path, self.log_path = session_path, log_path
         self.lifetime, self.evidence_wait, self.serial = lifetime, evidence_wait, serial
         self.executable = executable or os.path.abspath(__file__)
@@ -215,7 +264,14 @@ class Guard:
                 raise GuardError(name + ' file already exists; refusing to overwrite: ' + path)
             if not os.path.isdir(os.path.dirname(path)):
                 raise GuardError(name + ' directory does not exist')
-        disks, uarts = usb_disks(self.host.ioreg(), self.serial)
+        if self.arm and not (type(self.arm_wait) is int and MIN_ARM_WAIT <= self.arm_wait <= MAX_ARM_WAIT):
+            raise GuardError('arm wait must be %d..%d seconds' % (MIN_ARM_WAIT, MAX_ARM_WAIT))
+        tree = self.host.ioreg()
+        if self.arm:
+            if usb_present(tree, self.serial):
+                raise GuardError('the DAPLink is present: unplug its USB first for arm mode, or use the normal start')
+            return
+        disks, uarts = usb_disks(tree, self.serial)
         if len(disks) != 1 or uarts != [UART]:
             raise GuardError('DAPLink ancestry is not exactly one disk and the reviewed UART: disks=%r uarts=%r' % (disks, uarts))
         self.disk = disks[0]
@@ -233,6 +289,7 @@ class Guard:
         bsd = whole_disk(info.get('bsd'))
         if kind == 'exact':
             self.denied += 1
+            self.vetoed.append(whole_disk(info.get('bsd')))
             self.say('DENIED exact_DAPLink_USB_serial=%s disk=%s mount_target=%s' % (self.serial, bsd, info.get('bsd')))
         else:
             self.say('DENIED %s_usb_identity disk=%s mount_target=%s detail=%s' % (kind, bsd, info.get('bsd'), info.get('error') or info.get('internal')))
@@ -245,9 +302,15 @@ class Guard:
         os.fchmod(self.log, 0o644)
         self.deadline = self.clock() + self.lifetime
         try:
-            self.say('GUARD_STARTING serial=%s disk=%s pid=%d lifetime=%d' % (self.serial, self.disk, os.getpid(), self.lifetime))
+            self.say('GUARD_STARTING mode=%s serial=%s disk=%s pid=%d lifetime=%d' % ('arm' if self.arm else 'present', self.serial, self.disk, os.getpid(), self.lifetime))
             self.da.register_mount_approval(self.approve)
             self.say('APPROVAL_REGISTERED')
+            if self.arm:
+                self.arm_and_wait()
+                self.deadline = self.clock() + self.lifetime      # the lifetime counts from READY, not from the start of the wait
+                self.write_session()
+                self.say('READY disk=%s deadline=%.3f' % (self.disk, self.deadline))
+                return
             self.da.run_for(0)                  # keep answering approvals between slow host commands
             self.unmount_if_mounted()
             self.da.run_for(0)
@@ -260,15 +323,50 @@ class Guard:
             self.retire('start_failed')
             raise
 
+    WEDGED = ('The DAPLink volume does not answer (the FSKit FAT volume is wedged). Unplug the DAPLink USB, wait for the '
+              'mount to disappear, then start again with --arm. Cause: ')
+
     def unmount_if_mounted(self):
         mounted = mounted_points(self.host.mounts(), self.disk)
         for device, point in mounted:
             self.say('UNMOUNT device=%s point=%s' % (device, point))
-            code, _, err = self.host.umount(point)
+            try:
+                code, _, err = self.host.umount(point)
+            except GuardError as error:
+                if 'timed out' in str(error):
+                    raise GuardError(self.WEDGED + str(error))
+                raise
             if code != 0:
                 raise GuardError('unmount of %s failed (%s); close anything using the volume and retry' % (point, err.strip()))
         if mounted_points(self.host.mounts(), self.disk):
             raise GuardError('DAPLink volume is still mounted after unmount')
+
+    def arm_and_wait(self):
+        """Armed before the replug: the veto of macOS's own mount request is the evidence."""
+        self.progress('ARMED veto registered for the DAPLink serial; plug the DAPLink USB in now (waiting up to %d s)' % self.arm_wait)
+        self.say('ARMED waiting up to %d s for the DAPLink to be plugged in' % self.arm_wait)
+        waited = 0.0
+        while not self.vetoed and waited < self.arm_wait:
+            self.da.run_for(0.5)
+            waited += 0.5
+        if not self.vetoed:
+            raise GuardError('no mount request for the DAPLink within %d s: it was not plugged in, or macOS did not try to mount it' % self.arm_wait)
+        self.disk = self.vetoed[0]
+        for _ in range(4):                      # let a second request for another partition arrive before judging
+            self.da.run_for(0.5)
+        deadline = self.clock() + ANCESTRY_WAIT
+        while True:
+            disks, uarts = usb_disks(self.host.ioreg(), self.serial)
+            if disks == [self.disk] and uarts == [UART]:
+                break
+            if self.clock() >= deadline:
+                raise GuardError('after the replug the DAPLink ancestry is not exactly the vetoed disk and the reviewed UART: disks=%r uarts=%r' % (disks, uarts))
+            self.da.run_for(1.0)
+        if mounted_points(self.host.mounts(), self.disk):
+            raise GuardError('the DAPLink volume is mounted although its mount request was vetoed')
+        self.evidence = 'armed_replug_veto'
+
+    evidence = 'selftest_mount_vetoed'
 
     def selftest(self):
         """Ask for one read-only mount and require the guard's veto in the completion."""
@@ -308,7 +406,7 @@ class Guard:
             interpreter=self.interpreter, interpreter_sha256=sha256_file(os.path.realpath(self.interpreter)),
             deadline=self.deadline, lifetime=self.lifetime, pid=pid,
             process_identity=self.host.identity(pid), log=self.log_path,
-            evidence='selftest_mount_vetoed', vendor_id=VENDOR, product_id=PRODUCT, uart=UART)
+            evidence=self.evidence, mode='arm' if self.arm else 'present', vendor_id=VENDOR, product_id=PRODUCT, uart=UART)
         temporary = self.session_path + '.tmp%d' % pid
         handle = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
         try:
@@ -506,11 +604,22 @@ def probe(host=None, da=None, out=print):
     return rows
 
 
-def read_report(descriptor, timeout, clock=m3_clock.monotonic):
-    """Read the child's report until EOF or the timeout; returns (text, finished)."""
+def read_report(descriptor, timeout, clock=m3_clock.monotonic, on_line=None):
+    """Read the child's report lines until a READY or FAILED line, EOF or the timeout; returns (text, finished).
+
+    Progress lines before the final one (ARMED, ...) go to ``on_line`` as they arrive, so the owner sees them at once.
+    """
     import select
-    data, deadline = b'', clock() + timeout
+    data, deadline, shown = b'', clock() + timeout, 0
     while True:
+        lines = data.decode(errors='replace').split('\n')
+        complete = lines[:-1]
+        for line in complete[shown:]:
+            if line.startswith(TERMINAL):
+                return line.strip(), True
+            if on_line and line.strip():
+                on_line(line.strip())
+        shown = len(complete)
         remaining = deadline - clock()
         if remaining <= 0:
             return data.decode(errors='replace').strip(), False
@@ -518,44 +627,65 @@ def read_report(descriptor, timeout, clock=m3_clock.monotonic):
         if ready:
             chunk = os.read(descriptor, 4096)
             data += chunk
-            if not chunk or b'\n' in data:      # one report line, or the child closed the pipe
-                return data.decode(errors='replace').strip(), True
+            if not chunk:                      # the child closed the pipe: whatever it sent last is the answer
+                tail = data.decode(errors='replace').strip().splitlines()
+                return (tail[-1] if tail else ''), True
 
 
 def run_child(guard, report, install_signals=None):
     """The detached guard's life: start, report READY, run, retire. Returns the exit code.
 
-    A failure at any point (including the report failing because the caller went away)
-    retires the log with STOPPED and removes a session record this run wrote.
+    ``report(text, final)`` carries progress lines (final False) and the one final line. A failure at any point
+    (including the report failing because the caller went away) retires the log with STOPPED and removes a
+    session record this run wrote.
     """
     try:
         if install_signals:
             install_signals(guard)
+        guard.progress = lambda text: report(text, False)
         guard.start()
-        report('READY pid=%d disk=%s session=%s log=%s deadline_in=%ds' % (os.getpid(), guard.disk, guard.session_path, guard.log_path, guard.lifetime))
+        report('READY pid=%d disk=%s session=%s log=%s deadline_in=%ds' % (os.getpid(), guard.disk, guard.session_path, guard.log_path, guard.lifetime), True)
         guard.run()
         return 0
     except BaseException as error:
         guard.discard_session()
         guard.retire('child_failed')
         try:
-            report('FAILED ' + str(error))
+            report('FAILED ' + str(error), True)
         except BaseException:
             pass
         return 1
 
 
+def make_reporter(writer, sent):
+    """Progress lines keep the pipe open; the one final line closes it so the caller is never kept waiting."""
+    def report(text, final=True):
+        if sent:
+            return
+        if final:
+            sent.append(text)
+        try:
+            os.write(writer, (text + '\n').encode())
+        finally:
+            if final:
+                os.close(writer)
+    return report
+
+
 def start_detached(args, host=None):
-    """Validate, detach, run the guard in the child, and report its readiness to the caller."""
+    """Validate, detach, run the guard in the child, and report its progress and readiness to the caller."""
     host = host or SystemHost()
-    Guard(None, host, m3_clock.monotonic, args.session, args.log, args.lifetime).validate()   # fail before forking
+    arm = getattr(args, 'arm', False)
+    arm_wait = getattr(args, 'arm_wait', ARM_WAIT)
+    Guard(None, host, m3_clock.monotonic, args.session, args.log, args.lifetime, arm=arm, arm_wait=arm_wait).validate()   # fail before forking
     reader, writer = os.pipe()
     pid = os.fork()
     if pid:
         os.close(writer)
-        text, finished = read_report(reader, REPORT_TIMEOUT)
+        wait = REPORT_TIMEOUT + (arm_wait if arm else 0)
+        text, finished = read_report(reader, wait, on_line=print)
         if not finished:
-            print('NO REPORT within %d s from guard pid %d: read %s; stop it with: sudo kill %d' % (REPORT_TIMEOUT, pid, args.log, pid))
+            print('NO REPORT within %d s from guard pid %d: read %s; stop it with: sudo kill %d' % (wait, pid, args.log, pid))
             return 1
         print(text or 'guard child exited without a report')
         return 0 if text.startswith('READY') else 1
@@ -569,20 +699,12 @@ def start_detached(args, host=None):
         for descriptor in (0, 1, 2):
             os.dup2(devnull, descriptor)
 
-        def report(text):
-            """One report only, then the pipe is closed so the caller is never kept waiting."""
-            if sent:
-                return
-            sent.append(text)
-            try:
-                os.write(writer, (text + '\n').encode())
-            finally:
-                os.close(writer)
+        report = make_reporter(writer, sent)
 
         def install(guard):
             signal.signal(signal.SIGTERM, lambda *_: guard.request_stop('sigterm'))
             signal.signal(signal.SIGINT, lambda *_: guard.request_stop('sigint'))
-        code = run_child(Guard(DiskArbitration(), host, m3_clock.monotonic, args.session, args.log, args.lifetime), report, install)
+        code = run_child(Guard(DiskArbitration(), host, m3_clock.monotonic, args.session, args.log, args.lifetime, arm=arm, arm_wait=arm_wait), report, install)
     except BaseException as error:
         try:
             if not sent:
@@ -600,6 +722,8 @@ def main(argv=None):
     start.add_argument('--session', required=True)
     start.add_argument('--log', required=True)
     start.add_argument('--lifetime', type=int, default=DEFAULT_LIFETIME, help='seconds, %d..%d' % (MIN_LIFETIME, MAX_LIFETIME))
+    start.add_argument('--arm', action='store_true', help='DAPLink unplugged: veto first, then replug it (use when the volume is wedged)')
+    start.add_argument('--arm-wait', type=int, default=ARM_WAIT, help='seconds to wait for the replug, %d..%d' % (MIN_ARM_WAIT, MAX_ARM_WAIT))
     sub.add_parser('probe', help='read-only, no root: show the DAPLink disk, its mount state and the guard decision')
     args = parser.parse_args(argv)
     try:
