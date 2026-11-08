@@ -216,6 +216,12 @@ class Agreement(unittest.TestCase):
         start = (BENCH / "src/mgmt_start.c").read_text()
         self.assertIn("CRUX_ACCESS_PERMISSION_MANAGE", start)
 
+    def test_the_host_suite_uses_the_declared_account(self):
+        account = DECLARATION["first_account"]
+        suite = (ROOT / "tests/bench_first_account/first_account.c").read_text()
+        self.assertIn(f'#define USER "{account["user"]}"', suite)
+        self.assertIn(f'#define ROLE "{account["role"]}"', suite)
+
     def test_the_first_account_form_is_selected_and_set(self):
         form = DECLARATION["test_forms"]["first_account_file"]
         self.assertEqual((form["symbol"], form["state"]), ("CRUX_BENCH_FIRST_ACCOUNT_FILE", "selected"))

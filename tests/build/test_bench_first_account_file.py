@@ -172,7 +172,7 @@ class FileRules(Scratch):
         self.refused(link, "inside a git work tree")
 
     def test_a_path_that_could_break_out_of_the_assembler_string_is_refused(self):
-        for index, name in enumerate(('quote".pw', "back\\slash.pw", "new\nline.pw")):
+        for index, name in enumerate(('quote".pw', "back\\slash.pw", "new\nline.pw", "semi;colon.pw")):
             path = self.write_file(name, self.password + "\n")
             self.refused(path, "characters that")
 

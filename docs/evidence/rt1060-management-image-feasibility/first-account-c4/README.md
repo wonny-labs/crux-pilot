@@ -23,6 +23,10 @@ New evidence record of [`docs/rt1060-bench-first-account.md`](../../../rt1060-be
 
 The mutants of the scan tool (`host/scanner-mutants.txt`, 13 of 13 killed) were run again on a copy of the two files, not on the work tree.
 
+## After the independent review
+
+The first review (REVISE) found two errors in the documents, and no flaw in the secret handling. Both were fixed in the documents (the reason against option B was wrong, since B would keep the plaintext out of the ELF, and the RAM-disk statements are now conditional on row C3, which is not merged). The tool also now refuses a semicolon in the path and reads at most one byte more than its limit, and a test pins the Host suite's account to the declaration. These changes do not touch the image's sources. `build/` and `host/scan-bench.txt` are from the tree `304206cc`, and `build/post-review-*` and `host/post-review-*` are the rebuild and the scan of the tree after those changes (see the commit named in the PR).
+
 ## Image facts (`build/`)
 
 | Item | Value |

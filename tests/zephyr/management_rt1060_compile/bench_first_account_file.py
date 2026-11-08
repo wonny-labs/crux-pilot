@@ -41,8 +41,8 @@ DISTINCT_MIN = 8
 # hash is held here, so that this file does not repeat it.
 PUBLIC_TEST_PASSWORD_SHA256 = "bbee7c04248dd55aaaa81085f5ae20c0841203c75a1c82bfad9ab866e4a7eb57"
 GENERATED_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
-# Characters a path may not have, because CMake writes it into an assembler string.
-PATH_REFUSED = ('"', "\\", "\n", "\r", "\0")
+# Characters a path may not have: CMake writes it into an assembler string, and a semicolon splits a CMake list.
+PATH_REFUSED = ('"', "\\", "\n", "\r", "\0", ";")
 
 
 class FileRefused(Exception):
@@ -99,9 +99,13 @@ def validate(path, repo_roots=None):
     if info.st_size > FILE_SIZE_MAX:
         raise FileRefused(f"the password file is too large: at most {FILE_SIZE_MAX} bytes")
     try:
-        data = path.read_bytes()
+        # At most one byte more than the limit, so that a file swapped for a large one after the size check costs nothing.
+        with open(path, "rb") as handle:
+            data = handle.read(FILE_SIZE_MAX + 1)
     except OSError:
         raise FileRefused("the password file cannot be read") from None
+    if len(data) > FILE_SIZE_MAX:
+        raise FileRefused(f"the password file is too large: at most {FILE_SIZE_MAX} bytes")
     body = data[:-1] if data.endswith(b"\n") else data
     if hashlib.sha256(body).hexdigest() == PUBLIC_TEST_PASSWORD_SHA256:
         raise FileRefused("that password is the native test images' password, which is public in this repository")

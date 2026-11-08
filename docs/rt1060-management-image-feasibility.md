@@ -188,7 +188,7 @@ Row C4 gives the bench image its first account by decision D3: a password in a f
 
 | Question | Answer |
 | --- | --- |
-| Account | `admin`, role `administrator`, created by `crux_access_provision_first_account` on an empty store (every boot of a RAM disk) |
+| Account | `admin`, role `administrator`, created by `crux_access_provision_first_account` on an empty store (every boot once row C3's RAM disk is merged; with the microSD provider the store persists, and the step is skipped after the first boot) |
 | Input | The file named by `CRUX_BENCH_PASSWORD_FILE`: private, outside every git work tree, 16 to 128 printable characters. A missing, empty or short file stops the configuration. |
 | In the linked image | **The plaintext, in read-only data**, embedded by `.incbin`: Access takes a plaintext password and has no entry for a derived record. A bench-only test form under the C1 declaration. A derived-record entry in Access is proposed in the document, not built. |
 | Everywhere else | A host scan (`bench_first_account_file.py scan`) fails on the password or an encoding of it in any log, listing, map, `.config`, generated file, manifest, capture or evidence |
