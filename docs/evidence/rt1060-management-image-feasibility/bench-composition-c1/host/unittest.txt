@@ -14,6 +14,6 @@ test_no_native_test_declaration_reaches_the_bench_image (tests.build.test_manage
 test_vehicle_copies_are_the_native_files_with_only_the_declared_edits (tests.build.test_management_target_lists.ManagementTargetLists) ... ok
 
 ----------------------------------------------------------------------
-Ran 14 tests in 14.370s
+Ran 14 tests in 11.250s
 
 OK

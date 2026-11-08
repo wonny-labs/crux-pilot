@@ -10,6 +10,8 @@
 #   crux_bench_guard()      refuses a build that is not the declared bench image
 #   crux_bench_manifest()   writes bench-manifest.json beside the build: the declaration, the resolved
 #                           settings, the patched Zephyr copy and the sources with their SHA-256
+# IN_LIST below. A project has it from cmake_minimum_required, and a script run with cmake -P may not.
+cmake_policy(SET CMP0057 NEW)
 set(CRUX_BENCH_DIR "${CMAKE_CURRENT_LIST_DIR}")
 set(CRUX_BENCH_DECLARATION_FILE "${CMAKE_CURRENT_LIST_DIR}/bench_declaration.json")
 # A check script may name another declaration. A build never can: the override exists in script mode only.

@@ -203,6 +203,9 @@ def cmake_cases(tree):
 
 def run_cmake(tree, settings, zephyr_base, declaration):
     with tempfile.NamedTemporaryFile("w", suffix=".cmake", delete=False) as script:
+        # The version of the image's CMakeLists.txt, so that policies are as in a build and not as CMake defaults them
+        # in script mode, which differs between CMake versions.
+        script.write("cmake_minimum_required(VERSION 3.20.0)\n")
         for name, value in settings.items():
             script.write(f'set({name} "{value}")\n')
         script.write(f'set(ZEPHYR_BASE "{zephyr_base}")\n')
@@ -588,7 +591,8 @@ def main():
         found, results = check_mutants(tree, kconfiglib)
         failures += found
         killed = sum(1 for _, state in results if state == "killed")
-        levels.append(f"mutants: {killed} of {len(results)} killed")
+        skipped = sum(1 for _, state in results if state.startswith("skipped"))
+        levels.append(f"mutants: {killed} of {len(results)} killed" + (f", {skipped} skipped" if skipped else ""))
         if args.verbose:
             for description, state in results:
                 print(f"  {state:8} {description}")

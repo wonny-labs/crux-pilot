@@ -56,24 +56,24 @@
   refused  C     HTTPS on another address: static assertion failed due to requirement '__builtin_strcmp("192.168.77.3", "192.168.77.2") == 0': The HTTPS listener must listen on the bench address only
   refused  C     SSH on every address: static assertion failed due to requirement '__builtin_strcmp("", "192.168.77.2") == 0': The SSH listener must listen on the bench address only
   refused  C     SSH on 0.0.0.0: static assertion failed due to requirement '__builtin_strcmp("0.0.0.0", "192.168.77.2") == 0': The SSH listener must listen on the bench address only
-  killed   bench_guard.cmake: the refusal at line 58 only logs
-  killed   bench_guard.cmake: the refusal at line 66 only logs
-  killed   bench_guard.cmake: the refusal at line 71 only logs
-  killed   bench_guard.cmake: the refusal at line 75 only logs
-  killed   bench_guard.cmake: the refusal at line 81 only logs
-  killed   bench_guard.cmake: the refusal at line 85 only logs
-  killed   bench_guard.cmake: the refusal at line 88 only logs
-  killed   bench_guard.cmake: the refusal at line 92 only logs
-  killed   bench_guard.cmake: the refusal at line 96 only logs
-  killed   bench_guard.cmake: the refusal at line 100 only logs
-  killed   bench_guard.cmake: the refusal at line 105 only logs
-  killed   bench_guard.cmake: the refusal at line 110 only logs
-  killed   bench_guard.cmake: the refusal at line 113 only logs
-  killed   bench_guard.cmake: the refusal at line 125 only logs
-  killed   bench_guard.cmake: the refusal at line 129 only logs
-  killed   bench_guard.cmake: the refusal at line 137 only logs
-  killed   bench_guard.cmake: the refusal at line 144 only logs
-  killed   bench_guard.cmake: the refusal at line 152 only logs
+  killed   bench_guard.cmake: the refusal at line 60 only logs
+  killed   bench_guard.cmake: the refusal at line 68 only logs
+  killed   bench_guard.cmake: the refusal at line 73 only logs
+  killed   bench_guard.cmake: the refusal at line 77 only logs
+  killed   bench_guard.cmake: the refusal at line 83 only logs
+  killed   bench_guard.cmake: the refusal at line 87 only logs
+  killed   bench_guard.cmake: the refusal at line 90 only logs
+  killed   bench_guard.cmake: the refusal at line 94 only logs
+  killed   bench_guard.cmake: the refusal at line 98 only logs
+  killed   bench_guard.cmake: the refusal at line 102 only logs
+  killed   bench_guard.cmake: the refusal at line 107 only logs
+  killed   bench_guard.cmake: the refusal at line 112 only logs
+  killed   bench_guard.cmake: the refusal at line 115 only logs
+  killed   bench_guard.cmake: the refusal at line 127 only logs
+  killed   bench_guard.cmake: the refusal at line 131 only logs
+  killed   bench_guard.cmake: the refusal at line 139 only logs
+  killed   bench_guard.cmake: the refusal at line 146 only logs
+  killed   bench_guard.cmake: the refusal at line 154 only logs
   killed   bench_guard.h: the #error at line 16 only warns
   killed   bench_guard.h: the #error at line 19 only warns
   killed   bench_guard.h: the #error at line 24 only warns
