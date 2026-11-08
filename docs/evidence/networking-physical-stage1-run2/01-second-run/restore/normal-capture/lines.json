@@ -1,0 +1,1614 @@
+[
+  [
+    137587.388087,
+    "M3_WORK sequence=11 monotonic_ms=1503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137587.41033,
+    "M3_NET_RESOURCE monotonic_ms=1504 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137587.41033,
+    "M3_NET_STATE monotonic_ms=1504 link=1 address=1 service_ready=0"
+  ],
+  [
+    137587.453317,
+    "M3_OBSERVER_ALIVE monotonic_ms=1554 healthy=0 sequence=11 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137587.473474,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3464 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137587.497685,
+    "M3_LOGGER monotonic_ms=1555 queue_snapshot_ms=1554 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137588.401868,
+    "M3_WORK sequence=21 monotonic_ms=2503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137588.401868,
+    "M3_NET_RESOURCE monotonic_ms=2505 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137588.424507,
+    "M3_NET_STATE monotonic_ms=2505 link=1 address=1 service_ready=0"
+  ],
+  [
+    137588.464955,
+    "M3_OBSERVER_ALIVE monotonic_ms=2556 healthy=0 sequence=21 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137588.48524,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3464 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137588.48524,
+    "M3_LOGGER monotonic_ms=2556 queue_snapshot_ms=2556 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137588.48524,
+    "Thread analyze:"
+  ],
+  [
+    137588.505609,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137588.505609,
+    ": Total CPU cycles used: 260241"
+  ],
+  [
+    137588.505609,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137588.505609,
+    ": Total CPU cycles used: 343307"
+  ],
+  [
+    137588.525971,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137588.525971,
+    ": Total CPU cycles used: 119577"
+  ],
+  [
+    137588.525971,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137588.525971,
+    ": Total CPU cycles used: 2099"
+  ],
+  [
+    137588.546228,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137588.546228,
+    ": Total CPU cycles used: 175592"
+  ],
+  [
+    137588.546228,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137588.566488,
+    ": Total CPU cycles used: 235124"
+  ],
+  [
+    137588.566488,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 7 %"
+  ],
+  [
+    137588.566488,
+    ": Total CPU cycles used: 113079849"
+  ],
+  [
+    137588.566488,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 92 %"
+  ],
+  [
+    137588.586726,
+    ": Total CPU cycles used: 1416698956"
+  ],
+  [
+    137588.586726,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137588.586726,
+    ": Total CPU cycles used: 2742580"
+  ],
+  [
+    137588.609623,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137588.609623,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137589.424817,
+    "*** Booting Zephyr OS build v4.4.0 ***"
+  ],
+  [
+    137589.424817,
+    "M3_BOOT source=ec94fbec22cd profile=integrated commands=0 fault_default=off"
+  ],
+  [
+    137589.424817,
+    "M3_SCOPE non_uart=SW5 network=required readiness=not_ready automatic_window=0"
+  ],
+  [
+    137589.445551,
+    "M3_RESET support_status=0 supported=0x6173 cause_status=0 cause=0x102 clear_status=0 remaining_status=0 remaining=0x0"
+  ],
+  [
+    137589.445551,
+    "M3_INIT time=0 device=0 stimulus=SW5 network=required"
+  ],
+  [
+    137589.445551,
+    "M3_WORK sequence=1 monotonic_ms=503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137589.465968,
+    "M3_NET_BASELINE contexts=0"
+  ],
+  [
+    137589.465968,
+    "M3_NET_RESOURCE monotonic_ms=503 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137589.465968,
+    "M3_NET_STATE monotonic_ms=503 link=0 address=1 service_ready=0"
+  ],
+  [
+    137589.486626,
+    "M3_NET_OWNER_INIT result=0 automatic_window=0"
+  ],
+  [
+    137589.486626,
+    "M3_OBSERVER_ALIVE monotonic_ms=553 healthy=0 sequence=1 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137589.507297,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3464 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137589.531753,
+    "M3_LOGGER monotonic_ms=553 queue_snapshot_ms=553 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=3"
+  ],
+  [
+    137590.429972,
+    "M3_WORK sequence=11 monotonic_ms=1503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137590.429972,
+    "M3_NET_RESOURCE monotonic_ms=1504 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137590.429972,
+    "M3_NET_STATE monotonic_ms=1504 link=0 address=1 service_ready=0"
+  ],
+  [
+    137590.47558,
+    "M3_OBSERVER_ALIVE monotonic_ms=1554 healthy=0 sequence=11 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137590.496049,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3464 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137590.520194,
+    "M3_LOGGER monotonic_ms=1554 queue_snapshot_ms=1554 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137591.41224,
+    "M3_WORK sequence=21 monotonic_ms=2503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137591.433933,
+    "M3_NET_RESOURCE monotonic_ms=2505 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137591.433933,
+    "M3_NET_STATE monotonic_ms=2505 link=0 address=1 service_ready=0"
+  ],
+  [
+    137591.479826,
+    "M3_OBSERVER_ALIVE monotonic_ms=2555 healthy=0 sequence=21 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137591.500285,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3464 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137591.520933,
+    "M3_LOGGER monotonic_ms=2556 queue_snapshot_ms=2555 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137591.520933,
+    "Thread analyze:"
+  ],
+  [
+    137591.520933,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137591.520933,
+    ": Total CPU cycles used: 244271"
+  ],
+  [
+    137591.541354,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137591.541354,
+    ": Total CPU cycles used: 281125"
+  ],
+  [
+    137591.541354,
+    "rx_q[0]             : STACK: unused 1360 usage 176 / 1536 (11 %); CPU: 0 %"
+  ],
+  [
+    137591.541354,
+    ": Total CPU cycles used: 3030"
+  ],
+  [
+    137591.56202,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137591.56202,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137591.56202,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137591.56202,
+    ": Total CPU cycles used: 148680"
+  ],
+  [
+    137591.582401,
+    "ENET_RX             : STACK: unused 1392 usage 208 / 1600 (13 %); CPU: 0 %"
+  ],
+  [
+    137591.582401,
+    ": Total CPU cycles used: 11002"
+  ],
+  [
+    137591.582401,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 7 %"
+  ],
+  [
+    137591.60268,
+    ": Total CPU cycles used: 113076745"
+  ],
+  [
+    137591.60268,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 92 %"
+  ],
+  [
+    137591.60268,
+    ": Total CPU cycles used: 1417279207"
+  ],
+  [
+    137591.60268,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137591.623919,
+    ": Total CPU cycles used: 2659345"
+  ],
+  [
+    137591.623919,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137591.623919,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137592.417475,
+    "M3_WORK sequence=31 monotonic_ms=3503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137592.439042,
+    "M3_NET_RESOURCE monotonic_ms=3506 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137592.439042,
+    "M3_NET_STATE monotonic_ms=3506 link=0 address=1 service_ready=0"
+  ],
+  [
+    137592.481545,
+    "M3_OBSERVER_ALIVE monotonic_ms=3557 healthy=0 sequence=31 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137592.502059,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137592.522707,
+    "M3_LOGGER monotonic_ms=3557 queue_snapshot_ms=3557 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137592.522707,
+    "Thread analyze:"
+  ],
+  [
+    137592.522707,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137592.522707,
+    ": Total CPU cycles used: 324942"
+  ],
+  [
+    137592.543235,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137592.543235,
+    ": Total CPU cycles used: 382736"
+  ],
+  [
+    137592.543235,
+    "rx_q[0]             : STACK: unused 1360 usage 176 / 1536 (11 %); CPU: 0 %"
+  ],
+  [
+    137592.543235,
+    ": Total CPU cycles used: 3030"
+  ],
+  [
+    137592.563652,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137592.563652,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137592.563652,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137592.563652,
+    ": Total CPU cycles used: 250726"
+  ],
+  [
+    137592.584232,
+    "ENET_RX             : STACK: unused 1392 usage 208 / 1600 (13 %); CPU: 0 %"
+  ],
+  [
+    137592.584232,
+    ": Total CPU cycles used: 11002"
+  ],
+  [
+    137592.584232,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 10 %"
+  ],
+  [
+    137592.604799,
+    ": Total CPU cycles used: 220591591"
+  ],
+  [
+    137592.604799,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 89 %"
+  ],
+  [
+    137592.604799,
+    ": Total CPU cycles used: 1909896760"
+  ],
+  [
+    137592.604799,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137592.626567,
+    ": Total CPU cycles used: 3087523"
+  ],
+  [
+    137592.626567,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137592.626567,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137593.417702,
+    "M3_WORK sequence=41 monotonic_ms=4503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137593.439261,
+    "M3_NET_RESOURCE monotonic_ms=4507 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137593.439261,
+    "M3_NET_STATE monotonic_ms=4507 link=1 address=1 service_ready=0"
+  ],
+  [
+    137593.482807,
+    "M3_OBSERVER_ALIVE monotonic_ms=4559 healthy=0 sequence=41 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137593.503383,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137593.523802,
+    "M3_LOGGER monotonic_ms=4559 queue_snapshot_ms=4559 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137593.523802,
+    "Thread analyze:"
+  ],
+  [
+    137593.523802,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137593.523802,
+    ": Total CPU cycles used: 398859"
+  ],
+  [
+    137593.544268,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137593.544268,
+    ": Total CPU cycles used: 495911"
+  ],
+  [
+    137593.544268,
+    "rx_q[0]             : STACK: unused 1360 usage 176 / 1536 (11 %); CPU: 0 %"
+  ],
+  [
+    137593.544268,
+    ": Total CPU cycles used: 55736"
+  ],
+  [
+    137593.564711,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137593.564711,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137593.564711,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137593.564711,
+    ": Total CPU cycles used: 369198"
+  ],
+  [
+    137593.585306,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137593.585306,
+    ": Total CPU cycles used: 131804"
+  ],
+  [
+    137593.585306,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 11 %"
+  ],
+  [
+    137593.606708,
+    ": Total CPU cycles used: 328178020"
+  ],
+  [
+    137593.606708,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 87 %"
+  ],
+  [
+    137593.606708,
+    ": Total CPU cycles used: 2402204799"
+  ],
+  [
+    137593.606708,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137593.627879,
+    ": Total CPU cycles used: 3496286"
+  ],
+  [
+    137593.627879,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137593.627879,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137594.416885,
+    "M3_WORK sequence=51 monotonic_ms=5503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137594.438121,
+    "M3_NET_RESOURCE monotonic_ms=5508 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137594.438121,
+    "M3_NET_STATE monotonic_ms=5508 link=1 address=1 service_ready=0"
+  ],
+  [
+    137594.483708,
+    "M3_OBSERVER_ALIVE monotonic_ms=5560 healthy=0 sequence=51 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137594.504164,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137594.524528,
+    "M3_LOGGER monotonic_ms=5560 queue_snapshot_ms=5560 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137594.524528,
+    "Thread analyze:"
+  ],
+  [
+    137594.524528,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137594.524528,
+    ": Total CPU cycles used: 472974"
+  ],
+  [
+    137594.545942,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137594.545942,
+    ": Total CPU cycles used: 666889"
+  ],
+  [
+    137594.545942,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137594.545942,
+    ": Total CPU cycles used: 126718"
+  ],
+  [
+    137594.567462,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137594.567462,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137594.567462,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137594.567462,
+    ": Total CPU cycles used: 406522"
+  ],
+  [
+    137594.588577,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137594.588577,
+    ": Total CPU cycles used: 218309"
+  ],
+  [
+    137594.588577,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 13 %"
+  ],
+  [
+    137594.608841,
+    ": Total CPU cycles used: 435847338"
+  ],
+  [
+    137594.608841,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 86 %"
+  ],
+  [
+    137594.608841,
+    ": Total CPU cycles used: 2894518934"
+  ],
+  [
+    137594.608841,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137594.630486,
+    ": Total CPU cycles used: 3926338"
+  ],
+  [
+    137594.630486,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137594.630486,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137595.426169,
+    "M3_WORK sequence=61 monotonic_ms=6503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137595.426169,
+    "M3_NET_RESOURCE monotonic_ms=6509 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137595.450882,
+    "M3_NET_STATE monotonic_ms=6509 link=1 address=1 service_ready=0"
+  ],
+  [
+    137595.491246,
+    "M3_OBSERVER_ALIVE monotonic_ms=6562 healthy=0 sequence=61 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137595.511332,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137595.511332,
+    "M3_LOGGER monotonic_ms=6562 queue_snapshot_ms=6562 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137595.511332,
+    "Thread analyze:"
+  ],
+  [
+    137595.531421,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137595.531421,
+    ": Total CPU cycles used: 542868"
+  ],
+  [
+    137595.531421,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137595.551537,
+    ": Total CPU cycles used: 809827"
+  ],
+  [
+    137595.551537,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137595.551537,
+    ": Total CPU cycles used: 198967"
+  ],
+  [
+    137595.551537,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137595.572214,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137595.572214,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137595.572214,
+    ": Total CPU cycles used: 437346"
+  ],
+  [
+    137595.592299,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137595.592299,
+    ": Total CPU cycles used: 322615"
+  ],
+  [
+    137595.592299,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 13 %"
+  ],
+  [
+    137595.592299,
+    ": Total CPU cycles used: 543443830"
+  ],
+  [
+    137595.612409,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 86 %"
+  ],
+  [
+    137595.612409,
+    ": Total CPU cycles used: 3386955524"
+  ],
+  [
+    137595.612409,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137595.63467,
+    ": Total CPU cycles used: 4326391"
+  ],
+  [
+    137595.63467,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137595.63467,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137596.4261,
+    "M3_WORK sequence=71 monotonic_ms=7503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137596.4261,
+    "M3_NET_RESOURCE monotonic_ms=7510 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137596.450565,
+    "M3_NET_STATE monotonic_ms=7510 link=1 address=1 service_ready=0"
+  ],
+  [
+    137596.491002,
+    "M3_OBSERVER_ALIVE monotonic_ms=7563 healthy=0 sequence=71 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137596.511207,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137596.511207,
+    "M3_LOGGER monotonic_ms=7563 queue_snapshot_ms=7563 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137596.531465,
+    "Thread analyze:"
+  ],
+  [
+    137596.531465,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137596.531465,
+    ": Total CPU cycles used: 624440"
+  ],
+  [
+    137596.531465,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137596.5519,
+    ": Total CPU cycles used: 917794"
+  ],
+  [
+    137596.5519,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137596.5519,
+    ": Total CPU cycles used: 232340"
+  ],
+  [
+    137596.572254,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137596.572254,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137596.572254,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137596.572254,
+    ": Total CPU cycles used: 476363"
+  ],
+  [
+    137596.59272,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137596.59272,
+    ": Total CPU cycles used: 384520"
+  ],
+  [
+    137596.59272,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 14 %"
+  ],
+  [
+    137596.59272,
+    ": Total CPU cycles used: 651086353"
+  ],
+  [
+    137596.613297,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 85 %"
+  ],
+  [
+    137596.613297,
+    ": Total CPU cycles used: 3879409211"
+  ],
+  [
+    137596.613297,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137596.634084,
+    ": Total CPU cycles used: 4749185"
+  ],
+  [
+    137596.634084,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137596.634084,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137597.416654,
+    "M3_WORK sequence=81 monotonic_ms=8503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137597.437063,
+    "M3_NET_RESOURCE monotonic_ms=8511 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137597.437063,
+    "M3_NET_STATE monotonic_ms=8511 link=1 address=1 service_ready=0"
+  ],
+  [
+    137597.499545,
+    "M3_OBSERVER_ALIVE monotonic_ms=8565 healthy=0 sequence=81 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137597.520104,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137597.520104,
+    "M3_LOGGER monotonic_ms=8565 queue_snapshot_ms=8565 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137597.520104,
+    "Thread analyze:"
+  ],
+  [
+    137597.541117,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137597.541117,
+    ": Total CPU cycles used: 697609"
+  ],
+  [
+    137597.541117,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137597.541117,
+    ": Total CPU cycles used: 1017303"
+  ],
+  [
+    137597.561629,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137597.561629,
+    ": Total CPU cycles used: 232340"
+  ],
+  [
+    137597.561629,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137597.561629,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137597.582117,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137597.582117,
+    ": Total CPU cycles used: 502620"
+  ],
+  [
+    137597.582117,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137597.602452,
+    ": Total CPU cycles used: 384520"
+  ],
+  [
+    137597.602452,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 14 %"
+  ],
+  [
+    137597.602452,
+    ": Total CPU cycles used: 758788723"
+  ],
+  [
+    137597.602452,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 85 %"
+  ],
+  [
+    137597.623223,
+    ": Total CPU cycles used: 4371906768"
+  ],
+  [
+    137597.623223,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137597.623223,
+    ": Total CPU cycles used: 5192594"
+  ],
+  [
+    137597.647571,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137597.647571,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137598.42296,
+    "M3_WORK sequence=91 monotonic_ms=9503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137598.445146,
+    "M3_NET_RESOURCE monotonic_ms=9512 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137598.445146,
+    "M3_NET_STATE monotonic_ms=9512 link=1 address=1 service_ready=0"
+  ],
+  [
+    137598.490342,
+    "M3_OBSERVER_ALIVE monotonic_ms=9566 healthy=0 sequence=91 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137598.51049,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137598.530653,
+    "M3_LOGGER monotonic_ms=9566 queue_snapshot_ms=9566 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137598.530653,
+    "Thread analyze:"
+  ],
+  [
+    137598.530653,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137598.530653,
+    ": Total CPU cycles used: 802380"
+  ],
+  [
+    137598.550871,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137598.550871,
+    ": Total CPU cycles used: 1108881"
+  ],
+  [
+    137598.550871,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137598.550871,
+    ": Total CPU cycles used: 232340"
+  ],
+  [
+    137598.571203,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137598.571203,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137598.571203,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137598.591499,
+    ": Total CPU cycles used: 526282"
+  ],
+  [
+    137598.591499,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137598.591499,
+    ": Total CPU cycles used: 384520"
+  ],
+  [
+    137598.591499,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 15 %"
+  ],
+  [
+    137598.61194,
+    ": Total CPU cycles used: 866529289"
+  ],
+  [
+    137598.61194,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 84 %"
+  ],
+  [
+    137598.61194,
+    ": Total CPU cycles used: 4864367383"
+  ],
+  [
+    137598.633133,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137598.633133,
+    ": Total CPU cycles used: 5579036"
+  ],
+  [
+    137598.633133,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137598.633133,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137599.426415,
+    "M3_WORK sequence=101 monotonic_ms=10503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137599.426415,
+    "M3_NET_RESOURCE monotonic_ms=10513 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137599.45021,
+    "M3_NET_STATE monotonic_ms=10513 link=1 address=1 service_ready=0"
+  ],
+  [
+    137599.492658,
+    "M3_OBSERVER_ALIVE monotonic_ms=10568 healthy=0 sequence=101 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137599.513156,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137599.533665,
+    "M3_LOGGER monotonic_ms=10568 queue_snapshot_ms=10568 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137599.533665,
+    "Thread analyze:"
+  ],
+  [
+    137599.533665,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137599.533665,
+    ": Total CPU cycles used: 877866"
+  ],
+  [
+    137599.554243,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137599.554243,
+    ": Total CPU cycles used: 1213534"
+  ],
+  [
+    137599.554243,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137599.554243,
+    ": Total CPU cycles used: 232340"
+  ],
+  [
+    137599.574615,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137599.574615,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137599.574615,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137599.574615,
+    ": Total CPU cycles used: 555859"
+  ],
+  [
+    137599.595077,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137599.595077,
+    ": Total CPU cycles used: 384520"
+  ],
+  [
+    137599.595077,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 15 %"
+  ],
+  [
+    137599.615887,
+    ": Total CPU cycles used: 974508829"
+  ],
+  [
+    137599.615887,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 84 %"
+  ],
+  [
+    137599.615887,
+    ": Total CPU cycles used: 5356597636"
+  ],
+  [
+    137599.615887,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137599.637569,
+    ": Total CPU cycles used: 5962583"
+  ],
+  [
+    137599.637569,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137599.637569,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137600.427254,
+    "M3_WORK sequence=111 monotonic_ms=11503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137600.427254,
+    "M3_NET_RESOURCE monotonic_ms=11514 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137600.447704,
+    "M3_NET_STATE monotonic_ms=11514 link=1 address=1 service_ready=0"
+  ],
+  [
+    137600.492784,
+    "M3_OBSERVER_ALIVE monotonic_ms=11569 healthy=0 sequence=111 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137600.513251,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137600.533819,
+    "M3_LOGGER monotonic_ms=11569 queue_snapshot_ms=11569 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137600.533819,
+    "Thread analyze:"
+  ],
+  [
+    137600.533819,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137600.533819,
+    ": Total CPU cycles used: 959012"
+  ],
+  [
+    137600.554215,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137600.554215,
+    ": Total CPU cycles used: 1316559"
+  ],
+  [
+    137600.554215,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137600.554215,
+    ": Total CPU cycles used: 232340"
+  ],
+  [
+    137600.574683,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137600.574683,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137600.574683,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137600.596083,
+    ": Total CPU cycles used: 583571"
+  ],
+  [
+    137600.596083,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137600.596083,
+    ": Total CPU cycles used: 384520"
+  ],
+  [
+    137600.596083,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 15 %"
+  ],
+  [
+    137600.616524,
+    ": Total CPU cycles used: 1082681746"
+  ],
+  [
+    137600.616524,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 84 %"
+  ],
+  [
+    137600.616524,
+    ": Total CPU cycles used: 5848635907"
+  ],
+  [
+    137600.637018,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137600.637018,
+    ": Total CPU cycles used: 6371497"
+  ],
+  [
+    137600.637018,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137600.637018,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137601.429177,
+    "M3_WORK sequence=121 monotonic_ms=12503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137601.429177,
+    "M3_NET_RESOURCE monotonic_ms=12515 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137601.453077,
+    "M3_NET_STATE monotonic_ms=12515 link=1 address=1 service_ready=0"
+  ],
+  [
+    137601.495311,
+    "M3_OBSERVER_ALIVE monotonic_ms=12571 healthy=0 sequence=121 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137601.516387,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137601.536693,
+    "M3_LOGGER monotonic_ms=12571 queue_snapshot_ms=12571 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137601.536693,
+    "Thread analyze:"
+  ],
+  [
+    137601.536693,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137601.536693,
+    ": Total CPU cycles used: 1038742"
+  ],
+  [
+    137601.558192,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137601.558192,
+    ": Total CPU cycles used: 1418336"
+  ],
+  [
+    137601.558192,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137601.558192,
+    ": Total CPU cycles used: 232340"
+  ],
+  [
+    137601.578306,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137601.578306,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137601.578306,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137601.578306,
+    ": Total CPU cycles used: 613523"
+  ],
+  [
+    137601.598427,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137601.598427,
+    ": Total CPU cycles used: 384520"
+  ],
+  [
+    137601.598427,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 15 %"
+  ],
+  [
+    137601.618549,
+    ": Total CPU cycles used: 1190905562"
+  ],
+  [
+    137601.618549,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 84 %"
+  ],
+  [
+    137601.618549,
+    ": Total CPU cycles used: 6340632984"
+  ],
+  [
+    137601.618549,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137601.639147,
+    ": Total CPU cycles used: 6773142"
+  ],
+  [
+    137601.639147,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137601.639147,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137602.420915,
+    "M3_WORK sequence=131 monotonic_ms=13503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137602.442262,
+    "M3_NET_RESOURCE monotonic_ms=13516 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137602.442262,
+    "M3_NET_STATE monotonic_ms=13516 link=1 address=1 service_ready=0"
+  ],
+  [
+    137602.504765,
+    "M3_OBSERVER_ALIVE monotonic_ms=13572 healthy=0 sequence=131 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137602.525186,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137602.525186,
+    "M3_LOGGER monotonic_ms=13572 queue_snapshot_ms=13572 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137602.525186,
+    "Thread analyze:"
+  ],
+  [
+    137602.545522,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137602.545522,
+    ": Total CPU cycles used: 1119943"
+  ],
+  [
+    137602.545522,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137602.545522,
+    ": Total CPU cycles used: 1512524"
+  ],
+  [
+    137602.565914,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137602.565914,
+    ": Total CPU cycles used: 232340"
+  ],
+  [
+    137602.565914,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137602.586228,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137602.586228,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137602.586228,
+    ": Total CPU cycles used: 637612"
+  ],
+  [
+    137602.586228,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137602.606444,
+    ": Total CPU cycles used: 384520"
+  ],
+  [
+    137602.606444,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 15 %"
+  ],
+  [
+    137602.606444,
+    ": Total CPU cycles used: 1299194853"
+  ],
+  [
+    137602.626655,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 83 %"
+  ],
+  [
+    137602.626655,
+    ": Total CPU cycles used: 6832563153"
+  ],
+  [
+    137602.626655,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137602.626655,
+    ": Total CPU cycles used: 7166591"
+  ],
+  [
+    137602.64825,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137602.64825,
+    ": Total CPU cycles used: 0"
+  ],
+  [
+    137603.432068,
+    "M3_WORK sequence=141 monotonic_ms=14503 time=-4 pressed=0 device=0"
+  ],
+  [
+    137603.432068,
+    "M3_NET_RESOURCE monotonic_ms=14517 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32"
+  ],
+  [
+    137603.456288,
+    "M3_NET_STATE monotonic_ms=14517 link=1 address=1 service_ready=0"
+  ],
+  [
+    137603.498809,
+    "M3_OBSERVER_ALIVE monotonic_ms=14574 healthy=0 sequence=141 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1"
+  ],
+  [
+    137603.51925,
+    "M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3232 network_status=0 network_object=4160 network_usable=4096 network_unused=3624"
+  ],
+  [
+    137603.53968,
+    "M3_LOGGER monotonic_ms=14574 queue_snapshot_ms=14574 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0"
+  ],
+  [
+    137603.53968,
+    "Thread analyze:"
+  ],
+  [
+    137603.53968,
+    "m3-network          : STACK: unused 3624 usage 472 / 4096 (11 %); CPU: 0 %"
+  ],
+  [
+    137603.53968,
+    ": Total CPU cycles used: 1195376"
+  ],
+  [
+    137603.560192,
+    "m3-critical         : STACK: unused 3688 usage 408 / 4096 (9 %); CPU: 0 %"
+  ],
+  [
+    137603.560192,
+    ": Total CPU cycles used: 1626842"
+  ],
+  [
+    137603.560192,
+    "rx_q[0]             : STACK: unused 1320 usage 216 / 1536 (14 %); CPU: 0 %"
+  ],
+  [
+    137603.560192,
+    ": Total CPU cycles used: 232340"
+  ],
+  [
+    137603.580403,
+    "tcp_work            : STACK: unused 816 usage 208 / 1024 (20 %); CPU: 0 %"
+  ],
+  [
+    137603.580403,
+    ": Total CPU cycles used: 2311"
+  ],
+  [
+    137603.580403,
+    "sysworkq            : STACK: unused 1296 usage 304 / 1600 (19 %); CPU: 0 %"
+  ],
+  [
+    137603.580403,
+    ": Total CPU cycles used: 667122"
+  ],
+  [
+    137603.600677,
+    "ENET_RX             : STACK: unused 1200 usage 400 / 1600 (25 %); CPU: 0 %"
+  ],
+  [
+    137603.600677,
+    ": Total CPU cycles used: 384520"
+  ],
+  [
+    137603.600677,
+    "logging             : STACK: unused 1568 usage 480 / 2048 (23 %); CPU: 16 %"
+  ],
+  [
+    137603.620932,
+    ": Total CPU cycles used: 1407479784"
+  ],
+  [
+    137603.620932,
+    "idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 83 %"
+  ],
+  [
+    137603.620932,
+    ": Total CPU cycles used: 7324475235"
+  ],
+  [
+    137603.642089,
+    "main                : STACK: unused 3232 usage 864 / 4096 (21 %); CPU: 0 %"
+  ],
+  [
+    137603.642089,
+    ": Total CPU cycles used: 7561717"
+  ],
+  [
+    137603.642089,
+    "ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %"
+  ],
+  [
+    137603.642089,
+    ": Total CPU cycles used: 0"
+  ]
+]
