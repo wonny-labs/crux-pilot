@@ -1,7 +1,6 @@
 # Credential and key store
 
-Status: Host implementation for review under Issue #178, with test-only protection. The contract is not adopted until
-this review and gate #183 pass. The decisions and reasoning are in the
+Status: merged in [PR #235](https://github.com/wonny-labs/crux-pilot/pull/235) for Issue #178, on Host with test-only protection, and gate #183 has passed. Issue #178 stays open. A device-ID PSA provider runs on `native_sim` in [the management composition](native-management-composition.md). The decisions and reasoning are in the
 [accepted proposal](plans/credential-store-contract-proposal.md), which this document does not repeat. S1 to S7 are
 accepted, recorded in [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894).
 
@@ -24,7 +23,7 @@ read every secret. See [Limits](#limits). Results must state this, and `crux_cre
 | Device-ID protection through PSA | Implemented for a composition, `components/credential/ports/psa`, with the device ID from `hwinfo` in `ports/zephyr`. The root build has no PSA, so no target holds it. | [`tests/psa_ports`](native-management-composition.md#provider-results) on both providers, and [this store on it](native-management-composition.md#composition-results) on a file-backed disk on `native_sim`. No target run. |
 | Event identifiers | Six private event types, mapped to the `credential.*` records by `crux_credential_security_events`, which a composition links | `ManagementProviders.events`, and the composition |
 | Reserved roots in the file service | `crux_credential_roots` feeds the reserved list of the file service from #232 | `credential_file_service_roots`, on the real service |
-| Pilot card layout, Zephyr composition, target runs | Not implemented. Target and physical work is out of scope and needs separate approval. | Gap |
+| Pilot card layout, target runs | Not implemented. Target and physical work is out of scope and needs separate approval. A Zephyr composition on `native_sim` exists: [management composition](native-management-composition.md). | Gap on a target |
 
 Host tests show contract behaviour. They do not establish confidentiality, entropy quality, or behaviour across real
 power loss.

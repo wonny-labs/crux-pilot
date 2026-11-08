@@ -1,7 +1,6 @@
 # Web contract and private HTTP adapter
 
-Status: implementation for review under Issue #184. Nothing here has run on a board, and nothing here uses TLS, which
-is #185 and the probe in #242.
+Status: merged in [PR #266](https://github.com/wonny-labs/crux-pilot/pull/266) for Issue #184. Nothing here has run on a board. #184's own image uses plain HTTP, and the adapter runs over TLS in [HTTPS composition](https-composition.md) (#185) and [the services image](native-composition-242.md) (#242).
 
 Owner: `components/web`. Public header `<crux/web.h>`, usage target `crux::web`. Adapter header `crux_web_adapter.h`,
 internal target `crux_web_adapter`.
@@ -16,9 +15,9 @@ internal target `crux_web_adapter`.
 | Adapter over the Zephyr HTTP server | Built | `native_sim`, plain HTTP on loopback |
 | Wildcard resources on RT1060 | Compile and link only | Mbed TLS and wolfSSL profiles, not run |
 | Login, sessions, CSRF and `Origin` rules | **Built** in #186: see [web-session.md](web-session.md). This suite still uses stand-ins. | Host, and `native_sim` in `tests/native/web_session` |
-| Status, configuration and account routes | **Built** in #187: see [web-management-apis.md](web-management-apis.md). Host only, and no composition serves them yet. | Host |
-| Network settings routes | **Built** in #213: see [network-settings-service.md](network-settings-service.md). Host only, with no composition and no saving on the target until #16. | Host |
-| Reboot routes | **Built** in #214: see [reboot-service.md](reboot-service.md). Host only, with no composition and no real reset. A composition that leaves the service out has no reboot route. | Host |
+| Status, configuration and account routes | **Built** in #187: see [web-management-apis.md](web-management-apis.md). Host, and served over HTTPS by [the services image](native-composition-242.md) on `native_sim`. | Host, `native_sim` |
+| Network settings routes | **Built** in #213: see [network-settings-service.md](network-settings-service.md). Host, and served by [the services image](native-composition-242.md) on `native_sim`, with no saving on the target until #16. | Host, `native_sim` |
+| Reboot routes | **Built** in #214: see [reboot-service.md](reboot-service.md). Host only: **no image composes it**, not even [the services image](native-composition-242.md), and nothing calls a real reset. A composition that leaves the service out has no reboot route. | Host |
 | Access core on Zephyr | **Faked on `native_sim`** by a double, until #242. The real core and its fake ports run on Host | |
 | Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#three-limits-of-native_sim-found-here) | |
 | A send that returns `-EAGAIN` on `native_sim` | **Injected in the test image** by a wrapped send, because the offload rarely produces one | |
@@ -166,10 +165,10 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.02 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
 | Silent partial body | `native_sim` | Closed at 3.02 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
 | Disconnect mid-request | Host and `native_sim` | Route free within 10 ms of a FIN or a reset, and on Host the body cleared | The registered resources get the server's release, which a fallback resource would not |
-| Trickled headers, three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
+| Trickled headers (Slowloris), three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
 | Client slots, three idle keep-alive connections | `native_sim` | A fourth request waited 3.0 s | An idle browser connection holds a slot for one inactivity period. A real browser's eight parallel requests all succeeded through three slots. |
 | Slow handler, 500 ms | `native_sim` | Another client's largest wait 506 ms, against a median of 48 ms, and the overrun counted | A handler stalls every client for as long as it runs |
-| Reader that reads nothing, 8 MB body | `native_sim` | Another client's largest wait 2.09 s | See [the slow reader bound](#the-slow-reader-bound) |
+| Reader that reads nothing, 8 MB body (slow-read attack) | `native_sim` | Another client's largest wait 2.09 s | See [the slow reader bound](#the-slow-reader-bound) |
 | Reader that drains 20 KB/s, 8 MB body | `native_sim` | Another client's largest wait 1.76 s. The response was cut by its deadline, and counted. | By the source, without pieces this would hold the thread for the whole body. That was not run. |
 | Silent reader with a full socket, small responses | `native_sim` | Another client's largest wait about 10.2 s, about 20 sends at 0.5 s each, in the attempts that reach it. With no room at all a send fails instead, and the server closes that reader on its next request, so the case tries up to four times. In some runs, as the timer allows, another client's connection was closed meanwhile. | **The worst case.** See below. |
 | A send that returns `-EAGAIN`, then more from that client | `native_sim`, injected | Closed within a second, with none of another client's bytes | See [below](#a-response-that-stops-part-way) |
@@ -271,11 +270,7 @@ design's fallback of pausing other clients during writes is what this is.
 
 ### Latency baseline
 
-Each small response takes about 50 ms here, whichever route. The server writes the status line, each header and each chunk
-as separate sends. On the host's TCP stack that meets Nagle's algorithm and the delayed acknowledgement, and the client
-receives it in pieces. The wait is in the network and the thread goes on serving. Zephyr's own stack is not measured, so
-this is noted and not changed. If a target shows it, `TCP_NODELAY` on each client socket is one line in the adapter. TLS
-will also make each send its own record.
+Each small response takes about 50 ms on `native_sim`, because the server writes the status line, each header and each chunk as separate sends, which meets Nagle's algorithm and the delayed acknowledgement on the host's TCP stack. The measurement and what TLS changes are in [HTTPS composition](https-composition.md#sends-of-a-small-response). `TCP_NODELAY` is not set, and Zephyr's own stack is not measured.
 
 ## Header capture
 
@@ -301,10 +296,9 @@ The capture holds seven headers, and a request whose capture dropped anything ge
 | Longest Cookie, 511 bytes, and one more | `native_sim` | Accepted, then `400` |
 | A capture overflow across headers | `native_sim` | `400` |
 | Other headers of 2,000 bytes | `native_sim` | Ignored |
-| Safari | Not run | Not run in #186 either: Safari cannot run unattended on the machine that did #186, so the criterion stays open |
+| Safari | Not run | Header capture was not run in #186 either: Safari cannot run unattended on the machine that did #186. A by-hand observation of a `Secure` cookie on the mock is under the paragraph below |
 
-**Safari has not run**, because it cannot run unattended here, so that part moved to #186, where real login first gives a
-reason to open the interface in one. Both browsers ran over plain HTTP on `localhost`, so a real address, and HTTPS, may
+**Safari has not run** for header capture, because it cannot run unattended here. One observation exists: on 2026-11-08, by hand, on the mock server of the web examples only, a `Secure` cookie set over plain HTTP did not work in Safari ([web session decision 14](web-session.md#decisions-taken-without-an-answer)). Firmware served over HTTPS in Safari was not run. Both browsers above ran over plain HTTP on `localhost`, so a real address, and HTTPS, may
 change `Origin` and `Host`, which the reservation above allows for. Other cookies on the device's address are a browser's
 own: a device that shares an address with something else that sets many cookies can exceed 511 bytes. That client then
 gets `400` on every route, and clearing its cookies fixes it.
@@ -320,8 +314,7 @@ lowered the limit to 2 s: see [the HTTPS composition](https-composition.md#stall
 | wolfSSL | The patch's `ztls_accept_ctx` does the same through `tls_wolfssl_handshake`. |
 | Both | The wait is bounded by `CONFIG_NET_SOCKETS_TLS_CONNECT_TIMEOUT`, **10 seconds by default**. |
 
-So one client that opens a TCP connection and sends nothing stops every client for 10 seconds, and it can repeat that. #185
-should set this much lower and measure both profiles. The whole-request deadline does not help, since no callback runs.
+So one client that opens a TCP connection and sends nothing stops every client for the timeout, and it can repeat that. The whole-request deadline does not help, since no callback runs. The measured stall and the 2 s setting are in [HTTPS composition](https-composition.md#stalled-handshake).
 
 ## Three limits of `native_sim` found here
 
@@ -333,7 +326,9 @@ Each would have made results here wrong without being seen.
 | The native socket offload has no `shutdown` operation, so `zsock_shutdown` fails, and the server's inactivity timer does nothing. | A client on the offload is never closed for inactivity. | The test image wraps that call and shuts the host socket down, which is the effect it has on Zephyr's own stack. This is test code that depends on a private driver struct at this pin. **The wrap has not been compared with Zephyr's own TCP stack**, which needs a target or a TAP interface. |
 | The offload's send waits out its whole timeout and then sends if it can, so `-EAGAIN` hardly ever reaches the server, while on a real stack it would. | The suite reached that path zero times, and a defect there went unseen until independent review. | The test image wraps the send, and a probe route makes a chosen send return `-EAGAIN`. |
 
-## Signatures for the next issues
+## Signatures that the other web components use
+
+The table was written for the issues that followed #184, and each now uses these. `Issue` names the one that introduced the use.
 
 | Issue | What it uses | From |
 | --- | --- | --- |
@@ -347,8 +342,7 @@ Each would have made results here wrong without being seen.
 | #188 | Nothing yet: the probe above is its starting point | |
 
 A copied response body is at most 4 KiB, `CRUX_WEB_RESPONSE_MAX`. A request body is at most `CRUX_WEB_BODY_BUFFER`, 1 KiB,
-per client, and 512 bytes on a route unless `CRUX_WEB_ROUTE_BODY` says otherwise. #187 must check that a status response
-fits the 4 KiB.
+per client, and 512 bytes on a route unless `CRUX_WEB_ROUTE_BODY` says otherwise. A status document that does not fit the 4 KiB is answered `503 not_ready` ([management APIs](web-management-apis.md)).
 
 ## Decisions taken without an answer
 

@@ -1,0 +1,92 @@
+# Stage 8 step 2: signature verification and embedded-key check (2026-11-02T00:38:56Z)
+imgtool: /opt/crux-cache/venv-boot-trial/bin/python3 /opt/crux-cache/trial/mcuboot/scripts/imgtool.py  (version 2.4.0)
+public key PEM: /opt/crux-cache/keys/dev-ecdsa-p256.pub.pem
+public key PEM file: dev-ecdsa-p256.pub.pem
+15127d78a4f119be73eefbf85ecae255fc5ca7f6f16856c2c6e9876521577d9c  /opt/crux-cache/keys/dev-ecdsa-p256.pub.pem
+DER SPKI length: 91
+DER SPKI sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+X9.62 uncompressed point sha256: c0b2225f7ab81029559b01fe1c9a14438aaaa951113eb7b8271a8e499ca80620
+
+================ build-a-ramload-revert-build
+$ imgtool verify --key dev-ecdsa-p256.pub.pem /opt/crux-cache/trial/build-a-ramload-revert-build/zephyr/zephyr/zephyr.signed.bin
+Image was correctly validated
+Image version: 0.0.0+0
+Image digest: 2707c7d81633e253e0663c34bd09f37d7256575b4312500538205c59cf5bffcc
+exit status: 0
+-- negative control: verify with a different, throwaway public key must FAIL
+No signature found for the given key
+exit status (expected non-zero): 1
+-- embedded key in MCUboot (build-a-ramload-revert-build/mcuboot)
+autogen-pubkey.c length: 91 sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+expected DER SPKI sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+autogen-pubkey.c bytes == DER SPKI of public key: True
+DER SPKI bytes found in mcuboot zephyr.bin at offset: 51224
+-- KEYHASH TLV in signed image
+        type: KEYHASH (0x1)
+        len:  0x20
+        data: 0x0a 0xaf 0xb4 0x08 0xcf 0xe1 0xde 0x0f 
+              0x6c 0xdb 0x2e 0x1f 0x7f 0x35 0x7a 0x6b 
+              0xb1 0x71 0xb6 0xe5 0x3e 0xa5 0xb8 0x56 
+
+================ build-b-swap-offset-build
+$ imgtool verify --key dev-ecdsa-p256.pub.pem /opt/crux-cache/trial/build-b-swap-offset-build/zephyr/zephyr/zephyr.signed.bin
+Image was correctly validated
+Image version: 0.0.0+0
+Image digest: 25dc744cb41f531eb3cfc0499ed96011fe5ee300a15b8947fd44298940e747e7
+exit status: 0
+-- negative control: verify with a different, throwaway public key must FAIL
+No signature found for the given key
+exit status (expected non-zero): 1
+-- embedded key in MCUboot (build-b-swap-offset-build/mcuboot)
+autogen-pubkey.c length: 91 sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+expected DER SPKI sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+autogen-pubkey.c bytes == DER SPKI of public key: True
+DER SPKI bytes found in mcuboot zephyr.bin at offset: 53407
+-- KEYHASH TLV in signed image
+        type: KEYHASH (0x1)
+        len:  0x20
+        data: 0x0a 0xaf 0xb4 0x08 0xcf 0xe1 0xde 0x0f 
+              0x6c 0xdb 0x2e 0x1f 0x7f 0x35 0x7a 0x6b 
+              0xb1 0x71 0xb6 0xe5 0x3e 0xa5 0xb8 0x56 
+
+================ repro-a-build
+$ imgtool verify --key dev-ecdsa-p256.pub.pem /opt/crux-cache/trial/repro-a-build/zephyr/zephyr/zephyr.signed.bin
+Image was correctly validated
+Image version: 0.0.0+0
+Image digest: 2707c7d81633e253e0663c34bd09f37d7256575b4312500538205c59cf5bffcc
+exit status: 0
+-- negative control: verify with a different, throwaway public key must FAIL
+No signature found for the given key
+exit status (expected non-zero): 1
+-- embedded key in MCUboot (repro-a-build/mcuboot)
+autogen-pubkey.c length: 91 sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+expected DER SPKI sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+autogen-pubkey.c bytes == DER SPKI of public key: True
+DER SPKI bytes found in mcuboot zephyr.bin at offset: 51224
+-- KEYHASH TLV in signed image
+        type: KEYHASH (0x1)
+        len:  0x20
+        data: 0x0a 0xaf 0xb4 0x08 0xcf 0xe1 0xde 0x0f 
+              0x6c 0xdb 0x2e 0x1f 0x7f 0x35 0x7a 0x6b 
+              0xb1 0x71 0xb6 0xe5 0x3e 0xa5 0xb8 0x56 
+
+================ repro-b-build
+$ imgtool verify --key dev-ecdsa-p256.pub.pem /opt/crux-cache/trial/repro-b-build/zephyr/zephyr/zephyr.signed.bin
+Image was correctly validated
+Image version: 0.0.0+0
+Image digest: 25dc744cb41f531eb3cfc0499ed96011fe5ee300a15b8947fd44298940e747e7
+exit status: 0
+-- negative control: verify with a different, throwaway public key must FAIL
+No signature found for the given key
+exit status (expected non-zero): 1
+-- embedded key in MCUboot (repro-b-build/mcuboot)
+autogen-pubkey.c length: 91 sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+expected DER SPKI sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+autogen-pubkey.c bytes == DER SPKI of public key: True
+DER SPKI bytes found in mcuboot zephyr.bin at offset: 53407
+-- KEYHASH TLV in signed image
+        type: KEYHASH (0x1)
+        len:  0x20
+        data: 0x0a 0xaf 0xb4 0x08 0xcf 0xe1 0xde 0x0f 
+              0x6c 0xdb 0x2e 0x1f 0x7f 0x35 0x7a 0x6b 
+              0xb1 0x71 0xb6 0xe5 0x3e 0xa5 0xb8 0x56 

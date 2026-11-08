@@ -1,9 +1,7 @@
 # TLS certificate model
 
-Status: Host implementation for review under [Issue #190](https://github.com/wonny-labs/crux-pilot/issues/190), in a
-Draft PR. The interface is not adopted until that review and gate #183 pass. **Nothing here ran on `native_sim` or a
-board**: the evidence is Host suites on fakes and on the real credential store, and a Linux Host composition of the PSA
-ports on TF-PSA-Crypto whose output OpenSSL checks. The design follows the
+Status: merged in [PR #284](https://github.com/wonny-labs/crux-pilot/pull/284) for [Issue #190](https://github.com/wonny-labs/crux-pilot/issues/190), and gate #183 has passed. **Nothing here ran on a board.** The evidence of #190 is Host suites on fakes and on the real credential store, and a Linux Host composition of the PSA
+ports on TF-PSA-Crypto whose output OpenSSL checks. The module ran later on `native_sim` on both profiles, including wolfPSA, in [the services image](native-composition-242.md) of #242: see the rows below. The listener there still serves the declared test certificate. The design follows the
 [certificate model](plans/secure-management-web-design.md#certificate-model) of the web design.
 
 Owner: `components/tls_certificate`. Public header `<crux/tls_certificate.h>`, usage target `crux::tls_certificate`.
@@ -27,7 +25,7 @@ provider only. Private ports in `components/tls_certificate/src/tls_certificate_
 | Fingerprint display | Built: SHA-256 in every description, and without a session for the serial console |
 | Rejection keeping the previous certificate | Built |
 | User guidance for the first-connection warning and for expiry | [Below](#user-guidance) |
-| Web routes | **Not in this PR.** The routes of the web design call these operations later. |
+| Web routes | **Not in #190.** The routes of the web design call these operations later. |
 
 ## What is built, faked and untested
 
@@ -41,7 +39,7 @@ provider only. Private ports in `components/tls_certificate/src/tls_certificate_
 | Self-signed certificate, request and PKCS #8 key from a real P-256 key | **Checked**: TF-PSA-Crypto's own key parser takes the key and verifies both signatures with it; OpenSSL 3.0.13 parses all three, verifies the certificate and the request, and completes a TLS 1.3 handshake with them | Host |
 | Event provider onto `web.*` records | **Built** | Host, on the recording fake of the event contract |
 | Registration with Zephyr's TLS credentials, on either profile | **Not built.** The adapter is the interface a composition uses; the declared test certificate of #263 stays in the `native_sim` images. | None |
-| wolfPSA signing, wolfSSL parsing the key and the certificate | **Not run** | None |
+| wolfPSA signing, wolfSSL parsing the key and the certificate | **Not run by #190.** Run in [the services image](native-composition-242.md) on wolfPSA: the certificate is generated at first boot, loaded at the second with the same fingerprint, and OpenSSL verified it. A run, not a qualification. | `native_sim` |
 | Browsers accepting the self-signed profile | **Not run** | None |
 | RT1060-EVKB | **Not compiled** | None |
 
@@ -440,7 +438,7 @@ Container `crux-190`, image `crux-pilot-devcontainer:local` under amd64 emulatio
 | `tls_certificate_differential`, 300,000 rounds | Host | 0 disagreements with OpenSSL 3.0.13's `d2i_X509`; 9,994 on the parser before the fixes |
 | `TlsCertificate.boundary_leak`, `boundary_clean` | Host | Leak refused by `cmake/CruxCredentialBoundary.cmake`, clean accepted |
 | `scripts/check-host.sh`, both presets | Host | **Not run locally.** CI's host workflow runs it. |
-| `native_sim`, target compile | | **Not run** |
+| `native_sim`, target compile | | **Not run by #190.** `native_sim` ran in #242: [the services image](native-composition-242.md). Target compile: not run |
 
 ## Limits
 
@@ -448,7 +446,7 @@ Container `crux-190`, image `crux-pilot-devcontainer:local` under amd64 emulatio
 | --- | --- |
 | No certificate chain: intermediates are neither kept nor served | By design. The record holds one certificate. |
 | The private key is in RAM as PKCS #8 for the program's life | By design, for Zephyr's TLS credentials. The store's confidentiality basis applies to the stored copy. |
-| Mbed profile: the signature port and TLS share one PSA core with no lock, as the [PSA design](psa-crypto-design.md#what-a-provider-must-take-care-of) states | **Not shown.** No composition ran. |
+| Mbed profile: the signature port and TLS share one PSA core with no lock, as the [PSA design](psa-crypto-design.md#what-a-provider-must-take-care-of) states | **Not shown by #190.** The module ran in [the services image](native-composition-242.md), but no case was written for this race. |
 | `psa_sign_hash` is outside the qualified subset | Run here on TF-PSA-Crypto on Host only. #142 ran it in tests on both providers. |
 | One more mutex from the Sync pool, which the gate record already counts as full | **Not measured.** The integrated composition must raise the pool. |
 | 10,840 bytes of static RAM on the 64-bit Host build: two buffers of 8,800 bytes together, a request buffer of 1,600, the key of 138, and the key record of 101 used during start | `size` and `nm` on the Host object. A 32-bit target differs a little, and nothing was measured there. |
@@ -465,7 +463,7 @@ These are security-sensitive. **An independent review PASS and green CI are not 
 | --- | --- | --- |
 | A | The reference self-signed validity, 2026-01-01 to 9999-12-31, against Safari's 825-day rule for TLS server certificates, which no browser run has tested | Accept for a device with no trusted clock; a composition with one sets 825 days |
 | B | Decision 2: the private key as PKCS #8 bytes in RAM, handed to Zephyr's TLS credentials, which keep the pointer | Accept: both profiles need it at the pinned Zephyr |
-| C | Decision 3: `psa_sign_hash` used by a consumer, outside #142's qualified subset, run on TF-PSA-Crypto on Host only | Accept for review now, and qualify it on wolfPSA before a Wolf-profile composition |
+| C | Decision 3: `psa_sign_hash` used by a consumer, outside #142's qualified subset, run on TF-PSA-Crypto on Host in #190, and on both providers on `native_sim` in #242 | Accept for review now, and qualify it on wolfPSA before a Wolf-profile composition. #242 ran it on wolfPSA, which is not a qualification. |
 | D | Decision 5: the two event identifiers and their classes | Accept |
 
 ## Decisions for review
@@ -488,7 +486,7 @@ Each was taken without asking the owner, as the task instructs. The narrower cho
 | 12 | The fingerprint is also available without a session, through the adapter | The first connection needs it before anyone can log in, and it is public | Only through a session |
 | 13 | At most 4 alternative names, and a common name of 1 to 64 safe characters | Bounds the request at 1,536 bytes and the certificate well inside its record | Wider rules |
 | 14 | The request asks only for alternative names | CAs set usage themselves | Request key usages too |
-| 15 | No web routes, no Zephyr registration, no `native_sim` image in this PR | The task makes the interface and its Host tests the deliverable | Follow-up work |
+| 15 | No web routes, no Zephyr registration, no `native_sim` image in #190 | The task makes the interface and its Host tests the deliverable | Follow-up work |
 | 16 | "Format" includes what a client's decoder needs: string types and their content in names, the time form for each year, the structure of five extension values, and no unknown critical extension | The review of `d7e86bd` found certificates for the device key that the parser installed and OpenSSL refused, which would leave HTTPS down until someone reached the serial console. Refusing them up front is the narrower outcome. | Parse every extension, or check fewer |
 | 17 | TeletexString content is accepted unchecked | Its T.61 repertoire is not decoded consistently by clients, and old CAs wrote Latin-1 in it | Refuse TeletexString |
 | 18 | The differential test links the Host's OpenSSL `libcrypto`, and only when CMake finds its headers; otherwise it is skipped with a message | It is a test oracle, not a dependency of the module | Fetch OpenSSL, or keep the test local |

@@ -1,6 +1,6 @@
 # `native_sim` management composition
 
-Status: for review under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), in a Draft PR. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
+Status: merged in [PR #263](https://github.com/wonny-labs/crux-pilot/pull/263), the first part of [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), which stays open. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
 
 The second part of #242, every other management service composed on these providers behind HTTPS, is in [Every management service on `native_sim`](native-composition-242.md).
 
@@ -23,7 +23,7 @@ Nothing here is physical evidence. `native_sim` results use the host's TCP stack
 | Configuration save | **No provider**, `configuration_no_provider`, by decision C6 until #16. A save returns `ERR_STORE` with `NOT_SUPPORTED`. | `native_sim` |
 | Logging | The Crux provider on an **emulated UART**: a line counts as delivered when `crux_log_write` returns `CRUX_OK`, and nothing reads the wire | `native_sim` |
 | Reset causes, watchdog | Real System on `native_sim`. `system.watchdog_state` reads `not_supported`. | `native_sim` |
-| HTTPS listener, login routes, TLS certificate from the store | **Not built here**: #185, #186, #190 | |
+| HTTPS listener, login routes, TLS certificate from the store | **Not built here**: #185, #186 and #190 are in other documents, and [the services image](native-composition-242.md) composes them | |
 | Access and credential suites on the real ports | **Run on Host, on TF-PSA-Crypto**: 10 suites, [below](#the-existing-suites-on-the-real-ports). Not on wolfPSA, and not on `native_sim`. | Host |
 | A race in a provider | **Untested and untestable here**: a `native_sim` thread that does not sleep is never preempted | |
 | Anything on RT1060-EVKB beyond the ports compiling | **Not run.** No board was touched. | |
@@ -314,16 +314,9 @@ Each is a statement about `native_sim`, and none is device evidence.
 | 8 | Provider tests | `tests/psa_ports`, the composition, and [the existing suites](#the-existing-suites-on-the-real-ports) on Host |
 | 9 | The Mbed profile's limits | [Locks](#locks-on-the-mbed-profile). No Ed25519, as shown. Slots: `ports_leave_no_key_slot` shows that the providers hold none between calls, on TF-PSA-Crypto on `native_sim`, and it cannot see a leak on Host or wolfPSA. How many TLS takes from the 16 was not measured. |
 
-## What later issues can use
+## What later issues used
 
-| Issue | What it has now | What it must still do |
-| --- | --- | --- |
-| #184, HTTP adapter | `tests/native/management_composition/composition`: `crux_native_management_start`, sessions from `crux_native_management_login`, and real status and configuration services behind the adapter's routes. Link with `composition.cmake`. | Its own routes. The composition starts no listener. |
-| #185, HTTPS | The [probe's result](#what-185-needs-to-know), both profile configurations, the patched tree for a test, the declared certificate through `crux_native_management_tls_test_credentials`, and the core locks | Decide how a product applies the Wolf patch. Declare versions and suites. Test an abrupt client close on the Mbed profile. |
-| #186, login and sessions | Real PBKDF2 verifiers, the real session table, and a PSA provider to draw attempt identifiers and tokens from | Entropy stays test-only here, so a token's strength is not shown |
-| #190, certificate model | `crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_TLS_KEY, P256)` generates and persists a key at start, and survives a restart. The event port is real. | Connect a stored key and certificate to the TLS credentials. The composition's TLS still uses the declared certificate, not this key. |
-| #192, SSH provider | On the Wolf profile: a persisted Ed25519 host key, one wolfCrypt with the wolfSSH definitions beside the TLS backend and wolfPSA, and real Access for keys and passwords | wolfSSH is not in this image, so it has not been built with these. |
-| #187, #193, #220 | The same services on real ports | |
+#184, #185, #186, #187, #190 and #220 built on this composition and have merged. #192 and #193 reached it only through the integrated image of #197. Their results are in [web contract](web-contract.md), [HTTPS composition](https-composition.md), [web session](web-session.md), [TLS certificate](tls-certificate.md), [the services image](native-composition-242.md), [the integrated image](ssh-integrated-image.md) and [the end-to-end record](e2e-native-220.md).
 
 ## Decisions for review
 

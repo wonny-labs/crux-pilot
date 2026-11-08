@@ -1,12 +1,12 @@
 # Web frontend implementation, M13
 
-Status: merged in #228 for issues #215, #216, #217, #218 and #219, and shown on the mock only. Issue #220 runs both examples on `native_sim` over HTTPS, in a Draft PR: see
+Status: merged in #228 for issues #215, #216, #217, #218 and #219, and shown on the mock only. Issue #220 ran both examples on `native_sim` over HTTPS in [PR #293](https://github.com/wonny-labs/crux-pilot/pull/293): see
 [the web examples end to end](../e2e-native-220.md). It
 follows the [web frontend foundation design](web-frontend-foundation-design.md), whose decisions W1 to W18 are accepted,
 and the [management API specification](../../web/api/openapi.yaml). Since
 [the owner's decision of 4 November 2026](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084), W13, Preact and Angular are examples and the product owns its application UI.
-The folder `web/reference`, the test files named `reference-*` and the function `mountReferenceInterface` keep their names,
-and here they mean the Preact example. The approval is the owner's comment on
+Since the owner's review of 8 November 2026 (Refs #243), the Preact example is in `samples/web/preact` and the Angular example in
+`samples/web/angular`, with the test files named `preact-*` and the function `mountPreactInterface`. The M13 work's approval is the owner's comment on
 [#183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497), with its
 [correction](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6619502432) that M13 other than #220 is not
 behind the gate. It covers no hardware, and nothing here was run on a board.
@@ -16,10 +16,10 @@ behind the gate. It covers no hardware, and nothing here was run on a board.
 | State | Item |
 | --- | --- |
 | Built | `web/client`: an optional framework-free client for login polling, CSRF, error mapping and retry timing |
-| Built | `web/reference`: the Preact example, with sign-in, forced password change and home as core screens, and network settings and reboot as advanced examples |
+| Built | `samples/web/preact`: the Preact example, with sign-in, forced password change and home as core screens, and network settings and reboot as advanced examples |
 | Built | `web/mock`: a mock server from the specification, and a conformance check that M11 can reuse |
 | Built | `web/tools`: type generation, the build, the packaging budget, source rules and pin checks |
-| Built | `samples/web/angular-minimal`: the Angular example, with sign-in, the forced password change, home and configuration, using the generated types |
+| Built | `samples/web/angular`: the Angular example, with sign-in, the forced password change, home and configuration, using the generated types |
 | Built | The core configuration flow in both examples, on the mock only, in #243: see [the configuration flow](../web-config-flow.md) |
 | Built | `.github/workflows/web.yml`: the specification lint, `tests/management_api`, web checks, browser tests and the Angular job |
 | Faked | The whole device. The mock runs on the loopback address over plain HTTP, and it holds one session at a time |
@@ -29,18 +29,19 @@ behind the gate. It covers no hardware, and nothing here was run on a board.
 
 ## Core and Advanced evidence
 
-Each evidence state is recorded on its own, and none stands in for another. Core flows run on both examples, and advanced
-flows on the Preact example with service tests underneath. Host here means the C services, which have no web route yet.
+Each evidence state is recorded on its own, and none stands in for another. Core and advanced flows run on both examples on
+the mock, since #243 added network settings and restart to the Angular example, with service tests underneath. Host here means
+the C services and their routes on the Host fake transport, plus the routes served by the `native_sim` images.
 
 | Flow | Kind | Mock | Host | `native_sim` | Physical |
 | --- | --- | --- | --- | --- | --- |
 | Sign-in and sign-out | Core | Both examples | Access contract. Web sessions in #186. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Session expiry | Core | Both examples | Access contract. Web sessions in #186. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
-| Forced password change | Core | Both examples | Access contract. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
+| Forced password change | Core | Both examples | Access contract. Web route in #186. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Status | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Simple configuration update | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
-| Network settings | Advanced | Preact | Service in #213 | Preact over HTTPS: read, and a change refused as not saved with no Configuration provider, [#220](../e2e-native-220.md#results) | Not run |
-| Reboot | Advanced | Preact | Service in #214 | Mock only: #214's service is merged but not composed in the services image, [#220](../e2e-native-220.md) | Not run |
+| Network settings | Advanced | Both examples | Service in #213 | Preact over HTTPS: read, and a change refused as not saved with no Configuration provider, [#220](../e2e-native-220.md#results). The Angular case is written and **NOT RUN**. | Not run |
+| Reboot | Advanced | Both examples | Service in #214 | Mock only: #214's service is merged but not composed in the services image, [#220](../e2e-native-220.md) | Not run |
 
 ```mermaid
 flowchart LR
@@ -71,8 +72,8 @@ The firmware takes a built folder, so it needs no Node.js. The dotted lines are 
 ```mermaid
 flowchart TB
     subgraph browser["Browser"]
-        ref["web/reference<br/>Preact example"]
-        ang["samples/web/angular-minimal<br/>Angular example, HttpClient"]
+        ref["samples/web/preact<br/>Preact example"]
+        ang["samples/web/angular<br/>Angular example, HttpClient"]
         client["web/client<br/>session, polling, CSRF, errors, retry"]
         types["client/src/api-types.generated.ts"]
         ref --> client
@@ -266,30 +267,7 @@ stateDiagram-v2
 
 ## How a product builds its own interface or starts from an example
 
-The product owns its application UI. The Preact example is a folder of static files that calls only the API, so changing it changes no firmware logic, and a product may reuse, copy or ignore it.
-
-| Need | What the project does | Changes to Crux files |
-| --- | --- | --- |
-| A new status item on home | Registers the item in firmware. Home shows it by its name, with no frontend change. | None |
-| A label, section and format for that item | Passes `homeItems` to `mountReferenceInterface` in its own entry file | None |
-| Different text or another language | Passes `text`, which is laid over the English table | None |
-| A longer restart limit | Passes `client: { timing: { rebootLimitMs } }` | None |
-| Fewer screens, or its own screens | Passes its own `screens` list. A screen is a route, a title, a link and a component. | None |
-| Different styling | Imports its own stylesheet in its own entry file | None |
-| Its own framework, using the client | Imports `web/client/src/index.ts`, which has no framework dependency | None |
-| Its own framework and client | Generates types from the specification, as `web/tools/gen-types.ts` or any generator does, and follows the same rules for the poll header, CSRF and plain answers | None |
-
-To use none of it, a product builds any folder and names it to the asset packaging in its firmware composition, which
-is M11's. The folder must meet four conditions:
-
-1. It runs under the content policy that the composition selects, strict or inline styles, with no external asset.
-2. It uses hash routing, because the server has no deep-link fallback.
-3. It stays within the packaging budget, because the server has few clients.
-4. It holds no secret or device data, because the bundle is public: a browser must load it before login.
-
-`e2e/fixtures/project-entry.tsx` is a working example of the reuse rows, and a browser test runs it. **Limit:** a project
-cannot add a route to the Preact example's navigation without an entry file of its own, which is the intended seam, and the
-example's code is not published as a package, so a project copies or vendors the folder. #220 adds a small example project.
+Moved to [the web guide](../../web/README.md#how-a-product-builds-its-own-interface-or-starts-from-an-example), which is maintained. This plan is a record of the M13 design and its decisions.
 
 ## Screens
 
@@ -316,16 +294,19 @@ browser test shows that a device with no account only ever gets login requests a
 ## Packaging budget
 
 The design requires a budget for file count and compressed size, which fails the build when exceeded, and it states no
-numbers. These are this work's numbers, in `web/reference/budget.json`, for review. Compressed size is gzip at level 9, file
+numbers. These are this work's numbers, in `samples/web/preact/budget.json`, for review. Compressed size is gzip at level 9, file
 by file.
 
 | Limit | Value | Measured |
 | --- | --- | --- |
 | Files | 4: index, one script, one style, one icon | 4 |
-| Compressed bytes | 32768 | 23184 |
+| Compressed bytes | 32768 | 23302 |
 
 The Preact example's parts, in bytes then compressed bytes: script 64419 and 21371, style 3931 and 1307, index 548 and 347, icon 174
-and 159. The configuration screen of #243 added 2,729 compressed bytes, and the budget is unchanged, so 9,584 bytes remain.
+and 159, as measured before the move to `samples/web/preact`. The configuration screen of #243 added 2,729 compressed bytes, and the
+budget is unchanged. The build on `origin/main` before this change and the build after it both measured 69,583 bytes and 23,301 to
+23,302 compressed bytes here (the last byte follows the hashed file names), so 9,466 bytes remain. The earlier record of 23,184
+is older than that.
 
 ## Supply chain
 
@@ -360,13 +341,17 @@ sign-in, home, configuration with an update and a save, and sign-out, in `e2e/an
 
 | Build | Files | Bytes | Compressed bytes | Production packages | Locked packages |
 | --- | --- | --- | --- | --- | --- |
-| Preact example, all six screens | 4 | 69072 | 23184 | 1 | 38 |
-| Preact example, core screens: sign-in, forced change, home and configuration | 4 | 58709 | 20761 | 1 | 38 |
-| Angular example, the same core screens | 5 | 298780 | 91197 | 7 | 362 |
+| Preact example, all six screens | 4 | 69583 | 23302 | 1 | 38 |
+| Preact example, core screens: sign-in, forced change, home and configuration | 4 | 59212 | 20874 | 1 | 38 |
+| Angular example, all six screens | 5 | 326893 | 97990 | 7 | 362 |
 
 Before #243 the Angular row held sign-in and home alone, at 249403 bytes and 76710 compressed, against 48485 and 17922 for
-Preact, so those earlier rows do not compare with these. Both builds now hold the same four core flows. The fifth Angular file is `3rdpartylicenses.txt`, at 4822 compressed bytes,
-which the build writes by default, so the example's code and style are 86,375 compressed bytes. The Preact build writes no
+Preact, and then the four core flows, at 298780 bytes and 91197 compressed, against 58709 and 20761. Those earlier rows do not
+compare with these. Both builds now hold all six screens: the four core flows, network settings and restart. Network settings and
+restart added 28,113 bytes and 6,793 compressed bytes to Angular, which is 309.22 kB raw and 81.73 kB transferred for its initial
+bundle, over the former 300 kB limit. The limit in `angular.json` is now 320 kB, which leaves 10.78 kB, and that change is the owner's
+call: see [the advanced flows](../web-advanced-flows.md). The fifth Angular file is `3rdpartylicenses.txt`, at 4,849 compressed bytes,
+which the build writes by default, so the example's code and style are 93,141 compressed bytes. The Preact build writes no
 licence file, and the SBOM names Preact's MIT licence but holds no copyright notice. MIT requires that notice in copies, so
 this build alone does not meet it, and a product must add the text of Preact's `LICENSE` to its own notices. Installed tools measured 55 MB, 13 packages and 1,252 files for
 `web`, and 237 MB, 240 packages and 16,245 files for the Angular example, on macOS arm64.
@@ -386,8 +371,8 @@ What this shows, on the mock only:
 
 | Question | Result |
 | --- | --- |
-| Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the Preact example. |
-| Compressed size against Preact on the same screens | About 4.4 times on the core screens: 91,197 against 20,761 bytes. Excluding the licence file, 4.2 times. On sign-in and home alone it was 4.3 and 4.0 times. |
+| Does Angular work with the web foundation? | Yes, on all six screens, with the same browser cases as the Preact example. |
+| Compressed size against Preact on the same screens | About 4.2 times on all six screens: 97,990 against 23,302 bytes. Excluding the licence file, 4.0 times. On the core screens alone it was 4.4 and 4.2 times, and on sign-in and home alone 4.3 and 4.0 times. |
 | File count | No lazy loading is used, so one script and one style, as for Preact. |
 | CSRF | `HttpClient`'s default names work with no configuration, shown by the sign-out case. |
 | Hash routing | `withHashLocation` works, and the server sees only API and asset paths. |
@@ -409,9 +394,9 @@ Results are in the PR, for the revision that it names.
 | Conformance | `mock/test/conformance.test.ts` | Every named example of every response is served as written, and every operation answers with no forced response. The check covers bodies, headers and cookies, and it is itself shown to reject wrong answers. |
 | Mock behaviour | `mock/test/behaviour.test.ts` | The stateful flows, with every answer passing through the conformance check |
 | Tools | `tools/test` | The generator refuses each schema form and combination outside its list, the source rules catch their targets, a build over budget fails, the pins and lockfiles agree, and the C-build boundary catches its fixtures. Tests remove their temporary folders. |
-| Browser | `e2e/reference-*.test.ts` | Each screen, on Chrome. A test fails on a policy violation, a page error, a request to another origin or a mock answer outside the specification. |
+| Browser | `e2e/preact-*.test.ts` | Each screen, on Chrome. A test fails on a policy violation, a page error, a request to another origin or a mock answer outside the specification. |
 | Shared browser cases | `e2e/shared-cases.ts` | One list, run on both the Preact example and the Angular example, finding elements by role, label and visible text. It covers sign-in, home, the forced password change and the configuration flow, which [its own document](../web-config-flow.md) lists. |
-| Preact configuration cases | `e2e/reference-config.test.ts` | Focus, title, keyboard use, the policy with Trusted Types, and device text shown as text |
+| Preact configuration cases | `e2e/preact-config.test.ts` | Focus, title, keyboard use, the policy with Trusted Types, and device text shown as text |
 
 Tests went first where that could work: generator, client, mock, tools and browser cases each failed before their code
 existed, because the module or the build was missing. The client-against-mock tests, the boundary test and the policy
@@ -462,7 +447,7 @@ firmware file then broke it, and the matcher is narrowed for exactly these two.
 ```mermaid
 flowchart LR
     text[File text] --> nodeuse{Node.js, npm or a frontend path?}
-    nodeuse -- "web/client, reference, mock, tools, e2e, package" --> reds[Counts, unless web/ follows a components/ segment]
+    nodeuse -- "web/client, mock, tools, e2e, package, and samples/web" --> reds[Counts, unless web/ follows a components/ segment]
     nodeuse -- "web/api/lint or any other web/api path" --> reds
     nodeuse -- "web/api/openapi.yaml" --> okspec[Does not count: plain YAML, no Node.js runs on it]
     nodeuse -- "components/web/tools, the route generator" --> okgen[Does not count: firmware Python, not the frontend]
@@ -498,12 +483,12 @@ Each was taken for lack of an answer, as the narrower choice.
 | One PR with one commit for each issue | The issues build on each other and PRs must be based on `main` |
 | A small local type generator, not `openapi-typescript` | Keeps the package count low, and it refuses schema forms it does not know. Any project can still use another generator. |
 | `ajv` for the conformance check | A real validator is worth five development packages here, because a home-made one could hide a fault |
-| Exact budget numbers, and a raw limit of 300 kB in the Angular example's `angular.json` | The design gives none |
+| Exact budget numbers, and a raw limit in the Angular example's `angular.json`: 300 kB, and 320 kB since network settings and restart | The design gives none |
 | Reboot and save time limits | No measurement exists, so they are assumptions and can be changed through an option |
 | No automatic new attempt after a `429`, a `503` or a `404` | The specification says that the client starts a new attempt, and the safer reading is that the user asks for it. The only time a password is sent again without a user action is after a `409`, which the server did not process, so no verification ran. Nothing keeps a password after the form. |
 | Forced change only, with no general change-password link | Account management stays on the CLI, as the design says |
-| A malformed address gets `bad_request` from the mock, because the field codes have no format error | The specification does not say. #213 decides for the real service. |
-| The client's IPv4 checks also refuse a subnet's network and broadcast addresses, reported as `not_unicast` | The design says "unicast address". If #213 allows these, the client check must follow. |
-| The client refuses a gateway of `0.0.0.0`, the address itself and the subnet's network and broadcast addresses, with a client-only reason. The mock reports these as `gateway_outside_subnet`. | The specification rules out `0.0.0.0` and has one code for a gateway. #213 decides for the real service. |
+| A malformed address gets `bad_request` from the mock, because the field codes have no format error | The specification did not say. **Decided by #213**: the real service answers `400 bad_request` too, as [its rules](../network-settings-service.md#rules) say. |
+| The client's IPv4 checks also refuse a subnet's network and broadcast addresses, reported as `not_unicast` | The design says "unicast address". **Decided by #213**: the service refuses them too, with `not_unicast`, so the client check matches. |
+| The client refuses a gateway of `0.0.0.0`, the address itself and the subnet's network and broadcast addresses, with a client-only reason. The mock reports these as `gateway_outside_subnet`. | The specification rules out `0.0.0.0` and has one code for a gateway. **Decided by #213**: the service reports `gateway_outside_subnet` for each of them, as [its rules](../network-settings-service.md#rules) say. |
 | Node.js 24, not 26 | Both are long-term support, and 24 has been in use longer. Only 24 was run. |
 | The Angular job is in `web.yml` | The approval names the web checks, and #219 asks for a job. It is a separate job, so it can be removed alone. |

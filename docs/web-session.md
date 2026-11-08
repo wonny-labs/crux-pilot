@@ -1,7 +1,6 @@
 # Web login, sessions and request forgery protection
 
-Status: implementation for review under Issue #186. Nothing here has run on a board, and nothing here uses TLS, which
-is #185. Host and `native_sim` results are interim results, and physical evidence stays tracked apart.
+Status: merged in [PR #278](https://github.com/wonny-labs/crux-pilot/pull/278) for Issue #186. Nothing here has run on a board. #186's own test image uses plain HTTP, and the sessions have since run over HTTPS on both TLS profiles in [the services image](native-composition-242.md) and in the [browser runs of #220](e2e-native-220.md). Host and `native_sim` results are interim results, and physical evidence stays tracked apart.
 
 Owner: `components/web`. Internal header `components/web/session/crux_web_session.h`, for a composition only, like
 `crux_web_adapter.h`. Sources in `components/web/session/`, listed by `sources.cmake`. Ports on PSA Crypto in
@@ -19,8 +18,8 @@ Owner: `components/web`. Internal header `components/web/session/crux_web_sessio
 | Fake random and hash ports | **Faked on Host only**, in `tests/web/session/session_test.c`: distinct bytes and an FNV hash, neither cryptographic | |
 | Fake transport | Host only, from `tests/web` | |
 | Idle and absolute expiry | Host only. The limits are 15 minutes and 8 hours in the composition, too long for a `native_sim` run. | |
-| HTTPS | **Not here.** Plain HTTP on loopback, in a `native_sim` test image only. #185. | |
-| Header capture on Safari | **Not run.** Safari cannot run unattended on this machine. The criterion stays open. | |
+| HTTPS | **Not in #186's own image**: plain HTTP on loopback. Over HTTPS: [HTTPS composition](https-composition.md) and [the services image](native-composition-242.md). | |
+| Header capture on Safari | **Not run.** Safari cannot run unattended on this machine. The criterion stays open. A by-hand observation of the `Secure` cookie on the mock is under decision 14. | |
 | RT1060 | Compile only, not linked: an image also needs the Access core and its store | |
 | Anything on a board | Not run. No hardware was operated. | |
 
@@ -216,14 +215,14 @@ TF-PSA-Crypto `dc575a2` and Mbed TLS `a3e190f`. CI results are in the pull reque
 
 ## What is not verified
 
-- Safari. Header capture on Safari is still open, and is recorded as not run in `docs/web-contract.md`.
-- HTTPS, and `Origin` and `Host` on a real address with HTTPS. #185.
+- Safari. Header capture on Safari was not run, as `docs/web-contract.md` records. The one Safari observation is by hand, on the mock only: decision 14. Firmware over HTTPS in Safari was not run.
+- `Origin` and `Host` on a real address with HTTPS in a browser. HTTPS itself ran in #185 and #242 with a test client and Chrome, not on a real address.
 - Token strength: the entropy on `native_sim` is test-only.
 - Idle and absolute expiry on `native_sim`, and anything on Zephyr's own TCP stack.
 - The worker's stack, the verifier's and the save's time on a target, and the stall they cause. The stall of a password change or a cost upgrade is declared above and not measured.
 - The PSA ports' guard is a deny-list of `CONFIG_FAKE_ENTROPY_NATIVE_SIM` and `CONFIG_TEST_RANDOM_GENERATOR`. Where those Kconfig macros are not visible to the file, as in a build without Zephyr's `autoconf.h`, or with another test generator, it passes silently.
-- The Wolf profile on `native_sim`. Only the Mbed profile runs.
-- Security events for a refused CSRF token or `Origin`: none are emitted, because the event contract has no identifier for them.
+- The Wolf profile in #186's own `native_sim` image: only the Mbed profile runs there. Both profiles ran the sessions over HTTPS later, in [the services image](native-composition-242.md).
+- Security events for a refused CSRF token or `Origin`: none are emitted. The identifier `web.csrf_rejected` exists, and nothing emits it ([Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319)).
 
 ## Decisions taken without an answer
 
@@ -242,17 +241,19 @@ TF-PSA-Crypto `dc575a2` and Mbed TLS `a3e190f`. CI results are in the pull reque
 | 11 | The request head gains the peer's address, IPv6 as its /64 prefix, an IPv4-mapped IPv6 address as its IPv4 address, and an unknown peer has none, which shares one delay bucket | `crux_access` needs a source for its delays. The IPv6 branches are compiled only where IPv6 is on, and no test image has it, so they are untested. | |
 | 12 | `crux_web_close_after_response()` is added to the adapter header | Three lines in the core, and the adapter's existing close path | |
 | 13 | The logout response is `200` with an empty `text/plain` body | The specification says not to parse it as JSON | `application/json` with no body |
-| 14 | `Secure` is set in the plain HTTP test image too | The cookie lines are those of a product. Browsers treat `http://localhost` as secure. | Drop it in the test image |
+| 14 | `Secure` is set in the plain HTTP test image too | The cookie lines are those of a product. Chromium 152 and Firefox 159 kept the cookie over `http://localhost` in the header captures of [the web contract](web-contract.md#header-capture). **Safari did not**: observed on 2026-11-08, by hand, on the mock server of the web examples only. Firmware over HTTPS in Safari was not run. | Drop it in the test image |
 | 15 | The `native_sim` image uses `CONFIG_MINIMAL_LIBC`, as `tests/native/web_http` does, for Zephyr's `fnmatch` | Upstream sources warn of implicit declarations under it, as in that image | Picolibc |
 | 16 | RT1060: compiled as objects, not linked | A link needs the Access core's store and events, which only a product composition brings | Stub ports in a compile test |
 
-## What #187 needs
+## What a route that needs a session can rely on
+
+Written for #187, whose routes now use it. [The product guide](management-in-a-product.md#routes) says what a frontend must send.
 
 | Item | Where |
 | --- | --- |
 | The session lookup for its routes | Compose `crux_web_session_authenticate` and name `web_session_routes.c` to `crux_web_routes`, as `tests/native/web_session` does |
 | Session-only routes get `Origin`, the CSRF token and the idle refresh for free on any method but `GET` | `crux_web_session_authenticate` |
 | A handler checks its own permissions with the session it is given | Unchanged from #184 |
-| The account routes must not add a password change: it exists, at `POST /api/v1/session/me/password` | `web_session_routes.c` |
+| The password change exists, at `POST /api/v1/session/me/password`, so no other route adds one | `web_session_routes.c` |
 | An account change that ends sessions needs nothing more here: the next lookup answers `401` | `sessions.c` shows it |
 | Slow work goes to a worker, and the web stall above applies to any worker at a `crux_thread` priority, which is always above the server thread's | This document |

@@ -1,7 +1,6 @@
 # Reboot service
 
-Status: implementation for review under Issue #214, as a Draft PR. Host only. Nothing here has run on a board, no composition
-serves these routes or links this service yet, and nothing here calls a real reset. Host results are interim results, and physical
+Status: merged in [PR #290](https://github.com/wonny-labs/crux-pilot/pull/290) for Issue #214. Host only. Nothing here has run on a board, **no image composes this service, not even [the services image](native-composition-242.md)**, so no image serves these routes, and nothing here calls a real reset. Host results are interim results, and physical
 evidence stays tracked apart. Decision W9 and the reboot section of [the frontend foundation
 design](plans/web-frontend-foundation-design.md#reboot), and [the owner's approval on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084)
 (W13: reboot is Advanced and optional) are the basis.
@@ -318,7 +317,7 @@ reads has its record behind it. A session that ended before the worker ran leave
 | `web/api/openapi.yaml`: both operations, the `423` with its reason, `RebootState`, `RebootAccepted`, and the pending `POST` that runs no policy | **Unchanged.** It already holds everything above. `Web.reboot_openapi` holds the real answers to it. |
 | The `413` of a `POST` with a body | Not listed for this operation, as the common forms table covers it. The route takes no body, and the client sends none. |
 | `web/mock/server.ts` | **Unchanged.** It already refuses at the request with `423`, shows `refused` with the reason, answers `202` to a request while pending without the policy, and ends in `refused` or `failed`. |
-| `web/client` and `web/reference` | **Unchanged.** |
+| `web/client` and `samples/web/preact` | **Unchanged.** |
 | Where the device and the mock differ | The mock's states follow polls and the device's follow the worker. The device never shows a `reason` outside `refused`. |
 
 ## What a composition needs

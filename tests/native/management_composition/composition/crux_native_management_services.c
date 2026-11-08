@@ -25,6 +25,21 @@ static const crux_tls_certificate_options_t certificate_options = {
 static bool certificate_generated;
 
 static crux_file_root_t reserved_roots[2];
+#if defined(CRUX_NATIVE_MANAGEMENT_SSH)
+/* SFTP writes directly, and a managed-only area refuses every SFTP write (docs/sftp-design.md), so
+ * the area of the SSH composition allows both modes, with room for a transfer of a few tens of
+ * kilobytes. The disk's partition is 512 KiB, and the store holds two slots of it. */
+static crux_file_area_t areas[] = {{
+    .name = CRUX_NATIVE_MANAGEMENT_FILE_AREA,
+    .read_permission = CRUX_NATIVE_MANAGEMENT_PERMISSION_FILE_READ,
+    .write_permission = CRUX_NATIVE_MANAGEMENT_PERMISSION_FILE_WRITE,
+    .max_file_bytes = 65536u,
+    .max_area_bytes = 262144u,
+    .max_entries = 16u,
+    .partial_suffix = ".filepart",
+    .write_modes = CRUX_FILE_SERVICE_MANAGED | CRUX_FILE_SERVICE_DIRECT,
+}};
+#else
 static crux_file_area_t areas[] = {{
     .name = CRUX_NATIVE_MANAGEMENT_FILE_AREA,
     .read_permission = CRUX_NATIVE_MANAGEMENT_PERMISSION_FILE_READ,
@@ -35,6 +50,7 @@ static crux_file_area_t areas[] = {{
     .partial_suffix = NULL,
     .write_modes = CRUX_FILE_SERVICE_MANAGED,
 }};
+#endif
 
 static bool file_service_ready(void)
 {

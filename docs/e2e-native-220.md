@@ -1,6 +1,6 @@
 # The web examples end to end on `native_sim`
 
-Status: for review under [Issue #220](https://github.com/wonny-labs/crux-pilot/issues/220), in a Draft PR. Host and
+Status: merged in [PR #293](https://github.com/wonny-labs/crux-pilot/pull/293) for [Issue #220](https://github.com/wonny-labs/crux-pilot/issues/220). Host and
 `native_sim` evidence only. **Nothing here ran on a board, and nothing here is device timing, memory or physical
 evidence.** Measuring on RT1060-EVKB is separately approved and is not part of this work. Preact and Angular are examples,
 and Crux promises no product-ready interface.
@@ -37,7 +37,7 @@ deep-link fallback, connection limits, the real session clock, the real `409` an
 | 2 | The advanced flows pass on Preact on `native_sim`, and their service tests in #213 and #214 | **Not met yet**, mock-only as the issue allows | #213 and #214 are merged now. Network settings: read, and a change refused on the real `501`, only; the change cannot be saved without a Configuration provider (C6). Reboot and a restarted session: mock-only, because #214's service is not composed in the services image. |
 | 3 | Each example loads in real browsers within the client limit, against a declared budget, and stalls are measured | **Partly met** | Chrome only, emulated timing, a budget derived from the server's bounds. Stalls measured: a stalled handshake, held slots. |
 | 4 | The Angular example works once packaged, or each gap has an issue | **Met at 3,000 ms** | The 1,500 ms gap is held by a control in the runner |
-| 5 | A limit of a TLS profile on `native_sim` is recorded with its evidence | **Met** | W1 on Wolf, about 1 s per new connection; TLS 1.2 refused with alert 70 on both profiles |
+| 5 | A limit of a TLS profile on `native_sim` is recorded with its evidence | **Met** | The #280 late first read on Wolf, about 1 s per new connection; TLS 1.2 refused with alert 70 on both profiles |
 | 6 | Results distinguish mock, Host, `native_sim` and physical evidence | **Met** | [Results](#results), and each result file names its target |
 
 **No CI workflow runs `e2e-mbed` or `e2e-wolf`.** The `native_sim` evidence here is the worker's local run only. A
@@ -50,8 +50,8 @@ Chrome and no workspace. That is a `.github` change, which needs its own approva
 ```mermaid
 flowchart LR
     subgraph web["web/, Node.js 24 in the container only"]
-        build["Preact build<br/>web/reference/dist"]
-        ngbuild["Angular build<br/>samples/web/angular-minimal/dist"]
+        build["Preact build<br/>samples/web/preact/dist"]
+        ngbuild["Angular build<br/>samples/web/angular/dist"]
         cases["shared-cases.ts<br/>one list, two targets"]
         native["native-cases.ts<br/>real-server cases"]
         harness["harness.ts<br/>mock or native_sim target"]
@@ -155,7 +155,7 @@ Changes to the existing cases, none of which weakens a mock assertion:
 | The real `409` | Another client holds `PUT /api/v1/config/report_interval` with part of a body; the example's update meets the plain `409` and its retry goes through once the holder leaves | The plain `409`, no body, then `200` once freed |
 | The real `503 busy` | Four uncollected login results fill the attempt table; the example shows the wait, and a later sign-in works once they expire | `503`, `{"code":"busy"}`, `Retry-After: 1` |
 | The real session clock | Four shared cases, through `expireSessions()` | A session polled with `GET` every 5 s ends at 30 s |
-| Network settings, Preact only | No running address on the no-op apply port; a change says nothing was saved, on the real `501` | |
+| Network settings | No running address on the no-op apply port; a change says nothing was saved, on the real `501`. Both examples: the Angular case is written and **NOT RUN**. | |
 
 ## How the browser trusts the test certificate
 
@@ -170,8 +170,11 @@ one key and refuses any other certificate. Nothing else turns certificate checki
 
 | Example | Setting | Files | Served, compressed | Largest asset | Fits 1,500 ms (49,152 B) | Fits 3,000 ms (98,304 B) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Preact | `strict` | 4 | 23,103 | 21,290 | Yes | Yes |
-| Angular | `inline` | 5 | 91,201 | 85,384, `main-W7U54RFG.js` | **No** | Yes |
+| Preact | `strict` | 4 | 23,208 | 21,394 | Yes | Yes |
+| Angular | `inline` | 5 | 97,952 | 92,064, `main-7ET2HXBZ.js` | **No** | Yes, with 6,240 bytes to spare |
+
+The sizes are those of the examples with network settings and restart in both (#243), measured with `web_assets.py` on the built folders. They were
+23,103 and 21,290 for Preact, and 91,201 and 85,384 for Angular, before. The Angular script is now 6.3 percent below the largest asset that fits 3,000 ms.
 
 The services image of #242 runs `CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS=1500`, shortened from #184, and at the declared
 client rate of 32,768 B/s that allows 49,152 bytes for one asset. Angular's script is larger, so the packager refuses it
@@ -206,7 +209,7 @@ earlier runs during development measured up to 5.6 s for the page, still within 
 
 What a real client sees at the server's limits. The image keeps #242's shortened settings: three client slots,
 an inactivity timer of 3 s, a TLS connect timeout of 2 s. The bound of each row adds the slack the HTTPS precedent
-declares for the emulated container: 1.5 s on Mbed, 2.5 s on Wolf for W1.
+declares for the emulated container: 1.5 s on Mbed, 2.5 s on Wolf for the #280 late first read.
 
 | Case | Mbed, Preact image | Mbed, Angular image | Wolf, Preact image | Wolf, Angular image |
 | --- | --- | --- | --- | --- |
@@ -237,19 +240,19 @@ What these show:
 
 ## TLS profile limits
 
-The same images on the two TLS profiles, from the same runs. **W1 of #280 is not fixed**: on the Wolf profile a new
+The same images on the two TLS profiles, from the same runs. **The #280 late first read is not fixed**: on the Wolf profile a new
 connection's first request is read late by about 1 s, and these figures show it again with a browser.
 
 | Measure | Mbed | Wolf | Reading |
 | --- | --- | --- | --- |
-| One request on a new connection, no browser | 0.134 s | 1.011 s | W1, as #185 measured: 0.13 s and about 1 s |
-| Each asset of a cold load, Chrome | 125 to 136 ms | 906 to 961 ms | W1 on each new request |
-| A cold page load, Chrome | 0.82 to 0.95 s | 2.34 to 2.59 s | Within the 10 s budget on both, with W1 |
-| A request behind one stalled handshake | 1.93 s | 2.83 s | The 2 s connect timeout, plus W1 on Wolf |
-| A page load while three idle connections hold the slots | 2.97 and 3.14 s | 1.12 and 1.16 s, under the load before it | On Wolf the load was faster than the one before it. Not explained here: W1's delay depends on how recently the server closed another client, as #185 found, and this case closes three. Recorded, not claimed as a property. |
+| One request on a new connection, no browser | 0.134 s | 1.011 s | The #280 late first read, as #185 measured: 0.13 s and about 1 s |
+| Each asset of a cold load, Chrome | 125 to 136 ms | 906 to 961 ms | The #280 late first read on each new request |
+| A cold page load, Chrome | 0.82 to 0.95 s | 2.34 to 2.59 s | Within the 10 s budget on both, with the #280 late first read |
+| A request behind one stalled handshake | 1.93 s | 2.83 s | The 2 s connect timeout, plus the #280 late first read on Wolf |
+| A page load while three idle connections hold the slots | 2.97 and 3.14 s | 1.12 and 1.16 s, under the load before it | On Wolf the load was faster than the one before it. Not explained here: the #280 late first read's delay depends on how recently the server closed another client, as #185 found, and this case closes three. Recorded, not claimed as a property. |
 | A fourth client behind three idle connections | 2.74 s | 0.97 s | The same effect as the row above |
 
-The Wolf profile's limits stay those #185 declared: W1, and the 2.5 s slack on Wolf that it needs. The Mbed profile's heap
+The Wolf profile's limits stay those #185 declared: the #280 late first read, and the 2.5 s slack on Wolf that it needs. The Mbed profile's heap
 formula and the per-connection figures of #185 are not measured again here.
 
 ## Results
@@ -283,12 +286,15 @@ Zephyr v4.4.2 on `native_sim/native/64`, Node.js 24.22.2, Chrome 157, by `script
 | The API's `401` keeps the core's headers | Pass | Pass | Pass | Pass |
 | Shared cases that run on a device: sign-in and sign-out, session expiry on the real clock, forced password change, status, configuration update, a device with no Configuration provider | 38 of 38 | 38 of 38 | 38 of 38 | 38 of 38 |
 | Real-server browser cases: TLS and headers, fragment routes, load budget, a stalled handshake, held slots, the real `409`, the real `503` | 7 of 7 | 7 of 7 | 7 of 7 | 7 of 7 |
-| Network settings, Preact only: no running address on the no-op port, a change refused with "nothing was changed" on the real `501` | Pass | Not planned | Pass | Not planned |
-| Reboot | Skipped: mock-only | Not planned | Skipped | Not planned |
+| Network settings: no running address on the no-op port, a change refused with "nothing was changed" on the real `501` | Pass | Written, **NOT RUN** | Pass | Written, **NOT RUN** |
+| Reboot | Skipped: mock-only | Written, skipped as on Preact, **NOT RUN** | Skipped | Written, skipped as on Preact, **NOT RUN** |
 | Every real API answer against the specification, in every case, but those whose body Chrome no longer held, which are listed in the log | No problem found | No problem found | No problem found | No problem found |
 
-The skipped cases are 22 that force an answer through the mock, 5 that need a save that succeeds, and on Preact the
-reboot flow. Each is in the results file with its reason.
+The skipped cases are 22 that force an answer through the mock, 5 that need a save that succeeds, and the
+reboot flow. Each is in the results file with its reason. These counts and the Angular columns for network settings and
+reboot predate the Angular network settings and restart screens of #243. The shared advanced cases that came with them
+(44 on each example, all of them driving the mock's control) skip on a device with the reason
+`needs the mock control`, and the runs here were not repeated with them.
 
 ### Host and Python
 
@@ -314,23 +320,7 @@ reboot flow. Each is in the results file with its reason.
 
 ## The small example project
 
-`samples/web_project` adds a page and an API route of a project's own, with Crux's public contracts and no native
-header.
-
-| Part | What it uses | What it does not use |
-| --- | --- | --- |
-| `site/` | Plain HTML, one script and one style, loaded under the strict policy | No inline script or style, no other origin, no build tool |
-| `src/greeting_route.c` | `<crux/web.h>`: `CRUX_WEB_ROUTE`, `CRUX_WEB_SESSION` and `crux_web_respond` | No Zephyr, board, vendor or adapter header |
-| `reviewed-routes.txt` | One line for the route and one for the folder. `scripts/check-web-routes.py`'s repository scan checks the sample's routes against this list, by the same comparison as `--reviewed`, in place of the default list, and only while a tracked CMake file names it after `REVIEWED`, as `tests/web/project_sample/CMakeLists.txt` does. An empty or unnamed list exempts nothing. The `public GET @assets` line is left to the build, which sees the generated source. | |
-| A composition | `crux_web_assets()` and the route source named to `crux_web_routes()` | No change to any component |
-
-```mermaid
-flowchart LR
-    page["site/index.html<br/>greeting.js"] -- "GET /api/v1/project/greeting" --> core["Web core<br/>session lookup, access class"]
-    core --> route["greeting_route.c<br/>CRUX_WEB_ROUTE, crux_web_respond"]
-    pack["crux_web_assets(... STYLE strict)"] --> assets["Packaged page,<br/>public GET"]
-    assets --> page
-```
+`samples/web_project` adds a page and an API route of a project's own, with Crux's public contracts and no native header. What it uses, and what a composition writes, are in [its README](../samples/web_project/README.md). The checks below are the evidence.
 
 | Check | Level | Result |
 | --- | --- | --- |
@@ -392,7 +382,7 @@ flowchart LR
 | The native socket offload has no shutdown | A test-only shim, declared |
 | No Configuration provider | Five shared cases and the save half of the network flow are not shown |
 | Reboot | Mock-only: #214's service is merged but not composed in the services image. Composing it needs its route source in the image and a reviewed extension of the 12-route image check. |
-| W1, #280, on Wolf | Not fixed. A new connection's first request is read up to about 1 s late. The Wolf slack of 2.5 s comes from #185 for that reason. |
+| The #280 late first read, on Wolf | Not fixed. A new connection's first request is read up to about 1 s late. The Wolf slack of 2.5 s comes from #185 for that reason. |
 | Chrome only | Firefox, Safari and Edge not run |
 | The listener's certificate is the declared test certificate | Decision B of #284 is open |
 | Entropy is test-only | Declared, and guarded as in #242 |

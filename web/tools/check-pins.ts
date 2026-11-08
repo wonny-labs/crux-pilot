@@ -93,9 +93,9 @@ function main(): number {
   const root = join(web, '..');
   const packages = ['web', 'web/api/lint'];
   const scriptsOff = ['web'];
-  if (existsSync(join(root, 'samples/web/angular-minimal/package.json'))) {
-    packages.push('samples/web/angular-minimal');
-    scriptsOff.push('samples/web/angular-minimal');
+  if (existsSync(join(root, 'samples/web/angular/package.json'))) {
+    packages.push('samples/web/angular');
+    scriptsOff.push('samples/web/angular');
   }
   const problems = checkPins(root, packages, process.versions.node, scriptsOff);
   problems.push(...checkWorkflowPins(readFileSync(join(root, '.github/workflows/web.yml'), 'utf8')));

@@ -1,0 +1,48 @@
+# Stage 8 step 1: reproducibility (same commit, same key, new clean build dir)
+crux-pilot HEAD: 1d6ac4f6cd5b4e4013f2ce0c59375beb3cdad9f2; Zephyr 684c9e8 (v4.4.0); MCUboot ee39e2d6; same container, same dev key, `west build -p always` into a NEW directory.
+Original and rebuild necessarily use different build-directory paths.
+
+======================================================================
+Build A (RAM load with revert)
+original: build-a-ramload-revert-build
+rebuild : repro-a-build
+MCUboot      zephyr.elf : DIFFERENT   orig=90b8f5a6178387864472f62dde7991fa4b071e23ea2ba63ef732fa8db638a790  rebuild=cc257a9397a9e0a7dad37394504cd73183302766550f7f79337f113f3ce44fc1
+    sizes 1309604 vs 1309260
+    orig-dir-name occurrences in original: 23; rebuild-dir-name occurrences in rebuild: 23
+MCUboot      zephyr.bin : IDENTICAL  orig=42100c44991410d9fd4399aa3fba33b5ca6828703619933b0e457e7ddf1dbfb9  rebuild=42100c44991410d9fd4399aa3fba33b5ca6828703619933b0e457e7ddf1dbfb9
+Application  zephyr.elf : DIFFERENT   orig=be99edadf604aac2df4fbc9da019a7dc471b74c175dbf661093745af53c9c082  rebuild=c5948844477d875986b19bcbc45620264c22de96d2cd6eaa97b6037cf994de62
+    sizes 727320 vs 727008
+    orig-dir-name occurrences in original: 21; rebuild-dir-name occurrences in rebuild: 21
+Application  zephyr.bin : IDENTICAL  orig=ee0aad8fe9b36f1dc828de301fbaf050cc5e921309a281d5e489e87432862095  rebuild=ee0aad8fe9b36f1dc828de301fbaf050cc5e921309a281d5e489e87432862095
+Application  zephyr.signed.bin: DIFFERENT (expected: ECDSA signature is randomised, and the payload may differ)
+
+======================================================================
+Build B (swap using offset)
+original: build-b-swap-offset-build
+rebuild : repro-b-build
+MCUboot      zephyr.elf : DIFFERENT   orig=620b8e69289d541881608eb97e6b6a959e0e259a14fdf47822a3d1bb1481d862  rebuild=b7fc906f460c0b886d175645c79c9a05915bb6fd158314f2fb3e2e95d667f550
+    sizes 1353912 vs 1353648
+    orig-dir-name occurrences in original: 22; rebuild-dir-name occurrences in rebuild: 22
+MCUboot      zephyr.bin : IDENTICAL  orig=1a3cd4a0f478485c1f4a8ccce9dae440d13940b1340fe032ff83b959a182837f  rebuild=1a3cd4a0f478485c1f4a8ccce9dae440d13940b1340fe032ff83b959a182837f
+Application  zephyr.elf : DIFFERENT   orig=cd8d26292226ad801021a47da3a51f014286c09cd6ec80123e0eabe2f72deb82  rebuild=547a1d9900ad1b5f6df21bc9b679389af1de3f6e34ca708b084859ad9cdec993
+    sizes 687388 vs 687160
+    orig-dir-name occurrences in original: 19; rebuild-dir-name occurrences in rebuild: 19
+Application  zephyr.bin : IDENTICAL  orig=b845ee5bfab1550eaa6e4bc3df8dd1bedc4687872b2cbcfcb4a7b6f4efc6bd0a  rebuild=b845ee5bfab1550eaa6e4bc3df8dd1bedc4687872b2cbcfcb4a7b6f4efc6bd0a
+Application  zephyr.signed.bin: DIFFERENT (expected: ECDSA signature is randomised, and the payload may differ)
+
+
+######################################################################
+# Diagnosis of the differences above (run, not assumed)
+
+Build A MCUboot ELF: 33 of 36 sections identical; differing: ['.debug_info', '.debug_line', '.debug_str']
+    differing sections that are NOT debug/symbol tables: none
+Build A Application ELF: 33 of 36 sections identical; differing: ['.debug_info', '.debug_line', '.debug_str']
+    differing sections that are NOT debug/symbol tables: none
+Build A signed app image: header+payload (32880 B) identical: True; TLV area identical: False; total sizes 33032 vs 33031
+    TLV types ['0x1', '0x10', '0x22']; identical per type: {'0x10': True, '0x1': True, '0x22': False}  (0x10=SHA256, 0x01=KEYHASH, 0x22=ECDSA-SIG)
+Build B MCUboot ELF: 31 of 34 sections identical; differing: ['.debug_info', '.debug_line', '.debug_str']
+    differing sections that are NOT debug/symbol tables: none
+Build B Application ELF: 30 of 33 sections identical; differing: ['.debug_info', '.debug_line', '.debug_str']
+    differing sections that are NOT debug/symbol tables: none
+Build B signed app image: header+payload (30688 B) identical: True; TLV area identical: False; total sizes 30838 vs 30839
+    TLV types ['0x1', '0x10', '0x22']; identical per type: {'0x10': True, '0x1': True, '0x22': False}  (0x10=SHA256, 0x01=KEYHASH, 0x22=ECDSA-SIG)

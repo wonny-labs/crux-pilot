@@ -1,11 +1,11 @@
 # Web examples: the core configuration flow
 
-Status: implementation for review under Issue #243. It shows the core configuration flow end to end on the **mock server only**,
-in both web examples. Nothing here ran on a device, over TLS or on `native_sim`, which is #220, and nothing was run on a
-board. Mock results are mock evidence and stand in for none of those.
+Status: merged in [PR #288](https://github.com/wonny-labs/crux-pilot/pull/288) and [PR #289](https://github.com/wonny-labs/crux-pilot/pull/289) for Issue #243. It shows the core configuration flow end to end on the **mock server only**,
+in both web examples. Nothing here ran on a device, over TLS or on `native_sim`, and nothing was run on a
+board. Mock results are mock evidence and stand in for none of those. [#220](e2e-native-220.md) ran the shared browser cases against real HTTPS on `native_sim`: 38 of the 65 shared cases ran and passed on each example, and a successful save is not shown there, because the image has no Configuration save provider.
 
 Crux provides the services, the APIs and HTTPS hosting, and the product owns its application UI. The Preact example in
-`web/reference` and the Angular example in `samples/web/angular-minimal` are examples, with no promise of feature parity and no
+`samples/web/preact` and the Angular example in `samples/web/angular` are examples, with no promise of feature parity and no
 component library. The API is the one in [`web/api/openapi.yaml`](../web/api/openapi.yaml), described on the firmware side in
 [status, configuration and account web APIs](web-management-apis.md). Design background:
 [web frontend foundation](plans/web-frontend-foundation-design.md) (W13 and W15) and the
@@ -19,8 +19,8 @@ component library. The API is the one in [`web/api/openapi.yaml`](../web/api/ope
 | Built | Preact example: a configuration screen at `#/config`, in the navigation |
 | Built | Angular example: the same screen, the forced password change screen, and a navigation. A route guard keeps a session that must change its password on that screen. |
 | Built | Shared browser cases in `web/e2e/shared-cases.ts`, run on both examples: 12 for the forced change and 34 for configuration |
-| Built | Preact-only configuration cases in `web/e2e/reference-config.test.ts`: 5 |
-| Built | `web/e2e/reference-config-throw.test.ts`: 4 cases, on a build of the Preact example with a cookie reader that throws once and a response that throws when read. They show that an update and a save whose call rejects log it and release the screen, that a read-back that rejects after an accepted update says so, and that a call that rejects after the screen was left changes nothing |
+| Built | Preact-only configuration cases in `web/e2e/preact-config.test.ts`: 5 |
+| Built | `web/e2e/preact-config-throw.test.ts`: 4 cases, on a build of the Preact example with a cookie reader that throws once and a response that throws when read. They show that an update and a save whose call rejects log it and release the screen, that a read-back that rejects after an accepted update says so, and that a call that rejects after the screen was left changes nothing |
 | Faked | The device. The mock keeps the parameters and the state of a save, over plain HTTP on the loopback address, and holds one session at a time |
 | Untested | TLS, real sessions, the device's single server thread, the save's time on a target, and the device's answers while the worker is inside storage (the mock forces them) |
 | Untested | Firefox, Edge and Safari. The cases ran on Chromium only. |
@@ -189,9 +189,11 @@ save, `guest` sees nothing and `newuser` must change its password.
 | Preact example, core screens | 4 | 58709 | 20761 | |
 | Angular example, before #243, sign-in and home | 5 | 249403 | 76710 | 300 kB raw initial, error |
 | Angular example, core screens | 5 | 298780 | 91197 | 300 kB raw initial: 281.11 kB used |
+| Angular example, all six screens, after network settings and restart | 5 | 326893 | 97990 | 320 kB raw initial: 309.22 kB used |
 
-The Preact budget in `web/reference/budget.json` is unchanged, with 9,584 bytes left. The Angular example uses 281.11 kB of its
-300 kB raw limit for the initial bundle, so a further screen needs a decision about that limit. The rows before #243 were measured on the base commit, and the Preact one differs from the earlier record of 20406 compressed bytes in
+The Preact budget in `samples/web/preact/budget.json` is unchanged, with 9,584 bytes left at #243 (9,466 now, after later changes). The Angular example used 281.11 kB of its
+300 kB raw limit for the initial bundle, so a further screen needed a decision about that limit. The network settings and restart screens that
+followed took it to 309.22 kB, and the limit is now 320 kB: see [the advanced flows](web-advanced-flows.md). The rows before #243 were measured on the base commit, and the Preact one differs from the earlier record of 20406 compressed bytes in
 `web-frontend-implementation.md`, which is older than it. `node tools/compare.ts` gives the table, and the two-screens fixture now holds home and configuration so that
 it matches the Angular example's core flows.
 
@@ -222,7 +224,7 @@ Each was taken for lack of an answer, as the narrower choice.
 | 8 | The Angular example shows a short `503` and does not retry it | The sample keeps its code small. The wait is shown with its length, and a second click is safe, because the device did not process the request. | Copy the client's one retry |
 | 9 | The two-screens fixture now holds home and configuration | CI builds it by that name for the comparison, `.github/` is protected, and the two builds should hold the same core flows | A new fixture and a change to the workflow |
 | 10 | The Angular policy walk includes the configuration screen | The strict-policy count must cover a screen that has component styles. The strict count changed from 1 to 3 or 4, all style events, and it varies from run to run: 4 in each of four runs here on main at 47ff265, and in a reviewer's five runs (x86 Chrome 157, emulated on arm64) 4 three times and 3 twice. The test asserts only that it is above 0. Why it varies was not examined. | Leave the walk as it was |
-| 11 | The Angular size limit of 300 kB is kept | 18.9 kB are left. A change to it is the owner's call. | Raise it now |
+| 11 | The Angular size limit of 300 kB is kept | 18.9 kB are left. A change to it is the owner's call. **Superseded:** network settings and restart took the bundle to 309.22 kB, and the limit is now 320 kB, see [the advanced flows](web-advanced-flows.md#decisions-for-review). | Raise it now |
 | 12 | One update or save at a time on the screen, and a second request is ignored until the first ends | An update and a save used one abort signal, so a second update abandoned the first, which left its row waiting and the save refused for good. The device handles one request at a time anyway. The button is marked disabled, and a click that lands is dropped. The flag is released in a `finally`. A call that rejects shows "the device gave an answer that this interface does not understand", logs the error to the console, and leaves the screen usable. The client does not reject for an HTTP or network failure, because a `fetch` that rejects becomes a `network` result. Only a throwing cookie reader, `onSessionLost`, `random` or `now` option, or a malformed response can make a call reject. A throwing `sleep` does not, because the client catches it and ends the call as `aborted`. When the read-back after an accepted update is the call that rejects, the screen says that the parameter was updated and its new value could not be read back, and stops showing the old value. A call that rejects after the screen was left changes nothing and logs nothing. | Queue the second request |
 | 13 | The wait for a save sleeps at most 5 s between two reads, and never past its own 15 s limit, whatever `Retry-After` says | An unbounded `Retry-After` could hold the wait for as long as a device or a fault chose. The Angular example takes the same cap and stops when the screen is left. | No cap |
 | 14 | A value read after the person has focused a field, but before the first keystroke, still fills the field | The `edited` mark starts at the first keystroke. A guard on focus would leave an empty draft, and an update of an empty text parameter would then send an empty string. The browser cases wait for the values before they type. | Mark the field edited on focus, and refuse an update of an untouched empty draft |
@@ -231,7 +233,8 @@ Each was taken for lack of an answer, as the narrower choice.
 
 Local runs in container `crux-243`, image `crux-pilot-devcontainer:local` under amd64 emulation, Node.js 24.22.2, Chromium 156
 as a binary that Playwright's installer put in that container and `CRUX_CHROME` names. The harness otherwise uses the Chrome of the machine. The container held the only install of the packages. CI results are in the pull
-request.
+request. These rows record runs made before the examples were renamed on 8 November 2026: `reference-*` is now `preact-*`, and
+`web/reference` is now `samples/web/preact`. The rows are kept as measured.
 
 | Check | Level | Result |
 | --- | --- | --- |
@@ -254,7 +257,7 @@ request.
 
 ## What is not verified
 
-- Any of this on a device, on `native_sim`, over TLS or on a board. #220 does the first two against real HTTPS.
+- Any of this on a device or a board. `native_sim` and TLS ran in [#220](e2e-native-220.md) for 38 of the 65 shared cases, with no successful save.
 - The device's `503` while a save runs, the save's time, and the single server thread's response to the values being read one
   at a time. The mock never does these.
 - Concurrent clients, and another session's save showing in this session's list.

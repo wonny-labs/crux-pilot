@@ -1,6 +1,6 @@
 # Every management service on `native_sim`
 
-Status: for review under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), in a Draft PR. This is the
+Status: delivered on `native_sim` in [PR #291](https://github.com/wonny-labs/crux-pilot/pull/291), under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242). This is the
 second part of #242. The first, merged in #263, composed Access, the credential store, security events, status and
 configuration on real PSA providers, and is described in [the management composition](native-management-composition.md).
 This part composes every other management service on the same providers, behind the HTTPS listener of #185, in one
@@ -24,7 +24,7 @@ that the protocols and the algorithms run for real. It does not mean that any se
 | Command line transport | **Test transport**: `crux_cli_exec` on the serial channel into a buffer. The serial console over Crux Serial is not composed on `native_sim`, as the [CLI contract](cli-contract.md) records. | `native_sim` |
 | Entropy | **Test-only**, `fake_entropy_native_sim`. In any build of the services composition, a tripwire refuses it unless the image declares itself a `native_sim` test image. Other builds, such as #263's and #185's images, are outside its reach. | `native_sim`, [guards](#entropy-guards) |
 | Routes | **Exactly the components' routes**: 12 from three route sources, and the packaged folder. No test route. | Image check, driver |
-| SSH, SFTP | **Not composed**: not in the list of #242's services, and wolfSSH is not in this image | |
+| SSH, SFTP | **Not composed in this image**: not in the list of #242's services, and wolfSSH is not in it. [The integrated image](ssh-integrated-image.md) of #197 composes them with this one, as `tests/native/management_ssh`. | |
 | Anything on RT1060-EVKB | **Not run, not compiled here** | |
 
 ## Structure

@@ -15,6 +15,7 @@ Applications select the components they need. Portable application and runtime-p
 | Communication and networking | `serial`, `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
 | Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load |
 | Diagnostics and system | `logging`, `system` | Diagnostic logging, service status, reset diagnostics and watchdog operations |
+| Secure management | `access`, `credential`, `security_event`, `cli`, `file_service`, `config_service`, `mgmt_status`, `network_settings`, `reboot`, `tls_certificate`, `web`, `ssh` (private) | Accounts, roles and sessions shared by every management channel; status, configuration, file, network-settings and reboot services; the device TLS certificate and security events; HTTPS web management, the command line over serial and SSH, and SFTP. Tested on Linux Host, and most of it also on `native_sim` (not the reboot service or the serial console). Some parts are compiled for RT1060-EVKB; none has run on a board |
 
 All listed components have implemented source, but available OS implementations and validation levels differ. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
 
@@ -80,7 +81,7 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | `samples/` | Capability examples and reference controller applications |
 | `zephyr/` | Out-of-tree Zephyr module integration |
 | `tests/` | Host, Zephyr, build-policy and target validation |
-| `web/` | Management API specification, TypeScript client and reference browser interface. No C build needs it. See the [web guide](web/README.md). |
+| `web/` | Management API specification, TypeScript client, mock server and browser tests for the web examples in `samples/web`. No C build needs it. See the [web guide](web/README.md). |
 | `scripts/` | Setup, build, analysis and test commands |
 | `tools/` | Test tooling for a machine that holds a board's probe and UART; outside the runtime build |
 | `.devcontainer/` | Linux development environment |
@@ -97,6 +98,21 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | Test commands and qualification procedures | [Test guide](tests/README.md) |
 | Testing your own application on Crux | [Consumer test guide](docs/build.md#testing-a-consumer-application) and [test foundation decisions](docs/test-foundation-proposal.md) |
 | Reference scenarios and recorded hardware validation | [Reference controller](samples/controller/README.md) and [M3 validation](docs/m3-validation.md) |
+
+### Secure management
+
+The documents for accounts, the management services, HTTPS web management, the command line over serial and SSH, and SFTP. **A product team that consumes Crux as a west module starts with [Secure management in a product](docs/management-in-a-product.md)**: what to enable, what is not built, limits, tested clients and browsers, and the open decisions. Nothing here has run on a board. The [capability inventory](docs/architecture.md#current-capability-integration) gives each component's validation level.
+
+| Topic | Documents |
+| --- | --- |
+| Terms | [Glossary](docs/management-glossary.md): session channel and access session, provider and adapter, refuse and deny, route, listener, profiles |
+| Accounts, roles, sessions and security events | [Access contract](docs/access-contract.md), [credential store](docs/credential-store.md), [security events](docs/security-event-contract.md) |
+| Management services | [Status and configuration services](docs/status-configuration-services.md), [file service](docs/file-service-contract.md), [network settings](docs/network-settings-service.md), [reboot](docs/reboot-service.md) |
+| HTTPS web management | [HTTPS composition](docs/https-composition.md), [web contract](docs/web-contract.md), [sessions and login](docs/web-session.md), [management APIs](docs/web-management-apis.md), [packaged web assets](docs/web-assets.md), [TLS certificate](docs/tls-certificate.md), [API specification](web/api/openapi.yaml) |
+| Browser examples | [Web guide](web/README.md) with the Preact and Angular examples, [configuration flow](docs/web-config-flow.md), and [end to end on `native_sim`](docs/e2e-native-220.md) |
+| Command line over serial and SSH | [Command line contract](docs/cli-contract.md), [SSH provider contract](docs/ssh-provider-contract.md), [wolfSSH provider](docs/ssh-wolf-provider.md), [command line over SSH](docs/cli-over-ssh.md) |
+| SFTP | [SFTP design](docs/sftp-design.md), including the recorded WinSCP runs |
+| Management services together on `native_sim` | [Management composition](docs/native-management-composition.md) and [the services image](docs/native-composition-242.md) |
 
 ## Project status and contributing
 
