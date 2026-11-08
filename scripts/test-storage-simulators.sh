@@ -173,6 +173,7 @@ for directory, expected in [
     ('twister-storage-sd-composition', {'native_sim/native': 8, 'native_sim/native/64': 8}),
     ('twister-storage-sd-probe', {'native_sim/native': 4, 'native_sim/native/64': 4}),
     ('twister-storage-sd-check', {'native_sim/native': 8, 'native_sim/native/64': 8}),
+    ('twister-storage-sd-ops', {'native_sim/native': 4, 'native_sim/native/64': 4}),
     ('twister-storage-sd-interrupt', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-sd-replace', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-sd-settings-recover', {'native_sim/native': 13, 'native_sim/native/64': 13}),
