@@ -36,18 +36,19 @@ def run_checked(command, destination):
     return result.stdout
 
 
-def _check_route(directory, name):
-    interface = run_checked(['ifconfig', 'en5'], directory / (name + '-interface.txt'))
+def _check_route(directory, name, interface='en5', mac='00:0a:cd:41:89:cc'):
+    link = run_checked(['ifconfig', interface], directory / (name + '-interface.txt'))
     route = run_checked(['route', '-n', 'get', '192.168.77.2'], directory / (name + '-route.txt'))
-    require('ether 00:0a:cd:41:89:cc' in interface and
-            re.search(r'inet 192\.168\.77\.1 netmask 0xffffff00\b', interface) and
-            re.search(r'interface:\s+en5\b', route), 'Dedicated address/route/MAC mismatch')
-    return 'status: active' in interface
+    require(('ether ' + mac) in link and
+            re.search(r'inet 192\.168\.77\.1 netmask 0xffffff00\b', link) and
+            re.search(r'interface:\s+' + re.escape(interface) + r'\b', route), 'Dedicated address/route/MAC mismatch')
+    return 'status: active' in link
 
 
-def check_route(directory, name):
+def check_route(directory, name, **identity):
+    """Defaults are the accepted M3 bench; the M5 lease passes its reviewed identity explicitly."""
     try:
-        return _check_route(directory, name)
+        return _check_route(directory, name, **identity)
     except HardwareStop:
         raise
     except Exception as error:
@@ -77,7 +78,7 @@ def usb_association(tree):
     return disks, uarts
 
 
-def _guard_check(session, directory, name, remaining=90):
+def _guard_check(session, directory, name, remaining=90, uart='/dev/cu.usbmodem11302'):
     """Bind a current root-created guard record; fail before owner queries on mounted media."""
     require(session.get('clock') == time.CLOCK_NAME, 'Guard/runner clocks differ')
     require(session['serial'] == USB_SERIAL and session['disk'].startswith('/dev/disk'), 'Wrong mount guard identity')
@@ -106,14 +107,15 @@ def _guard_check(session, directory, name, remaining=90):
     disks, uarts = usb_association(plistlib.loads(query.stdout.encode()))
     (directory / (name + '-usb.json')).write_text(json.dumps(dict(disks=disks, uarts=uarts)))
     require(disks == [session['disk'].removeprefix('/dev/')] and
-            uarts == ['/dev/cu.usbmodem11302'], 'Current disk/UART USB ancestry changed')
+            uarts == [uart], 'Current disk/UART USB ancestry changed')
     mounts = run_checked(['mount'], directory / (name + '-mounts.txt'))
     require(not re.search(r'(?m)^' + re.escape(session['disk']) + r'(?:s[0-9]+)* on ', mounts), 'DAPLink virtual media mounted; stop before UART inventory')
 
 
-def guard_check(session, directory, name, remaining=90):
+def guard_check(session, directory, name, remaining=90, **options):
+    """Default UART is the accepted M3 device; the M5 lease passes its reviewed device explicitly."""
     try:
-        _guard_check(session, directory, name, remaining)
+        _guard_check(session, directory, name, remaining, **options)
     except HardwareStop:
         raise
     except Exception as error:
