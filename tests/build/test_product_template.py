@@ -308,12 +308,18 @@ class ManifestTest(unittest.TestCase):
         self.assertEqual(["crux-reliance"], projects["reliance-edge"].get("groups"))
         self.assertIn("-crux-reliance", self.crux["group-filter"])
 
-    def test_mcuboot_stays_in_its_optional_group_at_the_revision_zephyr_pins(self):
+    def test_mcuboot_stays_in_its_optional_group(self):
         # A name-allowlist entry would fetch MCUboot in every workspace, because an imported
         # project cannot be given a group. A plain project in an optional group fetches nothing
-        # by default, and west crux-pins compares its revision with Zephyr's manifest.
+        # by default, and west crux-pins sees its pin, which -DEXTRA_ZEPHYR_MODULES would hide,
+        # and reports a workspace whose checkout differs from it. For an explicit Crux entry
+        # the contract is Crux's own west.yml, so crux-pins does not compare the revision with
+        # Zephyr's manifest. The literal below is the revision in Zephyr's west.yml at the
+        # pinned v4.4.2, copied by hand. Nothing checks it against Zephyr's manifest after a
+        # Zephyr bump; the same gap exists for mbedtls and tf-psa-crypto.
         projects = {entry["name"]: entry for entry in self.crux["projects"]}
         self.assertEqual(["crux-boot"], projects["mcuboot"].get("groups"))
+        self.assertEqual("6d3b3d2c38ab20c242e5b9abb04d050086383eb2", projects["mcuboot"]["revision"])
         self.assertIn("-crux-boot", self.crux["group-filter"])
         self.assertNotIn("mcuboot", projects["zephyr"]["import"]["name-allowlist"])
 
