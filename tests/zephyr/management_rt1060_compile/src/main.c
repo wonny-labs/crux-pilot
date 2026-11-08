@@ -28,8 +28,19 @@ static bool static_address_up(void)
     return status == 0 || status == -EALREADY;
 }
 
+/* The image is bootable, because a QSPI image needs its boot header, so it refuses to start: it
+ * holds the public test password of the declared test account, the test host key form and a file
+ * system that can format a card. The volatile read keeps all of the composition linked, so that the
+ * sizes in the report stay those of the composition. A bench image is the change C1 of
+ * docs/rt1060-management-image-feasibility.md, under its own declaration. */
+static volatile const bool compile_only_vehicle = true;
+
 int main(void)
 {
+    if (compile_only_vehicle) {
+        printk("MGMT_RT1060 compile-only vehicle: refusing to start\n");
+        return 1;
+    }
     if (!static_address_up()) {
         printk("MGMT_RT1060 address failed\n");
         return 1;

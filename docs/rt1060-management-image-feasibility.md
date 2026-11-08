@@ -8,7 +8,7 @@ linked image. The owner approved this stage in the working session on 2026-11-08
 
 | Question | Answer |
 | --- | --- |
-| Can the integrated image (HTTPS web, the command line over SSH, SFTP) be built for RT1060-EVKB rev B on the Wolf profile? | **Yes, as a compile vehicle** that the existing native files could not give: `tests/zephyr/management_rt1060_compile`. It compiles and links with `-Werror` on Crux's own code. It is not a product and not yet a board image: [what it still fakes](#what-the-vehicle-is-and-is-not). |
+| Can the integrated image (HTTPS web, the command line over SSH, SFTP) be built for RT1060-EVKB rev B on the Wolf profile? | **Yes, as a compile vehicle** that the existing native files could not give: `tests/zephyr/management_rt1060_compile`. It compiles and links with `-Werror` on Crux's own code. It is not a product. It is a bootable QSPI image (the boot header must be there) that **refuses to start**, so that it cannot be run by mistake: [what it fakes](#what-the-vehicle-is-and-is-not). |
 | Why not the native composition as it is? | It refuses a board at three places on purpose ([guards](#the-guards-the-native-composition-puts-in-the-way)). The vehicle does not edit or relax any of them. |
 | Real size | **Flash 601,172 B of 8 MB (7.2 %). RAM 833,708 B, all of it in the 32 MB SDRAM** (ITCM, DTCM and OCRAM hold nothing). [Numbers](#sizes-measured-on-the-target-build). |
 | Biggest risks found | **The HTTP server thread's 4,096 B stack** runs the TLS handshake, and a static estimate of one handshake path is 4,272 B. **The SSH worker's 16,384 B** leaves about 3 KB over a static 13.3 KB key-exchange chain. Neither is measured on a target. [Stacks](#thread-stacks). |
@@ -63,6 +63,7 @@ flowchart TB
 | Network settings | The no-op apply port. The static address comes from `main.c`, as in the M5 image. |
 | Time | No source. The wall clock is Zephyr's realtime clock, which nothing sets. |
 | Frontend | The services image's one-page folder, as on `native_sim` |
+| Refusal | `main()` prints `MGMT_RT1060 compile-only vehicle: refusing to start` and returns, because the image would otherwise create an account with a public password, hold the test host key form and could format a card. The check reads a `volatile const` flag, so all the code stays linked. **This change to `main.c` was made after the build and was not rebuilt**: it adds one flag and one branch, and its size effect was not measured. |
 | Not built | A product composition, a product host key rule, a serial console, a board run |
 
 ## The guards the native composition puts in the way
@@ -107,7 +108,7 @@ Verdict: **exists** (nothing to change), **small** (a bounded change) or **decis
 | Toolchain | Zephyr SDK 1.0.1, `arm-zephyr-eabi` GCC 14.3.0, CMake 3.28.4, in `crux-pilot-devcontainer:local` (linux/amd64 under emulation, 2 CPUs, 2 GB, `-j2`, one build at a time) |
 | Board | `mimxrt1060_evk@B//qspi` |
 | Commands | The scripts that ran, in [`evidence/.../commands/`](evidence/rt1060-management-image-feasibility/commands/container.sh): the container, `zbuild_wolf.sh` (patched Zephyr copy, configure, ninja, `size`) and `zbuild.sh` |
-| Sources | The build ran on the vehicle sources listed in `integrated-vehicle/vehicle-source-sha256-at-build.txt`. They were then reformatted with clang-format 18 (comment wrapping, and `<errno.h>` ahead of `<ff.h>` in `mgmt_start.c`): the committed hashes are in `vehicle-source-sha256-committed.txt`. The reformat is not rebuilt. |
+| Sources | The build ran on the vehicle sources listed in `integrated-vehicle/vehicle-source-sha256-at-build.txt`. They were then reformatted with clang-format 18 (comment wrapping, and `<errno.h>` ahead of `<ff.h>` in `mgmt_start.c`): the committed hashes are in `vehicle-source-sha256-committed.txt`. The reformat and the refusal in `main.c` (review finding B1) were made after the build and are **not rebuilt**. |
 | Result | **Configured with no Kconfig warning, 544 steps, linked**, three warnings, all in wolfSSH's `wolfsftp.c` and kept out of `-Werror` by the existing setting |
 | Image | `zephyr.bin` 601,172 B, SHA-256 `c01ac20308a809374824e49ee43d5d3713e7cce5913c1e2eb8dc6600c95cb07a`; `zephyr.elf` SHA-256 `00d0f2aa02e5cd78b8f86e78cf32e80055b9ce3e59b4699fa6387312738a63d4` (the build path differs from the script's, so the hashes may differ) |
 
@@ -181,7 +182,7 @@ does not use: a size trim for the stage 2 changes, not measured.
 ### Thread stacks
 
 Static, from the target ELF, and not a measurement. The method is a script (`commands/callgraph.py`): the frame of a function is its pushed registers plus its first
-`sub sp`, and the chain adds the frames along **direct calls** only. It follows branches that the deployed profile never takes (RSA, client certificates), and it
+`sub sp`, and the chain adds the frames along **direct calls** only. It follows branches that the deployed profile never takes (RSA, client certificates), it counts a tail branch as a nested call, which overstates some chains, and it
 does not follow a call through a function pointer. So a chain is neither an upper nor a lower bound for the path a request really takes. It shows where a
 configured stack is plainly too small, and where it is tight. Interrupt frames (up to about 240 B with the FPU) are not included.
 
@@ -192,7 +193,7 @@ configured stack is plainly too small, and where it is tight. Interrupt frames (
 | SSH listener | 4,096 B | Not read | Not computed | Unknown |
 | Crux worker threads, 4 of them | 8,192 B | 8,192 B configured | `web_session_work_once` through `crux_access_login_password`: 10,364 B along a path that ends in an RSA key decode the stored keys never take | **Unknown**: the PBKDF2 login and the store save run here |
 | Main | 16,384 B | 32,768 B configured, not read | `main` through `crux_native_management_start`: 21,192 B, along a key generation path that ends in RSA | Unknown. The deployed key types are ECDSA and Ed25519. |
-| Logging process thread, ENET receive thread, network receive and transmit, system work queue, ISR | 2,048 B, 1,600 B, 1,500 B, 1,200 B, 1,560 B, 2,048 B | | | Zephyr's defaults and the M5 image's, which ran 16 sockets' worth of echo |
+| Logging process thread, ENET receive thread, network receive thread, TCP work queue, system work queue, ISR | 2,048 B, 1,600 B, 1,500 B, 1,024 B, 1,560 B, 2,048 B | | | Zephyr's defaults and the M5 image's. There is no network transmit thread (`NET_TC_TX_COUNT=0`). |
 
 The static chains agree in size class with the host figures for SSH (13.3 KB and 13.8 KB). They are not a substitute for a target read, which
 `CONFIG_INIT_STACKS` and `CONFIG_THREAD_STACK_INFO` (both set) allow.
@@ -211,10 +212,9 @@ The static chains agree in size class with the host figures for SSH (13.3 KB and
 
 ### Programming time and the stage 1 tool
 
-The stage 1 programmer stops a J-Link Commander call at **30 s** (`tests/target/capture_m3.py:58`, "Probe timeout; state uncertain; no further hardware changes").
+The stage 1 programmer stops a J-Link Commander call at **30 s** (`tests/target/capture_m3.py:58`, with the message "Probe timeout; state uncertain; no further hardware changes" at line 72).
 Its log of the M5 image (97,544 B, `docs/evidence/networking-physical-stage1-run3/01-third-run/program/03-program-m5.log`) shows 6.5 s for a 131,072 B range, of which compare,
-erase, program and verify took 4.0 s. Scaled to 601,172 B, those four steps are about 18.5 s, plus about 2.5 s that does not scale, **about 21 s for the load alone**, and
-then the verify read and the reset. This is an extrapolation, not a measurement, and it leaves a margin of seconds. [C7](#code-changes-and-their-order).
+erase, program and verify took 4.0 s. J-Link reports the affected range, 131,072 B for a 97,544 B image, so the range is rounded up to 128 KiB blocks. For 601,172 B that is 640 KiB (655,360 B), 5 times the range: those four steps are about 20 s, plus about 2.5 s that does not scale, **about 23 s for the load alone**, and then the verify read and the reset. This is an extrapolation, not a measurement, and it leaves a margin of a few seconds. [C7](#code-changes-and-their-order).
 
 ## Entropy, and what happens when the read fails
 
@@ -283,7 +283,7 @@ Rough effort is agent time for the change and its tests, without the board. Hard
 | 3 | **C8.** The image manifest and the plan for the bench image, on the stage 1 pattern. **The approval documents are the main session's, and are not written here.** | C1 to C7 | 1 to 2 days |
 | 4 | **C9.** Trim RSA from the wolfSSL settings and re-measure | D11 | 0.5 day |
 
-Order: decisions D1 to D11, then C1, then C2 to C5 in parallel (they touch different files), then C6 and C7, then C8, then the approval, then the board. About 7 to 10 working days in all, in sequence. A
+Order: decisions D1 to D11, then C1, then C2 to C5, which touch different files and may run in parallel, then C6 and C7, then C8, then the approval, then the board. About 7 to 10 working days if all of it is done in sequence, less if C2 to C5 run in parallel. A
 Zephyr apply port for the network settings (2 to 3 days) is not needed for the first run and is not in this list.
 
 ## The plan outline for the board stage
@@ -343,6 +343,7 @@ Taken here without the owner, each the narrower choice.
 | 7 | No script is added to `scripts/`. The commands that ran are kept as evidence. | A script that was not run to the end would be a claim without a check. A script is a stage 2 item (C1). |
 | 8 | The evidence record holds the maps, the resolved configuration, the logs, the static chains and the commands, and not the ELF or the binary | The binary is not reproducible bit for bit from another path, and `*.bin` is ignored by the repository |
 | 9 | The report proposes the bench declaration and implements none of it | A security-sensitive design decision and not a pure configuration change |
+| 10 | The vehicle declares itself compile-only with `CRUX_MGMT_RT1060_COMPILE_ONLY`, which only its own CMake sets, and refuses to start at run time | It is the one place where a test form (the test host key, the public test password) is compiled for a board. It is allowed only in this vehicle, which cannot run, and is not a bench declaration: that is D1. |
 
 ## Reproduce
 

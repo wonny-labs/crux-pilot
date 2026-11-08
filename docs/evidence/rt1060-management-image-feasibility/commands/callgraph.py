@@ -1,5 +1,7 @@
 # Static worst-case stack along direct calls, from the disassembly. Indirect calls (function pointers) are NOT
-# followed, so a chain through a callback is cut short and the figure is a lower bound for that root. The frame of
+# followed, so a chain through a callback is cut short. The chain also follows branches that the deployed profile
+# never takes and counts a tail branch (b, b.w) as a nested call: it is neither an upper nor a lower bound of a real
+# path. The frame of
 # a function is its pushed registers plus its first "sub sp". Recursion is cut at the first repeat.
 import re, subprocess, sys, json
 elf, roots_file, out = sys.argv[1], sys.argv[2], sys.argv[3]
