@@ -25,7 +25,11 @@ S2_NAME = 's2-controller-physical'
 WEST = FACTS['west']
 PINS = {name: revision for name, (path, revision) in WEST['pins'].items()}
 PIN_PATHS = {name: path for name, (path, revision) in WEST['pins'].items()}
-MODULES = {name: revision for name, (path, revision) in WEST['build_modules'].items()}
+# The crux-pilot module pin of the product's current main (crux-controller c36f00c1). The recorded facts below are those
+# of the measured build, so they keep the older pin; this is the independent expectation of the profile.
+OLD_PILOT = 'db5adca28bd313caaf3899e959920fac4d508699'
+NEW_PILOT = '37c92b18b44b7dfb95c2109f036f23d00f05cb4c'
+MODULES = dict({name: revision for name, (path, revision) in WEST['build_modules'].items()}, **{'crux-pilot': NEW_PILOT})
 MODULE_PATHS = {name: path for name, (path, revision) in WEST['build_modules'].items()}
 
 
@@ -64,6 +68,24 @@ class Registration(unittest.TestCase):
         self.assertEqual(profile.manifest_path, WEST['manifest_path'])
         self.assertEqual((dict(profile.pinned), dict(profile.pinned_paths)), (PINS, PIN_PATHS))
         self.assertEqual((dict(profile.modules), dict(profile.module_paths)), (MODULES, MODULE_PATHS))
+
+    def test_the_s2_profile_expects_the_crux_pilot_pin_of_the_product_main_and_no_other(self):
+        modules = dict(subject.profile_named(S2_NAME).modules)
+        self.assertEqual(modules['crux-pilot'], NEW_PILOT)
+        self.assertNotIn(OLD_PILOT, modules.values())
+        self.assertEqual(modules, MODULES)
+
+    def test_the_recorded_build_facts_keep_the_older_pin_and_record_the_update_beside_it(self):
+        # facts.json documents what was measured in the build of image_source_commit; that history is not rewritten.
+        self.assertEqual(WEST['build_modules']['crux-pilot'], ['crux-pilot', OLD_PILOT])
+        update = WEST['pin_updates']['crux-pilot']
+        self.assertEqual((update['from'], update['to']), (OLD_PILOT, NEW_PILOT))
+        self.assertEqual(update['product_commit'], 'c36f00c1ca6da08ac8559b7a1260f0d133b141d4')
+        self.assertEqual(update['manifest_diff_between_the_two_pins'], 'empty')
+        # Only crux-pilot differs from the measured modules; the other three and the four pins are the measured ones.
+        self.assertEqual({n: r for n, r in MODULES.items() if n != 'crux-pilot'},
+                         {n: r for n, (p, r) in WEST['build_modules'].items() if n != 'crux-pilot'})
+        self.assertEqual(update['image_identity'], 'reported unchanged by the product session; not recomputed here')
 
     def test_the_s2_image_has_no_commit_tag_and_no_errno_evidence(self):
         profile = subject.profile_named(S2_NAME)
@@ -146,6 +168,23 @@ class ModuleDiscoveryRule(S2Fixture):
                     self.frozen(changed)
             with self.subTest(duplicate=name), self.assertRaises(ValueError):
                 self.frozen(s2_projects() + [p for p in s2_projects() if p['name'] == name])
+
+    def test_crux_pilot_at_the_new_product_pin_is_accepted(self):
+        crux_pilot = [p for p in s2_projects() if p['name'] == 'crux-pilot'][0]
+        self.assertEqual((crux_pilot['git_commit'], crux_pilot['revision']), (NEW_PILOT, NEW_PILOT))
+        self.frozen(s2_projects())
+
+    def test_crux_pilot_at_the_older_pin_or_any_other_commit_is_refused(self):
+        for label, change in (('older pin', dict(git_commit=OLD_PILOT, revision=OLD_PILOT)),
+                              ('older pin, revision only', dict(revision=OLD_PILOT)),
+                              ('older pin, commit only', dict(git_commit=OLD_PILOT)),
+                              ('abbreviated new pin', dict(git_commit=NEW_PILOT[:8], revision=NEW_PILOT[:8])),
+                              ('new pin one digit off', dict(git_commit=NEW_PILOT[:-1] + '0', revision=NEW_PILOT[:-1] + '0')),
+                              ('other commit', dict(git_commit='d' * 40, revision='d' * 40)),
+                              ('branch name', dict(revision='main'))):
+            changed = [dict(p, **change) if p['name'] == 'crux-pilot' else p for p in s2_projects()]
+            with self.subTest(label), self.assertRaises(ValueError):
+                self.frozen(changed)
 
     def test_a_project_the_profile_does_not_pin_is_refused_because_discovery_would_build_it(self):
         extra = project('mbedtls', 'a' * 40, 'modules/crypto/mbedtls')
