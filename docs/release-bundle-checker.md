@@ -37,20 +37,20 @@ flowchart LR
     P[(Private-string list, outside the repository)] -.optional.-> C
     C -->|exit 0| O[May be published]
     C -->|exit 1| R[Refused: one line per problem]
-    B -. image and ELF stay out .-> X[Not in any bundle or CI artefact of a product repository]
+    B -. image and ELF stay out .-> X[Not in a bundle of a public product repository]
 ```
 
 The assembler is dashed because it does not exist in this repository yet. Today a product writes its own bundle, as the controller does.
 
 ## The manifest
 
-`additionalProperties` is `false` everywhere except inside `extensions`, so a typo is refused and a product cannot add a top-level field without a schema change.
+`additionalProperties` is `false` at the top level and in each `vendor_deliveries` and `replaced_modules` entry, so a typo is refused and a product cannot add a top-level field without a schema change. `bundle_hashes` is a map whose values must be SHA-256, and `extensions` is free-form.
 
 | Field | Required | Form | Note |
 | --- | --- | --- | --- |
 | `schema_version` | Yes | The integer `1` | A change that an older checker would misread raises it |
 | `identity_algorithm` | Yes | `crux-firmware-identity-v1` | The name that `scripts/record-build-provenance.py` records. A test holds the two equal |
-| `product_version` | Yes | SemVer 2.0, pre-release and build metadata allowed | `+N` is allowed and not required |
+| `product_version` | Yes | SemVer 2.0 in form, pre-release and build metadata allowed (see [heuristics](#what-is-faked-or-heuristic)) | `+N` is allowed and not required |
 | `release_tag` | Yes | Letters, digits, `.`, `_`, `-` | Not tied to `vX.Y.Z`: the guide's own example tag is `product-x-1.2.3` |
 | `sdk_version` | Yes | `X.Y.Z` | |
 | `build_image` | Yes | A container or runner image name, tag or digest | Never a path. Renamed from the controller's `runner_image` |
@@ -71,7 +71,7 @@ The default and only mode is **hashes only**: the bundle never holds an image.
 | Refusal | How | Source |
 | --- | --- | --- |
 | Missing, unreadable or non-object manifest; a schema violation | Subset validator against the schema | Ported, extended |
-| A schema that uses a keyword the validator does not apply | The keyword is named and the bundle is refused, so a schema cannot promise more than is checked | **New** |
+| A schema node with no `type`, a keyword that does not belong to its type, or a keyword the validator does not know | The node is named and the bundle is refused, so a schema cannot promise more than is checked | **New** |
 | An unreadable or missing `--schema` file, or a missing bundle folder | A message, not a traceback | **New** |
 | A file with one of `.elf .map .bin .hex .srec .s19 .uf2 .img`, in any case, at any depth | Suffix | Ported |
 | A file that starts with the ELF magic | First four bytes | Ported |
@@ -95,7 +95,7 @@ The private-string list is optional. Without it the checker prints a warning on 
 | Default target | `mimxrt1060_evk@B//qspi` in the assembler and the comparison script | None: `target` is required |
 | Unknown top-level field | Refused | Refused, and product fields have `extensions` |
 | Schema location | Fixed next to the script | `--schema`, default `docs/schemas/` |
-| Schema keywords | Unknown keywords skipped without notice | Unknown keywords refused. `const`, `enum`, `items` added |
+| Schema keywords | Unknown keywords skipped without notice | Unknown keywords, untyped nodes and keywords of the wrong type refused. `const`, `enum`, `items` and the `array` type added |
 | Compiler-flag form of the path scan | `(?<=-[A-Za-z])` matched the end of a name such as `product-x/build/app` | Must start a word. `product-x/build/app` passes. This is a false positive that the controller's pattern has, found by a test here. It was **not** reported or changed there |
 | Symbolic links | Followed | Refused |
 
@@ -119,7 +119,7 @@ Not ported: the assembler (`assemble_bundle.py`, which imports a budget collecto
 ## What is built
 
 - The schema, the checker and the tests that are listed under [Result](#result). The tests write their bundles by hand and take the firmware identity from the real `firmware_identity` and `firmware_digest` functions of `scripts/record-build-provenance.py`.
-- The tests were written first. They failed against a missing script (one import error), then against a stub that accepted every bundle (94 failures and 6 errors across 57 tests), and passed against the checker. The PR records the commands and counts.
+- The tests were written first. They failed against a missing script (one import error), then against a stub that accepted every bundle (94 failures and 6 errors across the first 57 tests), and passed against the checker. A few cases came later and were each run red before their code: the NUL byte, the stricter schema nodes, and the flag-form path cases. The PR records the commands and counts.
 
 ## What is faked or heuristic
 
@@ -127,7 +127,7 @@ Not ported: the assembler (`assemble_bundle.py`, which imports a budget collecto
 - **Hashes show integrity, not origin.** The manifest is not signed. Anyone who can edit the folder can edit the manifest and the hashes together. Signing is not part of this change.
 - **The identity is not recomputed.** The image is not in the bundle, so the checker only checks that `firmware_identity` has the form of a SHA-256. Recomputing it needs the build directory, as the controller's comparison script does.
 - **The "no image" rules are structural.** An image that is valid UTF-8 without a NUL byte, is not byte-equal to `image_sha256`, and has no listed suffix passes. So does an image that is encoded as text, for example in base64. The path and private-string scans read text only.
-- **The schema validator is a subset.** It applies `type` (object, string, integer, array), `required`, `properties`, `additionalProperties`, `pattern`, `minimum`, `const`, `enum` and `items`. It is not a JSON Schema implementation. `pattern` uses Python regular expressions. The SemVer pattern accepts leading zeros, which SemVer does not.
+- **The schema validator is a subset.** It applies `type` (object, string, integer, array), `required`, `properties`, `additionalProperties`, `pattern`, `minimum`, `const`, `enum` and `items`. It is not a JSON Schema implementation. `pattern` uses Python regular expressions. The SemVer pattern accepts leading zeros and empty identifiers, such as `1.2.3-rc..1`, which SemVer does not.
 - **Nothing checks that `vendor_deliveries` names are unique** or that a `replaced_modules` replacement exists in the lock file.
 
 ## What is untested

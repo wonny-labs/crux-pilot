@@ -4,10 +4,13 @@
 
 Adapted from release/check_bundle.py of wonny-labs/crux-controller at commit f03dc79 (Apache-2.0).
 Changes: a ``--schema`` option and the platform schema docs/schemas/release-manifest.schema.json; the
-schema keywords const, enum and items, and a refusal of any keyword the checker does not apply; the
-hashes-only mode as the only mode; a refusal of symbolic links, of other items that are not regular files
-and of a NUL byte; a message in place of a traceback for a missing bundle folder or an unreadable schema;
-and a compiler flag in the path scan that must start a word, so that product-x/build/app is not refused.
+schema keywords const, enum and items, and the array type; a refusal of a schema node that has no type, of
+a keyword that does not belong to its type and of any keyword the checker does not know; the manifest
+field image_sha256 in place of zephyr_bin_sha256; hashes only as the only mode; a refusal of symbolic
+links, of other items that are not regular files and of a NUL byte; the zstd magic among the archives; a
+message in place of a traceback for a missing bundle folder or an unreadable schema; exit status 2 for an
+unreadable private-string list; and a compiler flag in the path scan that must start a word, so that
+product-x/build/app is not refused.
 
 The bundle is hashes and identities only. The check stops publication when the bundle
 
@@ -72,22 +75,46 @@ FILE_URI = re.compile(r"file://\S*", re.IGNORECASE)
 HEX_DUMP = re.compile(r"^(?::[0-9A-Fa-f]{10,}|S[0-9][0-9A-Fa-f]{6,})\s*$", re.MULTILINE)
 
 
+# The keywords that validate() applies to a node of each type. const and enum go with any type.
+TYPE_KEYWORDS = {
+    "object": {"required", "properties", "additionalProperties"},
+    "array": {"items"},
+    "string": {"pattern"},
+    "integer": {"minimum"},
+}
+ANY_TYPE_KEYWORDS = {"type", "const", "enum"}
+
+
 def schema_problems(schema, where="schema"):
-    """Name each keyword that validate() would silently skip, so that a schema cannot promise more."""
-    problems = []
+    """Name each keyword that validate() would silently skip, so that a schema cannot promise more.
+
+    Every node needs a supported ``type``, because validate() applies nothing to a node without one. A
+    keyword that does not belong to the node's type, or that the checker does not know, is refused.
+    """
     if not isinstance(schema, dict):
         return [f"{where}: must be an object"]
+    problems = []
+    kind = schema.get("type")
+    if not isinstance(kind, str) or kind not in SUPPORTED_TYPES:
+        problems.append(f"{where}: needs a type of {sorted(SUPPORTED_TYPES)}, so no keyword is applied")
+        kind = None
     for keyword in schema:
         if keyword not in SUPPORTED_KEYWORDS:
             problems.append(f"{where}: keyword {keyword!r} is not supported by this checker")
-    if "type" in schema and schema["type"] not in SUPPORTED_TYPES:
-        problems.append(f"{where}: type {schema['type']!r} is not supported by this checker")
-    for name, child in schema.get("properties", {}).items():
+        elif keyword in APPLIED_KEYWORDS and keyword not in ANY_TYPE_KEYWORDS:
+            if kind is not None and keyword not in TYPE_KEYWORDS[kind]:
+                problems.append(f"{where}: keyword {keyword!r} does not apply to type {kind!r}")
+    properties = schema.get("properties", {})
+    if not isinstance(properties, dict):
+        problems.append(f"{where}: properties must be an object")
+        properties = {}
+    for name, child in properties.items():
         problems.extend(schema_problems(child, f"{where}.{name}"))
-    if isinstance(schema.get("items"), dict):
+    if "items" in schema:
         problems.extend(schema_problems(schema["items"], f"{where}[]"))
-    if isinstance(schema.get("additionalProperties"), dict):
-        problems.extend(schema_problems(schema["additionalProperties"], f"{where}.*"))
+    extra = schema.get("additionalProperties")
+    if extra is not None and not isinstance(extra, bool):
+        problems.extend(schema_problems(extra, f"{where}.*"))
     return problems
 
 
@@ -149,7 +176,7 @@ def path_matches(text):
 def read_schema(schema_path):
     """Return the schema and the problems found while loading it."""
     try:
-        schema = json.loads(pathlib.Path(schema_path).read_text())
+        schema = json.loads(pathlib.Path(schema_path).read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
         return None, [f"schema {schema_path}: cannot be read ({error})"]
     return schema, schema_problems(schema)
@@ -184,7 +211,7 @@ def check(bundle_dir, private_strings=(), schema_path=DEFAULT_SCHEMA):
         problems.append(f"{MANIFEST}: missing")
     else:
         try:
-            manifest = json.loads(files[MANIFEST].read_text())
+            manifest = json.loads(files[MANIFEST].read_text(encoding="utf-8"))
         except ValueError as error:
             problems.append(f"{MANIFEST}: not valid JSON ({error})")
     if manifest is not None:
@@ -238,7 +265,7 @@ def check(bundle_dir, private_strings=(), schema_path=DEFAULT_SCHEMA):
 
 
 def read_private_strings(path):
-    stripped = (line.strip() for line in pathlib.Path(path).read_text().splitlines())
+    stripped = (line.strip() for line in pathlib.Path(path).read_text(encoding="utf-8").splitlines())
     return [line for line in stripped if line and not line.startswith("#")]
 
 

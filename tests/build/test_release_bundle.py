@@ -12,6 +12,7 @@ from the real functions of scripts/record-build-provenance.py.
 import hashlib
 import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -244,7 +245,7 @@ class ManifestFields(BundleTestCase):
         with tempfile.TemporaryDirectory() as base:
             bundle = make_bundle(base, extensions={"note": "for the secret-customer"})
             problems = CHECKER.check(bundle, private_strings=["Secret-Customer"])
-            self.assertRefused(problems, "release-manifest.json")
+            self.assertRefused(problems, "release-manifest.json", "private string")
 
 
 class VendorDeliveriesAndReplacedModules(BundleTestCase):
@@ -327,7 +328,8 @@ class HashesOnly(BundleTestCase):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as base:
                 bundle = make_bundle(base)
                 put_item(bundle, name, data)
-                self.assertRefused(CHECKER.check(bundle), name)
+                # The magic is checked before the UTF-8 rule, so the message names the archive.
+                self.assertRefused(CHECKER.check(bundle), name, "archive")
 
     def test_binary_content_under_a_text_name_is_refused(self):
         bundle = self.bundle()
@@ -355,6 +357,22 @@ class HashesOnly(BundleTestCase):
         target.write_text("text\n")
         (bundle / "link.txt").symlink_to(target)
         self.assertRefused(CHECKER.check(bundle), "link.txt", "symbolic link")
+
+    def test_a_symbolic_link_to_a_folder_is_refused(self):
+        bundle = self.bundle()
+        outside = self.base / "outside"
+        outside.mkdir()
+        (outside / "inner.txt").write_text("text\n")
+        (bundle / "folder").symlink_to(outside, target_is_directory=True)
+        problems = CHECKER.check(bundle)
+        self.assertRefused(problems, "folder", "symbolic link")
+        self.assertFalse(any("inner.txt" in problem for problem in problems), problems)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "needs mkfifo")
+    def test_an_item_that_is_not_a_regular_file_is_refused(self):
+        bundle = self.bundle()
+        os.mkfifo(bundle / "pipe")
+        self.assertRefused(CHECKER.check(bundle), "pipe", "not a regular file")
 
     def test_there_is_no_mode_that_allows_images(self):
         result = run_cli(str(self.bundle()), "--mode", "included")
@@ -473,6 +491,40 @@ class SchemaOption(BundleTestCase):
         schema = {"type": "object", "oneOf": [{"required": ["x"]}]}
         problems = CHECKER.check(self.bundle(), schema_path=self.schema_file(schema))
         self.assertRefused(problems, "oneOf", "not supported")
+
+    def test_a_keyword_on_a_node_without_a_type_is_refused(self):
+        schema = {"type": "object", "properties": {"colour": {"enum": ["red"]}}}
+        problems = CHECKER.check(self.bundle(), schema_path=self.schema_file(schema))
+        self.assertRefused(problems, "colour", "type")
+
+    def test_a_keyword_that_does_not_belong_to_the_type_is_refused(self):
+        for node in (
+            {"type": "string", "minimum": 3},
+            {"type": "integer", "pattern": "^x$"},
+            {"type": "array", "required": ["x"]},
+            {"type": "object", "items": {"type": "string"}},
+        ):
+            with self.subTest(node=node):
+                schema = {"type": "object", "properties": {"colour": node}}
+                problems = CHECKER.check(self.bundle_again(), schema_path=self.schema_file(schema))
+                self.assertRefused(problems, "colour", "does not apply")
+
+    def test_a_malformed_schema_gives_messages_not_tracebacks(self):
+        for schema in (
+            {"type": ["string", "null"]},
+            {"type": "object", "properties": []},
+            {"type": "object", "properties": {"a": "string"}},
+            {"type": "object", "items": 3},
+            [],
+        ):
+            with self.subTest(schema=schema):
+                problems = CHECKER.check(self.bundle_again(), schema_path=self.schema_file(schema))
+                self.assertTrue(problems)
+
+    def bundle_again(self):
+        """A fresh bundle for each subtest of a test, in its own folder."""
+        folder = tempfile.mkdtemp(dir=self.base)
+        return make_bundle(folder)
 
     def test_an_unreadable_schema_is_refused(self):
         path = self.base / "bad.json"
