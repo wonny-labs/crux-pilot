@@ -1,6 +1,6 @@
 # The integrated management image on RT1060-EVKB: a build and feasibility report
 
-Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **and its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)),
+Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)) **and its row C2** ([the UART report](#stage-2-row-c2-the-uart-report)),
 for review in a Draft PR. Refs #197. It authorises no hardware operation, and **nothing here ran on a board**: every result is a compile and link for
 `mimxrt1060_evk@B//qspi`, a host script, a configure-only run, or a reading of source and of the linked image. The owner approved stage 0 in the working
 session on 2026-11-08 ("0 단게 시작해") and took the decisions D1 to D11 the same day ([Owner decisions](#owner-decisions)). **Nothing here reads as an approval of a
@@ -15,6 +15,7 @@ board stage**: the image still refuses to start, and the approval documents are 
 | Real size | **Flash 601,172 B of 8 MB (7.2 %), 601,252 B in the committed tree. RAM 833,708 B, all of it in the 32 MB SDRAM** (ITCM, DTCM and OCRAM hold nothing). [Numbers](#sizes-measured-on-the-target-build). |
 | Biggest risks found | **The HTTP server thread's default 4,096 B stack** runs the TLS handshake, and a static estimate of one handshake path is 4,272 B: **the bench image has 8,192 B from C1** (owner's request, [below](#stage-2-row-c1-the-bench-composition)). **The SSH worker's 16,384 B** leaves about 3 KB over a static 13.3 KB key-exchange chain. Neither is measured on a target. [Stacks](#thread-stacks). |
 | Ready for a board run? | **No.** The eleven owner decisions are taken (2026-11-08) and row C1 is done. Rows C2 to C9, the first account and the approval documents of the main session still come first. [What still blocks a board run](#what-still-blocks-a-board-run), [changes and order](#code-changes-and-their-order). |
+| What did C2 change? | The bench image prints the stack watermark of every thread, the heap's in-use and peak, and the listener certificate's fingerprint (D4) on the UART, and a host script judges the capture, with a stated margin for the HTTP server thread's stack. [Stage 2, row C2](#stage-2-row-c2-the-uart-report). |
 | What did C1 change? | The vehicle is now a **bench composition** under a declaration for RT1060-EVKB rev B, with guards at three levels, a host script that breaks each guard, a manifest, and listeners bound to the bench address. [Stage 2, row C1](#stage-2-row-c1-the-bench-composition). |
 
 ```mermaid
@@ -161,7 +162,7 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | Blocker | Row or owner | State |
 | --- | --- | --- |
 | The refusal in `main()` | A reviewed change after the approval | **Stays** |
-| Stack watermark and heap line on the UART, and the read of the HTTP thread's headroom (the stack itself is 8,192 B since C1) | C2 | Not done |
+| Stack watermark and heap line on the UART, and the read of the HTTP thread's headroom (the stack itself is 8,192 B since C1) | C2 | **Done in the C2 PR**, as code and a host judge. No figure was read: that needs the board run. [Row C2](#stage-2-row-c2-the-uart-report) |
 | A RAM disk as the file backend, and a mount rule that never formats a card | C3 (D2) | Not done. The image still links the microSD provider and its `fs_mkfs` call. |
 | The first account from an untracked file, hashed into the manifest | C4 (D3) | Not done. The step fails, so the image cannot serve. |
 | A native test of the failing TRNG path, and a boot line for the first random read | C5 | Not done |
@@ -169,7 +170,7 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | The programmer's limit raised and `loadfile` split from `verifybin` | C7 (D11) | Not done. `tests/target/` is not touched here. |
 | The image manifest on the stage 1 pattern and the plan for the board | C8 | Not done. The approval documents are the main session's and are not written here. |
 | RSA trimmed from the wolfSSL settings | C9 (D11) | Not done |
-| The certificate fingerprint printed on the UART (D4) | **No row** | Not in C1 to C9. The report's plan step 3 expects it. The main session decides where it goes. |
+| The certificate fingerprint printed on the UART (D4) | C2 (the main session put it there) | **Done in the C2 PR**: `BENCH-CERT`, and `check_bench_uart.py` compares it with the listener's certificate. Not run on a board. |
 | The owner's approval of the board stage, the root mount guard, the profile of the generalised tools | Main session, owner, `Crux Pilot` session | Not given |
 
 ### What C1 did not cover
@@ -422,7 +423,7 @@ The column *Taken* records that, and what it means for the row that implements i
 | D1 | Adopt a bench declaration and tripwire for RT1060-EVKB rev B | [As above](#the-test-image-declaration-for-a-bench-board); or keep the vehicle compile-only and run nothing | **Adopt**, as the condition for any board run | **Taken** 2026-11-08, "추천대로 진행해주고". Implemented in C1. |
 | D2 | File backend of the bench image | microSD (the existing provider, persistent, the card is touched and `fs_mkfs` can format it); a RAM disk (needs a small change, nothing persists, no card) | **RAM disk for the first board run**: no card and no format risk. SD in a later run, with the M4 microSD tools. | **Taken** 2026-11-08, same quote. Row C3 implements it. C1 reserves `CONFIG_CRUX_BENCH_FILE_RAM_DISK`. |
 | D3 | The first account on a reachable board | A password in an untracked file, hashed into the manifest; the serial setup step (not composed, more work); the public test password (refused) | **An untracked file** for the first run, a serial step later | **Taken** 2026-11-08, same quote. Row C4 implements it. C1 removed the public password from the image and reserved `CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE`. |
-| D4 | The listener certificate | Generated by the certificate module (what the vehicle does); the declared test certificate (refused on a board) | **Generated**, with the fingerprint on the UART | **Taken** 2026-11-08, same quote. The image already generates the certificate. **The fingerprint line on the UART is not in any row C1 to C9**: see [open](#what-still-blocks-a-board-run). |
+| D4 | The listener certificate | Generated by the certificate module (what the vehicle does); the declared test certificate (refused on a board) | **Generated**, with the fingerprint on the UART | **Taken** 2026-11-08, same quote. The image already generates the certificate. The fingerprint line on the UART was in no row until the main session gave it to C2, which implements it: [row C2](#stage-2-row-c2-the-uart-report). |
 | D5 | The host key's hold and wipe rule | Static buffer, never wiped, bench only; a rule like the TLS key's hand-off | **Static buffer under the bench declaration only** for the first run. A product rule stays open ([`ssh-integrated-image.md`](ssh-integrated-image.md#decisions-for-review)). | **Taken** 2026-11-08, same quote. Implemented in C1 as `CONFIG_CRUX_BENCH_TEST_HOST_KEY`. |
 | D6 | Network settings apply | The M5 static address in `main` and no apply port; a Zephyr apply port | **The M5 address in `main`.** The network routes then show no running values. | **Taken** 2026-11-08, same quote. C1 keeps the M5 address in `main()` and adds the one-address check. |
 | D7 | Time | No source (the vehicle); an RTC label overlay so that `CONFIG_RTC` compiles with wolfSSL; a host-set clock | **No source** for the first run. Events carry boot-relative times. | **Taken** 2026-11-08, same quote. Implemented in C1 as `CONFIG_CRUX_BENCH_NO_TIME_SOURCE`, which excludes `CONFIG_RTC`. |
@@ -442,7 +443,7 @@ Rough effort is agent time for the change and its tests, without the board. Hard
 | Order | Change | Needs | Effort | State |
 | --- | --- | --- | --- | --- |
 | 1 | **C1.** Promote the vehicle to a bench composition: the declaration and guards at three levels, a host script that breaks each guard, and a manifest recording the declaration | D1 | 1.5 to 2 days | **Done in the C1 PR** |
-| 2 | **C2.** A stack watermark and heap line printed on the UART at idle and after each client, the check of the headroom of the HTTP server thread (8,192 B since C1), and a higher value only if the measurement says so | none | 0.5 to 1 day | Not started |
+| 2 | **C2.** A stack watermark and heap line printed on the UART at idle and after each client, the check of the headroom of the HTTP server thread (8,192 B since C1), and a higher value only if the measurement says so. Also the D4 fingerprint line. | none | 0.5 to 1 day | **Done in the C2 PR**: the instrumentation and the host judge. The value stays 8,192 B until a board run says otherwise. |
 | 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day | Not started |
 | 2 | **C4.** The first account of D3, with the password never in the repository or the log | D3 | 0.5 to 1 day | Not started |
 | 2 | **C5.** A native test of the failing-TRNG path on the Wolf profile, and a boot line that says the first random read succeeded | none | 1 day | Not started |
@@ -457,17 +458,17 @@ Zephyr apply port for the network settings (2 to 3 days) is not needed for the f
 ## The plan outline for the board stage
 
 Not an approval and not a run plan. It reuses the stage 1 tools and the same safety gates. Each step needs the approval of its own stage. C1 changes nothing here, except that the banner now reads `BENCH image=... declaration=CRUX_MANAGEMENT_BENCH_IMAGE ...`
-and the lines of the other steps start with `BENCH` and not `MGMT_RT1060`. Step 3 expects a certificate fingerprint line that no row implements yet ([open](#what-still-blocks-a-board-run)).
+and the lines of the other steps start with `BENCH` and not `MGMT_RT1060`. Step 3 expects the certificate fingerprint line, which row C2 implements (`BENCH-CERT`).
 
 | Step | Who | What |
 | --- | --- | --- |
 | 1 | Owner | Arm the mount guard with `tests/target/m5_mount_guard.py start --arm` as root, connect the board, the J-Link and the `en13` link at `192.168.77.1/24`. With D2 as a RAM disk, no card is inserted. |
 | 2 | Host | Read-only inventory, then `tests/target/program_m5_image.py identify` of the accepted normal image |
-| 3 | Host | `program` the bench image: `loadfile`, `verifybin`, reset. UART capture shows the banner with the declaration, the TRNG, `SSH-HOST-KEY`, the certificate fingerprint and the ready lines. |
-| 4 | Host | HTTPS: `openssl s_client -connect 192.168.77.2:443` to fetch the certificate, compare its fingerprint with the UART's, then `curl --cacert` for the two-request login, `session/me` and `status`. A browser at `https://192.168.77.2/` with the warning accepted. |
+| 3 | Host | `program` the bench image: `loadfile`, `verifybin`, reset. UART capture shows the banner with the declaration, the TRNG, `BENCH-CERT` (the certificate fingerprint), `SSH-HOST-KEY`, the boot report and the ready lines. |
+| 4 | Host | HTTPS: `openssl s_client -connect 192.168.77.2:443` to fetch the certificate, compare its fingerprint with the UART's (`check_bench_uart.py --connect`), then `curl --cacert` for the two-request login, `session/me` and `status`. **Also the clients that decide the HTTP stack's margin** ([row C2](#the-next-size-and-when-to-take-it)): `openssl s_client -groups P-256`, `-groups X25519`, a client that rejects the certificate, and a browser at `https://192.168.77.2/` with the warning accepted. A pause of 3 s or more between clients, so that each gets its report. |
 | 5 | Host | SSH: `ssh-keyscan -t ed25519 192.168.77.2` against the UART fingerprint, `ssh` for the CLI (`help`, `account list`, the viewer's refusal), `sftp` for put and get with a hash check |
 | 6 | Host | The slot limits, four SSH shells and three web logins, and the eighth refused. Handshake and transfer times with `curl -w` and `time`. These are the first target timings of the project. |
-| 7 | Host | The UART's stack and heap lines after each step, then a reset and the fingerprints again: **with a RAM disk they change**, which also shows the entropy source varies, and is not a statement on its quality |
+| 7 | Host | The UART's stack and heap lines after each step, judged by `check_bench_uart.py` (the HTTP stack's margin, the heap, the certificate), then a reset and the fingerprints again: **with a RAM disk they change**, which also shows the entropy source varies, and is not a statement on its quality |
 | 8 | Host | `restore` of the accepted normal image, two verifies, a capture of its normal boot, and an offline replay |
 
 Not covered by that stage: persistence and power loss (RAM disk), a card, the control timing under load, a long run, a scan from another host.
@@ -498,7 +499,7 @@ C1 adds these. The record is [`evidence/.../bench-composition-c1/`](evidence/rt1
 | Item | Why |
 | --- | --- |
 | Anything on a board: boot, the TRNG, the link, a handshake, a login, a transfer | No hardware in this stage |
-| Stack use on a target | Static chains only. The thread analyser and the watermarks need a run. |
+| Stack use on a target | Static chains only. **Row C2 prints the watermarks, and no run has read them.** |
 | Heap peak on a target | The runtime statistics are on, and nothing ran |
 | Timing of a handshake, a PBKDF2 login, a key generation, a TRNG read, a transfer | `native_sim` gives CPU work no time, and nothing ran on the target |
 | SDRAM and cache effects on a Cortex-M7 running from QSPI with all data in SDRAM | No run. DCACHE and ICACHE are on. |
