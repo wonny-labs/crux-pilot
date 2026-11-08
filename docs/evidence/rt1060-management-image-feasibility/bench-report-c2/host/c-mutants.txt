@@ -5,6 +5,6 @@ killed     lower case fingerprint accepted
 killed     name bytes not sanitised
 killed     no minimum gap
 killed     quiet never reached
-SURVIVED   idle is not re-armed by a burst
-SURVIVED   wrap of the clock not handled
-7 of 9 killed
+killed     idle is not re-armed by a burst
+killed     wrap of the clock not handled
+9 of 9 killed

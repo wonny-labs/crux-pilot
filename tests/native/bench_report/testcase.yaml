@@ -12,8 +12,9 @@ tests:
       ordered: true
       regex:
         - '^BENCH-REPORT v=1 begin seq=1 reason=boot uptime_ms=\d+ bursts=0$'
-        - '^BENCH-STACK seq=1 thread=http_server_tid size=8192 used=\d+ unused=\d+ state=live$'
+        # Zephyr lists the newest thread first, and the unnamed one is created after the HTTP one.
         - '^BENCH-STACK seq=1 thread=thread@[0-9a-f]+ size=\d+ used=\d+ unused=\d+ state=live$'
+        - '^BENCH-STACK seq=1 thread=http_server_tid size=8192 used=\d+ unused=\d+ state=live$'
         - '^BENCH-HEAP seq=1 arena=65536 in_use=\d+ peak=\d+ free=\d+$'
         - '^BENCH-REPORT v=1 end seq=1 lines=\d+ missed=0$'
         - '^BENCH-REPORT v=1 begin seq=2 reason=quiet uptime_ms=\d+ bursts=1$'

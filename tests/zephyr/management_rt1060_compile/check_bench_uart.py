@@ -197,18 +197,26 @@ def judge(capture, options, manifest):
                 row["name"] == options.http_thread for row in report["stack"]):
             failures.append(f"report seq={report['seq']}: no row for {options.http_thread}")
         for row in report["stack"]:
-            entry = threads.setdefault(row["name"], {"size": row["size"], "unused_min": row["unused"],
-                                                     "used_max": row["used"], "rows": 0, "sizes": set()})
-            entry["sizes"].add(row["size"])
+            entry = threads.setdefault((row["name"], row["size"]), {"size": row["size"], "unused_min": row["unused"],
+                                                                    "used_max": row["used"], "rows": 0})
             entry["unused_min"] = min(entry["unused_min"], row["unused"])
             entry["used_max"] = max(entry["used_max"], row["used"])
             entry["rows"] += 1
-    for name, entry in sorted(threads.items()):
-        if len(entry["sizes"]) > 1:
-            failures.append(f"{name}: rows give different sizes {sorted(entry['sizes'])}")
-        entry["size"] = max(entry["sizes"])
+    # Two threads can share a name (the kernel cuts it, or a driver names two alike) with stacks of different sizes.
+    # They are judged apart, as name/size, and the HTTP thread's name must be unambiguous.
+    sizes_of = {}
+    for name, size in threads:
+        sizes_of.setdefault(name, set()).add(size)
+    judged = {}
+    for (name, size), entry in sorted(threads.items()):
+        key = name if len(sizes_of[name]) == 1 else f"{name}/{size}"
+        if len(sizes_of[name]) > 1:
+            warnings.append(f"{name}: rows give different sizes {sorted(sizes_of[name])}, judged apart as {key}")
         entry["unused_percent_min"] = 100.0 * entry["unused_min"] / entry["size"] if entry["size"] else 0.0
-        del entry["sizes"]
+        judged[key] = entry
+    threads = judged
+    if len(sizes_of.get(options.http_thread, ())) > 1:
+        failures.append(f"{options.http_thread}: rows give different sizes {sorted(sizes_of[options.http_thread])}")
 
     http = threads.get(options.http_thread)
     if http is not None:

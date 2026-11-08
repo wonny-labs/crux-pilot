@@ -129,6 +129,24 @@ class Grammar(unittest.TestCase):
         self.assertEqual(run_checker(text, "--strict").returncode, 1)
         self.assertEqual(run_checker(text, "--fail-thread", "ssh_worker").returncode, 1)
 
+    def test_two_threads_with_one_name_and_two_sizes_are_judged_apart(self):
+        def extra(seq):
+            return [stack(seq, "wq", 1024, 800), stack(seq, "wq", 4096, 3000)]
+        text = capture(reports=[report(1, "boot", extra=extra(1)), report(2, "quiet", extra=extra(2))])
+        result = run_checker(text, "--json")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        summary = json.loads(result.stdout)
+        self.assertEqual({k: v["size"] for k, v in summary["threads"].items() if k.startswith("wq")},
+                         {"wq/1024": 1024, "wq/4096": 4096})
+        self.assertTrue(any("different sizes" in w for w in summary["warnings"]))
+
+    def test_the_http_thread_with_two_sizes_fails(self):
+        def extra(seq):
+            return [stack(seq, "http_server_tid", 4096, 3000)]
+        result = run_checker(capture(reports=[report(1, "boot", extra=extra(1)), report(2, "quiet", extra=extra(2))]))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("different sizes", result.stdout)
+
     def test_missing_http_row_fails(self):
         rows = capture().replace("http_server_tid", "other_thread")
         result = run_checker(rows)
@@ -217,6 +235,26 @@ class Grammar(unittest.TestCase):
         self.assertEqual((http["size"], http["unused_min"], http["used_max"]), (8192, 5000, 3192))
         self.assertEqual(summary["heap"]["peak_max"], 100000)
         self.assertEqual(summary["certificate"], FINGERPRINT)
+
+
+class NativeTestcase(unittest.TestCase):
+    """tests/native/bench_report/testcase.yaml is what Twister reads: its ordered regexes must match the run that the
+    evidence record holds, in that order, one line each, the way the multi_line console harness walks the output."""
+
+    def test_ordered_regexes_match_the_recorded_run_in_order(self):
+        import re
+        evidence = ROOT / "docs/evidence/rt1060-management-image-feasibility/bench-report-c2/native/run-no-rt.txt"
+        patterns = [m.group(1) for m in re.finditer(r"^\s+- '(.+)'$",
+                                                    (ROOT / "tests/native/bench_report/testcase.yaml").read_text(),
+                                                    re.MULTILINE)]
+        self.assertGreater(len(patterns), 10)
+        lines = evidence.read_text().splitlines()
+        at = 0
+        for pattern in patterns:
+            while at < len(lines) and not re.search(pattern, lines[at]):
+                at += 1
+            self.assertLess(at, len(lines), f"not found, in order: {pattern}")
+            at += 1
 
 
 class Certificate(unittest.TestCase):

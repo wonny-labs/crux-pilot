@@ -85,15 +85,22 @@ static bool superseded(const char *name)
     return false;
 }
 
-/* Called for each thread, without the kernel's lock held: a row is copied, nothing is printed. */
+/* Called for each thread with the scheduler locked by the snapshot: a row is copied, nothing is
+ * printed. A thread that an ended row supersedes is skipped before the table is counted, so it is
+ * not "missed". */
 static void collect(const struct k_thread *thread, void *unused_argument)
 {
     size_t unused = 0;
+    char clean[BENCH_REPORT_NAME_MAX];
     row_t *row;
-    const char *name = k_thread_name_get((k_tid_t)thread);
 
     (void)unused_argument;
     if (k_thread_stack_space_get(thread, &unused) != 0) {
+        return;
+    }
+    (void)bench_report_sanitize_name(clean, sizeof(clean), k_thread_name_get((k_tid_t)thread),
+                                     (uintptr_t)thread);
+    if (superseded(clean)) {
         return;
     }
     if (row_count >= BENCH_REPORT_THREADS_MAX) {
@@ -101,10 +108,7 @@ static void collect(const struct k_thread *thread, void *unused_argument)
         return;
     }
     row = &rows[row_count];
-    (void)bench_report_sanitize_name(row->name, sizeof(row->name), name, (uintptr_t)thread);
-    if (superseded(row->name)) {
-        return;
-    }
+    memcpy(row->name, clean, sizeof(row->name));
     row->size = (uint32_t)thread->stack_info.size;
     row->unused = (uint32_t)MIN(unused, thread->stack_info.size);
     row->ended = false;
@@ -128,7 +132,13 @@ void bench_report_core_snapshot(bench_report_reason_t reason)
     }
     row_count = 0u;
     rows_missed = 0u;
+    /* The scheduler is locked for the pass, which reads each stack once (a few milliseconds in
+     * all), so that a worker cannot end and its slot start a new connection in the middle of the
+     * walk: Zephyr says the memory of an aborted thread must not be reused while the list is being
+     * iterated. */
+    k_sched_lock();
     k_thread_foreach_unlocked(collect, NULL);
+    k_sched_unlock();
     (void)malloc_runtime_stats_get(&heap);
     sequence++;
 
