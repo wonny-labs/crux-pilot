@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "host_boot": "F82B3DD7-39D8-448F-947E-C8D5B901935D\n",
+  "clock": "clock_gettime(CLOCK_MONOTONIC)",
+  "manifest_sha256": "c8171c1fcd4b69692a1316296b73b4e4eda0315ac00984cf07f4eb064b8bfed0",
+  "nonces": [
+    671604249
+  ],
+  "started": 143422.315283,
+  "completed": [
+    1
+  ],
+  "status": "REDUCED_COMPLETE_NON_QUALIFYING",
+  "reduced": {
+    "boots": 1,
+    "cable_operations": false,
+    "excluded_phases": [
+      7,
+      8,
+      9
+    ],
+    "qualifying": false,
+    "satisfies_m5_series": false,
+    "through_phase": 6
+  }
+}

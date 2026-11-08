@@ -1,0 +1,19 @@
+*** Booting Zephyr OS build v4.4.0 ***
+M3_BOOT source=ec94fbec22cd profile=integrated commands=0 fault_default=off
+M3_SCOPE non_uart=SW5 network=required readiness=not_ready automatic_window=0
+M3_RESET support_status=0 supported=0x6173 cause_status=0 cause=0x102 clear_status=0 remaining_status=0 remaining=0x0
+M3_INIT time=0 device=0 stimulus=SW5 network=required
+M3_WORK sequence=1 monotonic_ms=503 time=-4 pressed=0 device=0
+M3_NET_BASELINE contexts=0
+M3_NET_RESOURCE monotonic_ms=503 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32
+M3_NET_STATE monotonic_ms=503 link=0 address=1 service_ready=0
+M3_NET_OWNER_INIT result=0 automatic_window=0
+M3_OBSERVER_ALIVE monotonic_ms=553 healthy=0 sequence=1 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1
+M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3464 network_status=0 network_object=4160 network_usable=4096 network_unused=3624
+M3_LOGGER monotonic_ms=553 queue_snapshot_ms=553 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=3
+M3_WORK sequence=11 monotonic_ms=1503 time=-4 pressed=0 device=0
+M3_NET_RESOURCE monotonic_ms=1504 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32
+M3_NET_STATE monotonic_ms=1504 link=1 address=1 service_ready=0
+M3_OBSERVER_ALIVE monotonic_ms=1554 healthy=0 sequence=11 readiness=0 network_sequence=0 network_completed_ms=-1 network_active=0 network_status=0 window_end_ms=-1
+M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3688 main_status=0 main_usable=4096 main_unused=3464 network_status=0 network_object=4160 network_usable=4096 network_unused=3624
+M3_LOGGER monotonic_ms=1555 queue_snapshot_ms=1554 found=1 status=0 configured=2048 usable=2048 unused=1568 priority=14 queued=0
