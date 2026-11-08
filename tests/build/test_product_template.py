@@ -245,6 +245,31 @@ class GuideTest(unittest.TestCase):
         self.assertGreaterEqual(text.count("schema"), 3)
         self.assertNotRegex(text, r"convention with no tool|A tool to assemble|No bundle, signing")
 
+    def test_guide_points_at_the_provisional_schema_and_checker_in_this_repository(self):
+        text = GUIDE.read_text()
+        for path in ("release-bundle-checker.md", "schemas/release-manifest.schema.json",
+                     "scripts/check-release-bundle.py"):
+            with self.subTest(path=path):
+                linked = re.findall(r"\]\(([^)#]*" + re.escape(path) + r")[^)]*\)", text)
+                self.assertTrue(linked, path + " is named without a link")
+                for target in linked:
+                    self.assertTrue((GUIDE.parent / target).resolve().is_file(), target)
+        section = guide_section("### Release bundle").lower()
+        for words in ("provisional", "not frozen", "no product release", "assembler", "hashes only"):
+            with self.subTest(words=words):
+                self.assertIn(words, section)
+        self.assertIn("provisional schema and checker", text[:1200].lower())
+
+    def test_guide_no_longer_calls_the_bundle_a_convention_without_a_checker(self):
+        text = GUIDE.read_text()
+        for stale in ("is a convention", "adopted neither", "No adopted bundle schema or checker",
+                      "exist in a product repository", "comes at the first product release"):
+            with self.subTest(stale=stale):
+                self.assertNotIn(stale, text)
+
+    def test_guide_gives_no_number_of_years_of_support(self):
+        self.assertNotRegex(GUIDE.read_text(), r"(?i)\b(\d+|one|two|three|five|ten)[- ]years?\b")
+
     def test_release_flow_checks_the_pins_before_it_burns_a_tag(self):
         text = GUIDE.read_text()
         tag = text.index("git -C product-x tag -a")
