@@ -1,0 +1,136 @@
+{
+ "ifconfig_en13_link_down": {
+  "command": [
+   "ifconfig",
+   "en13"
+  ],
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "en13: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=6464<VLAN_MTU,TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>\n\tether 00:24:9b:6e:f7:7f\n\tnd6 options=201<PERFORMNUD,DAD>\n\tmedia: autoselect (none)\n\tstatus: inactive\n"
+ },
+ "ifconfig_link_up_proxy": {
+  "command": [
+   "ifconfig",
+   "en13"
+  ],
+  "note": "PROXY: real output of the active DHCP interface en0 on this Mac, with only the address, broadcast, MAC and name replaced and the IPv6 line removed; a real active en13 could not be captured while the cable gives no carrier",
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "en13: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=6460<TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>\n\tether 00:24:9b:6e:f7:7f\n\tinet 192.168.77.1 netmask 0xffffff00 broadcast 192.168.77.255\n\tnd6 options=201<PERFORMNUD,DAD>\n\tmedia: autoselect\n\tstatus: active\n"
+ },
+ "lsof_cu_held_alone": {
+  "command": [
+   "lsof",
+   "-Fp",
+   "<cu node held by this process>"
+  ],
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "p%PID%\nf4\nf5\n"
+ },
+ "lsof_cu_held_tty_unopened": {
+  "command": [
+   "lsof",
+   "-Fp",
+   "<cu node held by this process>",
+   "/dev/tty.usbmodem11402"
+  ],
+  "returncode": 1,
+  "stderr": "",
+  "stdout": "p%PID%\nf4\nf5\n"
+ },
+ "lsof_cu_held_twice": {
+  "command": [
+   "lsof",
+   "-Fp",
+   "<cu node held through two descriptors>"
+  ],
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "p%PID%\nf4\nf5\nf6\n"
+ },
+ "lsof_tty_unopened": {
+  "command": [
+   "lsof",
+   "-Fp",
+   "/dev/tty.usbmodem11402"
+  ],
+  "returncode": 1,
+  "stderr": "",
+  "stdout": ""
+ },
+ "lsof_uart_pair_unowned": {
+  "command": [
+   "lsof",
+   "/dev/cu.usbmodem11402",
+   "/dev/tty.usbmodem11402"
+  ],
+  "returncode": 1,
+  "stderr": "",
+  "stdout": ""
+ },
+ "mount_listing": {
+  "command": [
+   "mount"
+  ],
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "/dev/disk3s1s1 on / (apfs, sealed, local, read-only, journaled)\ndevfs on /dev (devfs, local, nobrowse)\n/dev/disk3s6 on /System/Volumes/VM (apfs, local, noexec, journaled, noatime, nobrowse)\n/dev/disk3s2 on /System/Volumes/Preboot (apfs, local, journaled, nobrowse)\n/dev/disk3s4 on /System/Volumes/Update (apfs, local, journaled, nobrowse)\n/dev/disk1s2 on /System/Volumes/xarts (apfs, local, noexec, journaled, noatime, nobrowse)\n/dev/disk1s1 on /System/Volumes/iSCPreboot (apfs, local, journaled, nobrowse)\n/dev/disk1s3 on /System/Volumes/Hardware (apfs, local, journaled, nobrowse)\n/dev/disk3s5 on /System/Volumes/Data (apfs, local, journaled, nobrowse, protect, root data)\nmap auto_home on /System/Volumes/Data/home (autofs, automounted, nobrowse)\n/dev/disk5s2 on /Volumes/Google Chrome (hfs, local, nodev, nosuid, read-only, noowners, quarantine, mounted by user\n"
+ },
+ "networksetup_getinfo": {
+  "command": [
+   "networksetup",
+   "-getinfo",
+   "AX88179 3"
+  ],
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "Manual Configuration\nIP address: 192.168.77.1\nSubnet mask: 255.255.255.0\nRouter: (null)\nIPv6: Automatic\nIPv6 IP address: none\nIPv6 Router: none\nEthernet Address: 00:24:9b:6e:f7:7f\n"
+ },
+ "ps_axo_system_processes": {
+  "command": [
+   "ps",
+   "-axo",
+   "pid=,comm=,args="
+  ],
+  "note": "trimmed to 25 system processes; the full output matched the same line shape",
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "    1 /sbin/launchd    /sbin/launchd\n   95 /usr/libexec/log /usr/libexec/logd\n   97 /usr/libexec/Use /usr/libexec/UserEventAgent (System)\n   99 /System/Library/ /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/Support/fseventsd\n  100 /System/Library/ /System/Library/PrivateFrameworks/MediaRemote.framework/Support/mediaremoted\n  103 /usr/sbin/system /usr/sbin/systemstats --daemon\n  106 /usr/libexec/con /usr/libexec/configd\n  108 /System/Library/ /System/Library/CoreServices/powerd.bundle/powerd\n  109 /usr/libexec/IOM /usr/libexec/IOMFB_bics_daemon\n  117 /System/Library/ /System/Library/PrivateFrameworks/CoreSpeech.framework/corespeechd_system\n  119 /usr/libexec/wat /usr/libexec/watchdogd\n  125 /usr/libexec/ker /usr/libexec/kernelmanagerd\n  126 /usr/libexec/dis /usr/libexec/diskarbitrationd\n  130 /usr/sbin/syslog /usr/sbin/syslogd\n  133 /usr/libexec/the /usr/libexec/thermalmonitord\n  134 /usr/libexec/ope /usr/libexec/opendirectoryd\n  136 /System/Library/ /System/Library/PrivateFrameworks/ApplePushService.framework/apsd\n  137 /System/Library/ /System/Library/CoreServices/launchservicesd\n  138 /usr/libexec/tim /usr/libexec/timed\n  139 /System/Library/ /System/Library/PrivateFrameworks/MobileDevice.framework/Versions/A/Resources/usbmuxd -launchd\n  140 /usr/sbin/securi /usr/sbin/securityd -i\n  142 /usr/libexec/loc /usr/libexec/locationd\n  146 /usr/libexec/das /usr/libexec/dasd\n  147 /System/Library/ /System/Library/PrivateFrameworks/Heimdal.framework/Helpers/kdc\n  149 /usr/sbin/distno /usr/sbin/distnoted daemon\n"
+ },
+ "ps_p_guard_lstart": {
+  "command": [
+   "ps",
+   "-p",
+   "<guard pid>",
+   "-o",
+   "pid=,comm=,lstart="
+  ],
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "14581 /Library/Develop Sun Nov  8 06:41:05 2026    \n"
+ },
+ "route_get_direct_network_proxy": {
+  "command": [
+   "route",
+   "-n",
+   "get",
+   "192.168.77.2"
+  ],
+  "note": "PROXY: real route -n get of a host on the connected en0 /24 with the destination, network and interface name replaced",
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en13\n      flags: <UP,DONE,CLONING,STATIC>\n recvpipe  sendpipe  ssthresh  rtt,msec    rttvar  hopcount      mtu     expire\n       0         0         0         0         0         0      1500   -121567 \n"
+ },
+ "sysctl_kern_bootsessionuuid": {
+  "command": [
+   "/usr/sbin/sysctl",
+   "-n",
+   "kern.bootsessionuuid"
+  ],
+  "note": "hex digits replaced by 0; the format (36 characters, newline-terminated) is unchanged",
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "00000000-0000-0000-0000-000000000000\n"
+ }
+}

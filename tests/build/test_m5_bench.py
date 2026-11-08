@@ -434,20 +434,33 @@ class OwnerInventory(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertFalse(m5_bench.only_process_owns(text, me))
 
-    def test_the_capture_adapter_accepts_its_own_descriptor_lines_and_refuses_a_foreign_owner(self):
+    def test_the_capture_adapter_accepts_the_real_lsof_answers_and_refuses_a_foreign_owner(self):
         import os
         import capture_m3
+        import host_fixtures
         with tempfile.TemporaryDirectory() as directory:
             lease = adapter.M3UARTLease({}, Path(directory))
             lease.port = object()
-            answers = {'lsof': subprocess.CompletedProcess([], 0, self.REAL % os.getpid(), ''),
-                       'ps': subprocess.CompletedProcess([], 0, '  1 launchd /sbin/launchd\n', '')}
-            with patch.object(m3net, 'guard_check', lambda *a, **k: None), \
-                    patch.object(capture_m3, 'inventory', lambda command, output: answers[command[0]]):
+            answers = {'cu': host_fixtures.completed('lsof_cu_held_alone'), 'tty': host_fixtures.completed('lsof_tty_unopened'),
+                       'ps': host_fixtures.completed('ps_axo_system_processes')}
+            def inventory(command, output):
+                if command[0] == 'lsof':
+                    self.assertEqual(len(command), 3)         # one node per call: lsof exits 1 when a named file is not open
+                    return answers['tty' if '/dev/tty.' in command[2] else 'cu']
+                return answers[command[0]]
+            with patch.object(m3net, 'guard_check', lambda *a, **k: None), patch.object(capture_m3, 'inventory', inventory):
                 lease.verify('acquire_exclusive_probe_uart_and_nic')
-                answers['lsof'] = subprocess.CompletedProcess([], 0, (self.REAL % os.getpid()) + 'p999\nf3\n', '')
-                with self.assertRaisesRegex(ValueError, 'ownership changed'):
-                    lease.verify('acquire_exclusive_probe_uart_and_nic')
+                for name, key, answer in (
+                        ('a second owner', 'cu', subprocess.CompletedProcess([], 0, (self.REAL % os.getpid()) + 'p999\nf3\n', '')),
+                        ('exit 1 from the cu listing', 'cu', subprocess.CompletedProcess([], 1, self.REAL % os.getpid(), '')),
+                        ('someone holds the tty node', 'tty', subprocess.CompletedProcess([], 0, 'p999\nf3\n', '')),
+                        ('stderr from the tty listing', 'tty', subprocess.CompletedProcess([], 1, '', 'lsof: WARNING'))):
+                    with self.subTest(name):
+                        saved = dict(answers)
+                        answers[key] = answer
+                        with self.assertRaisesRegex(ValueError, 'ownership changed'):
+                            lease.verify('acquire_exclusive_probe_uart_and_nic')
+                        answers.update(saved)
 
 
 if __name__ == '__main__':
