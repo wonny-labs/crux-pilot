@@ -25,7 +25,11 @@ def link(token, seq, at, state):
 
 
 def replay(run, batch):
-    """The real chunks of `run` through the real supervisor until phase 1 is validated and phase 2 is prepared."""
+    """The real chunks of `run` through the real supervisor until phase 1 is validated and phase 2 is prepared.
+
+    `batch` 0 delivers the lines of one receive chunk together (what the adapter's poll does); a larger value
+    also groups chunks that arrive within that many seconds of the first one of a batch.
+    """
     directory = FIXTURES / run
     chunks = [json.loads(line) for line in (directory / 'receive.jsonl').read_text().splitlines()]
     writes = [json.loads(line) for line in (directory / 'writes.jsonl').read_text().splitlines()]
@@ -42,7 +46,7 @@ def replay(run, batch):
                 events.append(dict(kind='target', monotonic=chunk['monotonic'], record=oracle.parse_record(line)))
     batches = []
     for event in events:
-        if batches and event['monotonic'] - batches[-1][0]['monotonic'] < batch:
+        if batches and (event['monotonic'] == batches[-1][0]['monotonic'] or event['monotonic'] - batches[-1][0]['monotonic'] < batch):
             batches[-1].append(event)
         else:
             batches.append([event])
