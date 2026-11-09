@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Note: this ran as build2.sh (the second run, which also kept the BIN and the device tree); it is committed here as build.sh.
 S=<scratch>
 until mkdir /private/tmp/crux-build.lock 2>/dev/null; do sleep 20; done
 trap 'rmdir /private/tmp/crux-build.lock 2>/dev/null' EXIT
