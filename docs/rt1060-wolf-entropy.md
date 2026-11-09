@@ -83,7 +83,7 @@ CRUX-ENTROPY first-read=failed source=crux-test-entropy compatible=crux,test-ent
 
 ## Where it runs in the bench image
 
-The bench image still refuses to start (C1). **Since row C10 the check runs before that refusal**, so the refused image prints the banner and the `CRUX-ENTROPY` line and then refuses. The owner took this on 2026-11-09 ("1-8까지 너의 추천대로 진행해줘", the recommendation being to move the line ahead of the refusal: [decision 5](#decisions-for-review), D-a of [the image plan](rt1060-bench-image-plan.md)). `tests/build/test_wolf_entropy_boot.py` pins the order.
+The bench image still refuses to start (C1). **Since row C10 the check runs before that refusal**, so the refused image prints the banner and the `CRUX-ENTROPY` line and then refuses. The owner decided this on 2026-11-09 (quote: "1-8까지 너의 추천대로 진행해줘"), which supersedes the placement that C5 recommended ([decision 5](#decisions-for-review), D-a of [the image plan](rt1060-bench-image-plan.md)). `tests/build/test_wolf_entropy_boot.py` pins the order.
 
 | Step in `main()` | |
 | --- | --- |
@@ -102,7 +102,7 @@ What each image prints, by the source:
 
 The refused image is as inert as C1 made it: the read is `psa_crypto_init` and one `psa_generate_random` of 32 bytes, which makes no key, no certificate, no address and no listener. It does start the PSA crypto and read the TRNG, which the refused image of C1 did not.
 
-No guard of C1 was weakened: the CMake, C and Kconfig guards, their mutation script and the unit tests pass unchanged (below).
+No guard of C1 was weakened: the CMake, C and Kconfig guards and their mutation script pass unchanged (below). C10 made the unit test of the refusal stricter and changed the order that `test_wolf_entropy_boot.py` pins.
 
 ## What was proved
 
@@ -118,7 +118,7 @@ No guard of C1 was weakened: the CMake, C and Kconfig guards, their mutation scr
 | 8 | Control: the boot check in that composition does not compile, for its reason | Wolf | `native_sim` | Build refused, as designed |
 | 9 | The bench image links with the check wired in, the same three wolfSSH warnings as C1 | Wolf, TRNG driver | `mimxrt1060_evk@B//qspi`, **compile only** | Flash 601,464 B (C1: 601,004 B), RAM 837,932 B |
 | 10 | In the linked bench image `wc_GenerateSeed` makes one call (`device_is_ready`) and one indirect call through the driver's function table (`blx r3`), and no call to `sys_rand_get`. Every branch to `z_impl_sys_rand_get` and `z_impl_sys_csrand_get` is listed. | Wolf, TRNG driver | Disassembly of the ELF | [`call-sites.txt`](evidence/rt1060-wolf-entropy-c5/bench/call-sites.txt), [`wc_GenerateSeed.disasm.txt`](evidence/rt1060-wolf-entropy-c5/bench/wc_GenerateSeed.disasm.txt) |
-| 11 | The order in `main()`, and the check's own rules (no side door, the format, the build refusals) | | Host | 6 tests pass |
+| 11 | The order in `main()`, and the check's own rules (no side door, the format, the build refusals) | | Host | 7 tests pass |
 | 12 | C1's guards: 37 of 37 mutants killed, 14 tests | | Host | Pass, unchanged |
 
 Cases 1 to 8 are one test ([`tests/psa_entropy/wolf`](../tests/psa_entropy/wolf/src/main.c)) built as four images by [`scripts/test-wolf-entropy.sh`](../scripts/test-wolf-entropy.sh): `runtime` (1 to 5), `init-fails` (6), `fallback` (7) and `guard` (8).

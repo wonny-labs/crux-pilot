@@ -42,6 +42,17 @@ class BenchWiring(unittest.TestCase):
         self.assertEqual(positions, sorted(positions), "the boot check must come before the refusal and anything that makes a key")
         self.assertEqual(body.count("crux_entropy_boot_check()"), 1, "printed once at boot")
 
+    def test_the_check_and_the_refusal_are_unconditional_and_adjacent_to_the_banner(self):
+        # The refused image must print the line: the check may not sit inside a branch of the refusal, and nothing
+        # (an early return spelled another way) may stand between the banner, the check and the refusal.
+        body = strip_comments(main_body())
+        self.assertRegex(
+            body,
+            r"banner\(\);\s*if \(!crux_entropy_boot_check\(\)\) \{[^{}]*return 1;\s*\}\s*if \(run_refused\) \{[^{}]*return 1;\s*\}",
+            "banner, then the check and its refusal, then the refusal of the image, with nothing between",
+        )
+        self.assertEqual(body.count("run_refused"), 1, "the refusal switch is read once, in the refusal")
+
     def test_a_failed_read_prints_a_line_and_stops(self):
         body = strip_comments(main_body())
         match = re.search(r"if \(!crux_entropy_boot_check\(\)\) \{(.*?)\}", body, flags=re.S)
