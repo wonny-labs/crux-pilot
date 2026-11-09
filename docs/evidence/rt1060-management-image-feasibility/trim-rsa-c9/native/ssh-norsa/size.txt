@@ -1,0 +1,2 @@
+   text	   data	    bss	    dec	    hex	filename
+ 762321	  22194	1432432	2216947	 21d3f3	/build/ssh-integrated-ssh-norsa/build/zephyr/zephyr.elf

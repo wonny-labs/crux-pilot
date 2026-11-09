@@ -1,0 +1,8 @@
+cd /build/after && /opt/crux-cache/venv/bin/python3 /ws/crux-pilot/tests/zephyr/management_rt1060_compile/check_bench_rsa_symbols.py --nm /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-nm /build/after/zephyr/zephyr.elf
+check_bench_rsa_symbols: the bench image links RSA code (D11, row C9), 5 symbols:
+  BEGIN_RSA_PRIV
+  BEGIN_RSA_PUB
+  END_RSA_PRIV
+  END_RSA_PUB
+  psa_asymmetric_sign_rsa
+ninja: build stopped: subcommand failed.

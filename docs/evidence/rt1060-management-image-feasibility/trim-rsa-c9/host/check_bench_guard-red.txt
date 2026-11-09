@@ -1,0 +1,15 @@
+bench_guard.cmake, RSA in wolfCrypt: not refused for its reason (has no RSA): rc=0 
+bench_guard.cmake, a wolfSSL settings file: not refused for its reason (takes wolfSSL's settings from the module's Kconfig options only): rc=0 
+bench_guard.h, RSA in wolfCrypt: not refused for its reason (has no RSA): 
+bench_guard.h, a wolfSSL settings file: not refused for its reason (takes wolfSSL's settings from the module's Kconfig options only): 
+Kconfig.bench, RSA in wolfCrypt: the declaration is not refused
+Kconfig.bench, RSA in wolfCrypt: CRUX_BENCH_FILE_RAM_DISK is accepted without the declaration
+Kconfig.bench, RSA in wolfCrypt: CRUX_BENCH_FIRST_ACCOUNT_FILE is accepted without the declaration
+Kconfig.bench, RSA in wolfCrypt: CRUX_BENCH_NO_TIME_SOURCE is accepted without the declaration
+Kconfig.bench, RSA in wolfCrypt: CRUX_BENCH_TEST_HOST_KEY is accepted without the declaration
+Kconfig.bench, a wolfSSL settings file: the declaration is not refused
+Kconfig.bench, a wolfSSL settings file: CRUX_BENCH_FILE_RAM_DISK is accepted without the declaration
+Kconfig.bench, a wolfSSL settings file: CRUX_BENCH_FIRST_ACCOUNT_FILE is accepted without the declaration
+Kconfig.bench, a wolfSSL settings file: CRUX_BENCH_NO_TIME_SOURCE is accepted without the declaration
+Kconfig.bench, a wolfSSL settings file: CRUX_BENCH_TEST_HOST_KEY is accepted without the declaration
+CMake: FAILED; C: FAILED; Kconfig: FAILED

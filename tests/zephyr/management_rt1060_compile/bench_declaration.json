@@ -25,6 +25,9 @@
     "microsd_card": {"symbol": "CRUX_BENCH_FILE_MICROSD", "decision": "D2", "state": "reserved", "row": "a later run"},
     "first_account_file": {"symbol": "CRUX_BENCH_FIRST_ACCOUNT_FILE", "decision": "D3", "state": "selected"}
   },
+  "profile": {
+    "wolfssl_rsa": {"symbol": "WOLFSSL_RSA", "decision": "D11", "row": "C9", "state": "off"}
+  },
   "first_account": {
     "user": "admin",
     "role": "administrator",

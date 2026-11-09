@@ -1,0 +1,2 @@
+   text	   data	    bss	    dec	    hex	filename
+ 298000	   2508	 701279	1001787	  f493b	/build/other-base/zephyr/zephyr.elf
