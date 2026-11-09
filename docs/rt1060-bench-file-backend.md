@@ -148,22 +148,29 @@ The method: the pinned FatFs (`modules/fs/fatfs` at the `west.yml` pin) with the
 | The disk | **524,288 B** (512 KiB) | `ram_disk.overlay`, the `.bss` of the RAM disk driver, in the SDRAM |
 | Share of the SDRAM | 1.6 % of 32 MB | |
 | ITCM, DTCM, OCRAM | 0 B | The disk is in SDRAM with everything else, as the linker's report of C1 shows for the image |
-| The RAM figure of the image | **1,360,940 B** (4.06 % of the SDRAM), C1: 837,804 B, so **+523,136 B** | The linker's report of the target build ([the build](#the-target-build)) |
+| The RAM figure of the image | **1,360,940 B** (4.06 % of the SDRAM) for C3 alone, C1: 837,804 B, so **+523,136 B**; the merged head with C5 is 1,361,068 B | The linker's report of the target build ([the build](#the-target-build)) |
 
 
 ### The target build
 
-The same method as C1 (`commands/tbuild.sh`: the Dev Container under emulation, 2 CPUs, 2 GB, `-j2`, one build; the pinned Zephyr v4.4.2 copy with the wolfSSL TLS socket patch of the C1 build, mounted read-only, which the bench guard checks by marker, pin and hash; the crypto modules of the C1 build, read-only), on the **committed tree `7c22a9ec`** (the head of the review fixes, after `origin/main` was merged). The manifest says `source_tree_modified: false`. An earlier build of the branch at `052a772d`, before the merge and the review fixes, gave the same sizes and byte-identical `zephyr.bin` and `zephyr.elf`. The bench guards ran inside the real configure and passed.
+The same method as C1 (`commands/tbuild.sh`: the Dev Container under emulation, 2 CPUs, 2 GB, `-j2`, one build; the pinned Zephyr v4.4.2 copy with the wolfSSL TLS socket patch of the C1 build, mounted read-only, which the bench guard checks by marker, pin and hash; the crypto modules of the C1 build, read-only). Two builds, both with the manifest saying `source_tree_modified: false`, and the bench guards passing inside the real configure:
 
-| Item | C1 | C3 |
-| --- | ---: | ---: |
-| FLASH (`0x60000000`, 8 MB) | 601,004 B | **590,496 B** (7.04 %), 10,508 B less: the SD card driver and the USDHC host are out, the medium sources are in |
-| RAM = SDRAM (`0x80000000`, 32 MB) | 837,804 B | **1,360,940 B** (4.06 %), **523,136 B** more: the disk's `disk_buf_0` is 524,288 B |
-| ITCM, DTCM, OCRAM, OCRAM2 | 0 B | 0 B |
-| `size`: text, data, bss | 596,504, 4,480, 833,254 | 586,308, 4,168, 1,356,706 |
-| Steps, warnings | 551, 3 | 546, **the same 3**, all in wolfSSH `wolfsftp.c`, outside `-Werror` |
-| `zephyr.bin` SHA-256 | `8b557969...a420` | `8b5a19e6cc5c1aae0c40ccc84831c0cefd887c33669b731719df201d6b91ba0e` |
-| `zephyr.elf` SHA-256 | `f6765d53...b7fb` | `907fed56056ddbb2114eccfb549246d38e2dfb282850944c876cf7ca284aee9e` (the build path differs, so the hash may) |
+| Build | Tree | Where its files are |
+| --- | --- | --- |
+| C3 alone | `7c22a9ec` (the review fixes; an earlier build at `052a772d` gave byte-identical `zephyr.bin` and `zephyr.elf`) | [`build-c3-alone/size.txt`](evidence/rt1060-management-image-feasibility/ram-disk-c3/build-c3-alone/size.txt) (sizes, hashes, manifest in the same folder) |
+| **C3 with C5 merged: the head of this PR** | **`be54c778`**, after `origin/main` took C5 (#365), which adds the boot check of the random source to `main.c` and the build | [`build/size.txt`](evidence/rt1060-management-image-feasibility/ram-disk-c3/build/size.txt) (everything in the same folder) |
+
+| Item | C1 | C3 alone | **C3 with C5 (head)** |
+| --- | ---: | ---: | ---: |
+| FLASH (`0x60000000`, 8 MB) | 601,004 B | 590,496 B (7.04 %), 10,508 B less: the SD card driver and the USDHC host are out, the medium sources are in | **590,956 B** (7.04 %), 460 B more: C5's boot check |
+| RAM = SDRAM (`0x80000000`, 32 MB) | 837,804 B | 1,360,940 B (4.06 %), **523,136 B** more: the disk's `disk_buf_0` is 524,288 B | **1,361,068 B** (4.06 %), 128 B more: C5 |
+| ITCM, DTCM, OCRAM, OCRAM2 | 0 B | 0 B | 0 B |
+| `size`: text, data, bss | 596,504, 4,480, 833,254 | 586,308, 4,168, 1,356,706 | 586,768, 4,168, 1,356,866 |
+| Steps, warnings | 551, 3 | 546, **the same 3**, all in wolfSSH `wolfsftp.c`, outside `-Werror` | 547, the same 3 |
+| `zephyr.bin` SHA-256 | `8b557969...a420` | `8b5a19e6cc5c1aae0c40ccc84831c0cefd887c33669b731719df201d6b91ba0e` | `e43763d577b1638e59c07177f70d4dc74ee14ce1592ab9e5ca86def0426ee466` |
+| `zephyr.elf` SHA-256 | `f6765d53...b7fb` | `907fed56056ddbb2114eccfb549246d38e2dfb282850944c876cf7ca284aee9e` | `0f905d00cbe2ff5658ce58a9b772fded937590b2597ccecf9afd26b402838854` (the build path differs, so the hash may) |
+
+The **RAM cost of C3 itself is 523,136 B** (the C3-alone column against C1). The head's figure is C3 and C5 together.
 
 The resolved configuration of the file backend: `CONFIG_DISK_DRIVER_RAM=y`, `CONFIG_DISK_DRIVER_SDMMC` and `CONFIG_SDHC` not set, `CONFIG_FS_FATFS_MOUNT_MKFS` not set, `CONFIG_FILE_SYSTEM_MKFS=y` (the RAM disk's format needs it), the two C3 symbols set. `strings -a` on the image finds the `BENCH file-medium ram-disk ... nothing persists across a reset` line, and finds `composition test password` **0 times**. The manifest has the `file_backend` object above, with `persists_across_reset: false`.
 

@@ -13,7 +13,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/management_target.cmake",
-      "sha256" : "3dab42f7c247361beb32d63e74ecc50e88e877f6b956b745c1ce10f0f3da988f"
+      "sha256" : "4a041af3765437f8ce1dd4d703525f8d21373fdb516a8162411e171066d5ab40"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/CMakeLists.txt",
@@ -146,7 +146,7 @@
     "CONFIG_NET_MAX_ROUTERS" : "1",
     "CONFIG_NET_SOCKETS_TLS_MAX_CONTEXTS" : "6"
   },
-  "source_commit" : "7c22a9ec2e094e557d0ebd71abee137e832daec1",
+  "source_commit" : "be54c778042d28f82da602cf781db02490f6ba31",
   "source_tree_modified" : "false",
   "sources" : 
   [
@@ -431,12 +431,16 @@
       "sha256" : "f2a6d8fd0a703c2a7446a78ea002a1a03dd4c5789d10ce044c5cb6ace1416f8e"
     },
     {
+      "path" : "tests/zephyr/entropy_boot/entropy_boot.c",
+      "sha256" : "b6a66dfc25419e2c4136d0bc23ab90adb9b1ac3746cae4580e4615733452334f"
+    },
+    {
       "path" : "components/ssh/access/crux_ssh_host_key.c",
       "sha256" : "ca742805eb2c99bd39a4ba591f491d8efea2fbe71d77a06ae850a7ff862e0592"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/src/main.c",
-      "sha256" : "0ae52643da3d35cee7fae31bea34f6122552ac04c6138b33a24bc8b0feab1814"
+      "sha256" : "9923d760e854696da310971616bc0e012427ee6ff116e068f75c5d1209c5076c"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/src/ssh_target.c",
