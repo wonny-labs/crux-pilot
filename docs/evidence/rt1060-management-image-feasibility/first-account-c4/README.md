@@ -27,6 +27,8 @@ The mutants of the scan tool (`host/scanner-mutants.txt`, 13 of 13 killed) were 
 
 The first review (REVISE) found two errors in the documents, and no flaw in the secret handling. Both were fixed in the documents (the reason against option B was wrong, since B would keep the plaintext out of the ELF, and the RAM-disk statements are now conditional on row C3, which is not merged). The tool also now refuses a semicolon in the path and reads at most one byte more than its limit, and a test pins the Host suite's account to the declaration. These changes do not touch the image's sources. `build/` and `host/scan-bench.txt` are from the tree `304206cc`, and `build/post-review-*` and `host/post-review-*` are the rebuild and the scan of the tree after those changes The rebuild at `e3bad2b6` gave **the same `zephyr.elf` and `zephyr.bin` SHA-256 values** and the same sizes, the manifest says `source_commit` `e3bad2b6` and `source_tree_modified: false`, 90 Python tests pass in the container, and the scan is clean (`host/post-review-scan.txt`).
 
+The CI `host` job then **failed at `868f393e`**: my tests imported the tool, Python 3.12 wrote a `__pycache__` into the image's folder, and the C1 test `test_the_public_test_password_and_the_native_declaration_are_not_in_the_bench_image` read the bytecode as text (`UnicodeDecodeError`). Python 3.9 on the host wrote bytecode that happened to decode, so the host runs did not show it. Both of my test files now set `sys.dont_write_bytecode` before the import, and no `__pycache__` is created in the folder. The C1 test is unchanged.
+
 ## Image facts (`build/`)
 
 | Item | Value |

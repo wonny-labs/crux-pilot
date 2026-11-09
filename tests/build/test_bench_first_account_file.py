@@ -22,6 +22,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BENCH = ROOT / "tests/zephyr/management_rt1060_compile"
+# Importing the tool must not leave a __pycache__ in the image's folder: test_management_bench_declaration reads every file there as text.
+sys.dont_write_bytecode = True
 sys.path.insert(0, str(BENCH))
 import bench_first_account_file as tool  # noqa: E402
 

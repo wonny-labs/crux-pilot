@@ -193,6 +193,7 @@ class CMakeLevel(unittest.TestCase):
 class Agreement(unittest.TestCase):
     def test_limits_agree_between_declaration_tool_and_header(self):
         import sys
+        sys.dont_write_bytecode = True  # no __pycache__ in the image's folder
         sys.path.insert(0, str(BENCH))
         import bench_first_account_file as tool
         account = DECLARATION["first_account"]
