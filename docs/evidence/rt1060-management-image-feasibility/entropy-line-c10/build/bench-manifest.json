@@ -1,0 +1,617 @@
+{
+  "address" : "192.168.77.2/24",
+  "board" : "mimxrt1060_evk@B//qspi",
+  "configuration_files" : 
+  [
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/bench_declaration.json",
+      "sha256" : "6745aa4a1ef07af5ea773c99bac77c574d9b7de21e9a0bd893b3c9402f92d723"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/bench_guard.cmake",
+      "sha256" : "b213ab3c1ac9021f67ae779df8ac8f86544ab75f0e980a8e8bcb1a2118517ce3"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/management_target.cmake",
+      "sha256" : "4a041af3765437f8ce1dd4d703525f8d21373fdb516a8162411e171066d5ab40"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/CMakeLists.txt",
+      "sha256" : "f7eda933a5b5a4128df641133bd47ad1f9e78c552c5bfd569c7d632d89729c1b"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/bench_first_account.cmake",
+      "sha256" : "df7999eb6a017388ff07b677a7ab51e1eb03a37cbbbf67e9afbfdd4cfbc5b92c"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/bench_first_account_file.py",
+      "sha256" : "7e74568b9aa8356527315acaee2dbd07a89105c5f5ba51bbb54933f74444d8d9"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/Kconfig",
+      "sha256" : "9c4dc1dac7af6e6605a21c710efd4d1b2619102490933858e001cb3a83d42841"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/Kconfig.bench",
+      "sha256" : "58aaf7e78ba8c83a333391a8618143371e66a11def3bc4f18612391133cf8fdf"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/prj.conf",
+      "sha256" : "f39e2e9a4298a78154deba592b746eb2380cf2e18414298601b8e0982e6aed22"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/target.conf",
+      "sha256" : "8a4bf72259eb333442aa63bc6f23a634b2e951583a496a18e414dc68f3d626b6"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/target.overlay",
+      "sha256" : "65dc3997636b6578bb0d1cf76ac0fe9ef94c479b32d51111477e6489a9bf94b2"
+    },
+    {
+      "path" : "tests/native/tls_offload_probe/wolf.conf",
+      "sha256" : "3216db51bb0d05776ce5bc0b86522dbb4ace12520eef6b2253d2611bf3cced54"
+    },
+    {
+      "path" : "tests/native/management_composition/profile-psa.conf",
+      "sha256" : "9b38c6fd9679d6041e04cb90487aaad273c758eb6af51935d55454bfca7121c1"
+    },
+    {
+      "path" : "components/ssh/ports/zephyr/wolf-ssh.conf",
+      "sha256" : "cdb3e5b647690caa28f9ba344e1aa6cbf08ac0bcf648a1c16a9254d83b9cf1e6"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/target.conf",
+      "sha256" : "8a4bf72259eb333442aa63bc6f23a634b2e951583a496a18e414dc68f3d626b6"
+    },
+    {
+      "path" : "samples/controller/zephyr/m3-network.overlay",
+      "sha256" : "c7e10e2a610d2884df6e4366ea8bd1598fad0c511056443a344426ad8c5b2969"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/target.overlay",
+      "sha256" : "65dc3997636b6578bb0d1cf76ac0fe9ef94c479b32d51111477e6489a9bf94b2"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/ram_disk.overlay",
+      "sha256" : "7b813f80beba1748456274eb45c0381fc5fedde74aa14c7459f8f87b6ed5db90"
+    }
+  ],
+  "declaration" : "CRUX_MANAGEMENT_BENCH_IMAGE",
+  "file_backend" : 
+  {
+    "card_in_image" : false,
+    "disk_name" : "RAM",
+    "formatted_by_the_image" : "the RAM disk only, at every boot",
+    "kind" : "ram_disk",
+    "lost_at_reset" : [ "accounts", "keys", "certificate", "events", "files" ],
+    "memory" : "SDRAM, the .bss of the RAM disk driver",
+    "note" : "Every boot is a first boot. The host key and the certificate are generated again, so a client sees new fingerprints after a reset. That shows that the entropy source varies, and is not a statement on its quality.",
+    "persists_across_reset" : false,
+    "sector_count" : 1024,
+    "sector_size" : 512,
+    "size_bytes" : 524288
+  },
+  "first_account" : 
+  {
+    "decision" : "D3",
+    "file_sha256" : "76ecde2e6f8155ca5208c900268a330ba0e83a113b28676fcc31b0231b3efd70",
+    "plaintext_elsewhere" : "none: not in this manifest, the configuration, a generated source, a log or the map",
+    "plaintext_in_image" : true,
+    "role" : "administrator",
+    "source" : "a file outside the repository, named by the environment variable CRUX_BENCH_PASSWORD_FILE",
+    "user" : "admin"
+  },
+  "image_id" : "crux-mgmt-bench-rt1060-evkb-b",
+  "patched_zephyr" : 
+  {
+    "decision" : "D8",
+    "patch" : "zephyr-tls-4.4.1.patch",
+    "patch_sha256" : "3d1cc0307bbeea5f000698bca5be717f73fdb8c47e90083b003336364e8fdbda",
+    "patched_file" : "subsys/net/lib/sockets/sockets_tls.c",
+    "patched_file_sha256" : "106acdbb725fc72e4eca242125fd02283b0cd67403b205c7c231b2db6328552a",
+    "pin" : "dccb09599635bdff17633fa7e9dab014b91dce90"
+  },
+  "peer" : "192.168.77.1",
+  "run_refused" : true,
+  "schema" : 1,
+  "settings" : 
+  {
+    "CONFIG_BOARD_TARGET" : "mimxrt1060_evk@B/mimxrt1062/qspi",
+    "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE" : "1048576",
+    "CONFIG_CRUX_BENCH_FILE_RAM_DISK" : "y",
+    "CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE" : "y",
+    "CONFIG_CRUX_BENCH_NO_TIME_SOURCE" : "y",
+    "CONFIG_CRUX_BENCH_TEST_HOST_KEY" : "y",
+    "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK" : "y",
+    "CONFIG_CRUX_LOGGING" : "y",
+    "CONFIG_CRUX_MANAGEMENT_BENCH_IMAGE" : "y",
+    "CONFIG_CRUX_NETIF" : "y",
+    "CONFIG_CRUX_PILOT_MODULE" : "y",
+    "CONFIG_CRUX_SSH" : "y",
+    "CONFIG_CRUX_SSH_AUTH_TIMEOUT_MS" : "30000",
+    "CONFIG_CRUX_SSH_BIND_ADDRESS" : "192.168.77.2",
+    "CONFIG_CRUX_SSH_CLI" : "y",
+    "CONFIG_CRUX_SSH_IO_TIMEOUT_MS" : "200",
+    "CONFIG_CRUX_SSH_LISTENER_STACK_BYTES" : "4096",
+    "CONFIG_CRUX_SSH_MAX_AUTH_ATTEMPTS" : "3",
+    "CONFIG_CRUX_SSH_MAX_CONNECTIONS" : "4",
+    "CONFIG_CRUX_SSH_PORT" : "22",
+    "CONFIG_CRUX_SSH_SFTP" : "y",
+    "CONFIG_CRUX_SSH_STACK_REPORT" : "y",
+    "CONFIG_CRUX_SSH_WINDOW_BYTES" : "16384",
+    "CONFIG_CRUX_SSH_WORKER_STACK_BYTES" : "16384",
+    "CONFIG_CRUX_SYNC" : "y",
+    "CONFIG_CRUX_SYNC_MUTEX_COUNT" : "16",
+    "CONFIG_CRUX_SYNC_SEMAPHORE_COUNT" : "8",
+    "CONFIG_CRUX_SYSTEM" : "y",
+    "CONFIG_CRUX_THREAD" : "y",
+    "CONFIG_CRUX_THREAD_COUNT" : "4",
+    "CONFIG_CRUX_THREAD_STACK_BYTES" : "8192",
+    "CONFIG_CRUX_TIME" : "y",
+    "CONFIG_CRUX_WEB" : "y",
+    "CONFIG_CRUX_WEB_BACKLOG" : "4",
+    "CONFIG_CRUX_WEB_BIND_ADDRESS" : "192.168.77.2",
+    "CONFIG_CRUX_WEB_BODY_BUFFER" : "1024",
+    "CONFIG_CRUX_WEB_PORT" : "443",
+    "CONFIG_CRUX_WEB_REQUEST_DEADLINE_MS" : "5000",
+    "CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS" : "3000",
+    "CONFIG_CRUX_WEB_RESPONSE_PIECE" : "1024",
+    "CONFIG_CRUX_WEB_SEND_TIMEOUT_MS" : "250",
+    "CONFIG_CRUX_WEB_TLS_SEC_TAG" : "1",
+    "CONFIG_ENTROPY_MCUX_TRNG" : "y",
+    "CONFIG_ETH_NXP_ENET_RX_BUFFERS" : "6",
+    "CONFIG_HTTP_SERVER_MAX_CLIENTS" : "3",
+    "CONFIG_HTTP_SERVER_STACK_SIZE" : "8192",
+    "CONFIG_MAIN_STACK_SIZE" : "16384",
+    "CONFIG_NET_BUF_ALIGNMENT" : "0",
+    "CONFIG_NET_BUF_DATA_SIZE" : "128",
+    "CONFIG_NET_BUF_FIXED_DATA_SIZE" : "y",
+    "CONFIG_NET_BUF_LOG_LEVEL" : "0",
+    "CONFIG_NET_BUF_LOG_LEVEL_DEFAULT" : "y",
+    "CONFIG_NET_BUF_POOL_USAGE" : "y",
+    "CONFIG_NET_BUF_RX_COUNT" : "1024",
+    "CONFIG_NET_BUF_TX_COUNT" : "768",
+    "CONFIG_NET_MAX_CONN" : "32",
+    "CONFIG_NET_MAX_CONTEXTS" : "32",
+    "CONFIG_NET_MAX_ROUTERS" : "1",
+    "CONFIG_NET_PKT_BUF_USER_DATA_SIZE" : "4",
+    "CONFIG_NET_PKT_LOG_LEVEL" : "0",
+    "CONFIG_NET_PKT_RX_COUNT" : "192",
+    "CONFIG_NET_PKT_TX_COUNT" : "32",
+    "CONFIG_NET_SOCKETS_TLS_MAX_CONTEXTS" : "6",
+    "CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE" : "5840",
+    "CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE" : "5840"
+  },
+  "source_commit" : "d051ccf564b2db344fcb7e31e36580a44aa49c6d",
+  "source_tree_modified" : "false",
+  "sources" : 
+  [
+    {
+      "path" : "../modules/crypto/wolfssh/src/agent.c",
+      "sha256" : "0254c5af6a631b02afcd2141fe12b35105f3529351668a20105a2ec16dcb6421"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/certman.c",
+      "sha256" : "db31df578af13e5cc028ac23adb0c25dbf17ba19bf734150ae3b2cefddd6defb"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/internal.c",
+      "sha256" : "81d23e67893f75022994fb4e5145e6eb70d820014ffc273283643fce9ae68649"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/io.c",
+      "sha256" : "9e3281c5cedbc3ce0c3725e7f697a8972c3cd766fcaf863632aa0c6009f0b174"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/keygen.c",
+      "sha256" : "778fbbe66867440e4b15336663164fa451152dea77955277e76343f0669d0027"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/log.c",
+      "sha256" : "83e37dec09768a4c121592b6c05e700f951a7edb16c183c09c3556b585ff142a"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/misc.c",
+      "sha256" : "883e754982de66da1ab415d64e6f7b74818ae473a2f06cd832e8ed77d88c2ad0"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/ossh.c",
+      "sha256" : "9ca9ac94ec12aeb34a103c1f9acf981b6d5f8c1975ba2099c4905428c561b067"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/port.c",
+      "sha256" : "9aeaf40367722c835b3d279f1da507c2815b0fb93d4fad71b27be82c2845eb82"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/ssh.c",
+      "sha256" : "ff7bd0db3b3600126000a3da211d5656a247618ab6c6a9b934e8528a3f1d169e"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/wolfscp.c",
+      "sha256" : "0b6349a71142a861930217f43184e22595938f3ecefeecdb2ef1319a9412a256"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/wolfsftp.c",
+      "sha256" : "354058a2daa58f6492c6d4a79e2cdd2ca37289221daca4d7a59799ea5ca395d9"
+    },
+    {
+      "path" : "../modules/crypto/wolfssh/src/wolfterm.c",
+      "sha256" : "bcf61b67a8855fca12467e9d1d3c293585335ebb585c861bdadc137834bd99e5"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/src/mgmt_start.c",
+      "sha256" : "f13978c6536d042c7f3f6a713e0aa10166b7bfa2fac1af7330d22589ca949186"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/src/mgmt_services.c",
+      "sha256" : "02566ca438fe4fb6152d38deda19de1dce9ccc8aa54db79daf65c2a999006acf"
+    },
+    {
+      "path" : "components/access/src/access.c",
+      "sha256" : "40839ce41fd8f2234acfb867e4d104779f00eab3a3e98fcc7e84ec5ff2b9c014"
+    },
+    {
+      "path" : "components/access/src/access_accounts.c",
+      "sha256" : "22d5e6747db8631787fe583c2bed31684353b28c80f3609e418532abf496507c"
+    },
+    {
+      "path" : "components/access/src/access_delay.c",
+      "sha256" : "489d55fbeb04d24614ccfca687daeb45818958ca883ab25a5c17a037c0ea4110"
+    },
+    {
+      "path" : "components/access/src/access_login.c",
+      "sha256" : "22a1a41cb3bfb5f8ace1b95aba3d6d2bd2c3c0949fb9433e36760e866992319c"
+    },
+    {
+      "path" : "components/access/src/access_record.c",
+      "sha256" : "61d490897f4efe8f1de5299d7db736b578c59f2cb5c622580f4edc4e8396c327"
+    },
+    {
+      "path" : "components/access/src/access_session.c",
+      "sha256" : "8fc0cc8cc1ddee8b3f24edbeb6b3c2cc03bdb21d984e57752f081c9e40f7c5dc"
+    },
+    {
+      "path" : "components/access/src/access_clock_time.c",
+      "sha256" : "821878744fb706f97f713228a186f19eb7b84b82b60213e8e08f9086b20d1b39"
+    },
+    {
+      "path" : "components/access/ports/psa/access_psa.c",
+      "sha256" : "5ce25e1f4b0c44739b3aa6793f135350d8b1827f3d2cbd351154cfcd854d38b2"
+    },
+    {
+      "path" : "components/credential/src/credential_image.c",
+      "sha256" : "8af32ea56489efc0eb9b59332073656e3b789346eb2ee0920be286d48e66f533"
+    },
+    {
+      "path" : "components/credential/src/credential_store.c",
+      "sha256" : "8d427de2b558545d322621ea5b1e943524d54f190095172859bb141b9b12de2a"
+    },
+    {
+      "path" : "components/credential/access_store/credential_access_store.c",
+      "sha256" : "579eedcb0b7f4eae5d68acc1d90131e7af9903907863db41f37fc2822bb05591"
+    },
+    {
+      "path" : "components/credential/ports/psa/credential_psa.c",
+      "sha256" : "fa744ceccd481f21dde8ff803e151ed32c27e703839890115550791f13e01d65"
+    },
+    {
+      "path" : "components/credential/ports/zephyr/credential_device_id.c",
+      "sha256" : "8d7991bb08110a347dfbd411755804dcd58afb442f16f89b38fb8275cac113e1"
+    },
+    {
+      "path" : "components/credential/src/credential_security_events.c",
+      "sha256" : "c9c4967236674ec0e90be837d8e3121a000496bfbbff3ad0af6b557aa8b00fef"
+    },
+    {
+      "path" : "components/security_event/src/security_event.c",
+      "sha256" : "d2beddead5772e67db779b84c8fb4621dbabcfe4b7830fc216e937ecaf07c64d"
+    },
+    {
+      "path" : "components/security_event/src/security_event_drain.c",
+      "sha256" : "a75169cdfb7831531198641daf100393616ea57fb828e5048b0cb29dedc3b34c"
+    },
+    {
+      "path" : "components/security_event/src/security_event_fields.c",
+      "sha256" : "3a62d590a2dc5bf15051475ad6e76a3a4c50b531bc34caed68f232331ab0a519"
+    },
+    {
+      "path" : "components/security_event/src/security_event_line.c",
+      "sha256" : "3e10f803d337e817b77b098b57f60a91ad3f18b08fd1cf9410e5d7697f39e661"
+    },
+    {
+      "path" : "components/security_event/src/security_event_access_port.c",
+      "sha256" : "728a4b560ce073db9c6835d4df729754ec9ccc1ea6840c8559f816769448d6d2"
+    },
+    {
+      "path" : "components/configuration/src/configuration.c",
+      "sha256" : "d5d954423d504f8fded887147350c35279f28f68edfe33db62345c5d8e253987"
+    },
+    {
+      "path" : "components/configuration/src/configuration_text.c",
+      "sha256" : "aaa5b4d61750ef8d46fa0b7f7b4483bc01f4a0dea2a330b965ed01ea0d440b1b"
+    },
+    {
+      "path" : "components/configuration/src/configuration_no_provider.c",
+      "sha256" : "0d475415e59945f178a32549938d956ebba6968651d2e76447ded729bcf3f1d8"
+    },
+    {
+      "path" : "components/config_service/src/config_service.c",
+      "sha256" : "6522e9d852afa02c9ab2cee1090a628881ce9a5cd1e10e32073bbbb76dd8c03c"
+    },
+    {
+      "path" : "components/config_service/src/config_service_events.c",
+      "sha256" : "071503ba4f398ad11a1f202f93bdf2338677a2835d64d08ceac961fce70947ec"
+    },
+    {
+      "path" : "components/mgmt_status/src/mgmt_status.c",
+      "sha256" : "8d8c498d2ce1a30f0d6de7d0d4d6b7a0f82802511d4ac23d8e36534f9a4fc932"
+    },
+    {
+      "path" : "components/mgmt_status/src/mgmt_status_json.c",
+      "sha256" : "61565701c15b8ab8451a6ae4e0eb3754549c72b8fe5b68ece95c1b3ecf295580"
+    },
+    {
+      "path" : "components/mgmt_status/src/source_system.c",
+      "sha256" : "6b406d6ae9e3133c224b6aa2928c375e05250b6cf897efacc3231863bb5c9520"
+    },
+    {
+      "path" : "components/mgmt_status/src/source_time.c",
+      "sha256" : "087f4bc0f82558f113eb0d9d0d38d6ed2fac7e438361f308c7afabd03276fd8f"
+    },
+    {
+      "path" : "components/mgmt_status/src/source_netif.c",
+      "sha256" : "25743b21f1742c2b311b7bf7c2ab13d79cf9229082e01d87300aed3d49a8671e"
+    },
+    {
+      "path" : "components/mgmt_status/src/source_credential.c",
+      "sha256" : "eccf338771d269304f4eb6e78740884571350e252122c1ee0680243e97d10cd5"
+    },
+    {
+      "path" : "components/mgmt_status/src/source_security_events.c",
+      "sha256" : "1ec620b5857f660b6ad83b14b9ee9827e8c52c9ee4e372dd8883e6e05c44554b"
+    },
+    {
+      "path" : "components/web/session/web_session.c",
+      "sha256" : "6457c7c785f2050adde98cb894c98e9924d7ffad018714f3e2614c0ca50663a2"
+    },
+    {
+      "path" : "components/web/session/web_session_attempt.c",
+      "sha256" : "66d7c20bd219cf92cd30970d9f5023a0686df861503b3da2ad38c9835f4a6702"
+    },
+    {
+      "path" : "components/web/session/web_session_json.c",
+      "sha256" : "fd5acbb41360251c771386d04792b0d2698c15f7934a4d29905babd1c9ea980f"
+    },
+    {
+      "path" : "components/web/ports/psa/web_session_psa.c",
+      "sha256" : "4201f9d096ac896ed2515921cb592ce96611ac905348cf8f1a23b2bc0408d736"
+    },
+    {
+      "path" : "components/web/management/web_management_json.c",
+      "sha256" : "2026fc4ff404f52ab1b42192da9b9b17e34bad6e090c3fec9b6422c7548408d9"
+    },
+    {
+      "path" : "components/web/management/web_management_save.c",
+      "sha256" : "16b205eb9fd6a8cf912568eb84d2118aad3c100e1a8c08d29073dd7320f00fd6"
+    },
+    {
+      "path" : "components/web/management/web_management_network_json.c",
+      "sha256" : "f9975fb4c5e4d807ea33d8eb8ba78d4b48cafc4ca32d2bcb0b2d1f5215252b49"
+    },
+    {
+      "path" : "components/network_settings/src/network_settings.c",
+      "sha256" : "f789537099d68e0f4178f491dff27804a28b6eefb20a77345bbe93a1281aee65"
+    },
+    {
+      "path" : "components/network_settings/src/network_settings_check.c",
+      "sha256" : "abd9220fa9679bfd65190ec8d5c77f366e300f154c1cb40e54f998b5cdbb2332"
+    },
+    {
+      "path" : "components/network_settings/src/network_settings_events.c",
+      "sha256" : "0d068dd636d8029ad228e3e80fa7ab5364aff7f9983212e6ae08eb8982ced625"
+    },
+    {
+      "path" : "components/network_settings/src/network_settings_no_apply.c",
+      "sha256" : "3bb3d058e67b3a6147ffd5ea12c192c9d1e736cd0ad185fbea849af5ebfaaf3a"
+    },
+    {
+      "path" : "components/network_settings/src/network_settings_cli.c",
+      "sha256" : "9da1297b7d9224b6935d4a34f227580c83caef28ebc326a7c56d2dd89a55c635"
+    },
+    {
+      "path" : "components/tls_certificate/src/tls_certificate.c",
+      "sha256" : "234e5d01fe80262064a6bbb3c4455d8f619af9e00bc4cf67c226c36e30a762af"
+    },
+    {
+      "path" : "components/tls_certificate/src/tls_x509.c",
+      "sha256" : "18cedb2585f1926cafde8fb720412123115e3b7652c670c3fd319d22588d945d"
+    },
+    {
+      "path" : "components/tls_certificate/src/tls_certificate_events.c",
+      "sha256" : "36ad2bc3ff1da44f384010387c4521b6756aa9c592c57cb758d0c7a9dc96d52e"
+    },
+    {
+      "path" : "components/tls_certificate/ports/psa/tls_certificate_psa.c",
+      "sha256" : "61049fb3c72825e1e664ffbf89197b1b4b8e0b4a5d552ad58e3c005e13ea0ddb"
+    },
+    {
+      "path" : "components/cli/src/cli_commands.c",
+      "sha256" : "17fd7488a81839c5a37872a8c44e3f695948dab9639048305b100ff52c26ccf1"
+    },
+    {
+      "path" : "components/cli/src/cli_input.c",
+      "sha256" : "ae6ad728b7c3ba39d2b0f5e9cedf64c7c30b5ea5ec3bed791cee95ed7b313d9e"
+    },
+    {
+      "path" : "components/cli/src/cli_parse.c",
+      "sha256" : "f78f3ad374ac76d3bf77e279a32375670dd81f604c3ac7eed95a9b0b4c060880"
+    },
+    {
+      "path" : "components/cli/src/cli_registry.c",
+      "sha256" : "55ed39b0e9f5f06ae356311177a7b9e8bb5d42ceab9a5481b272f1cd58865377"
+    },
+    {
+      "path" : "components/cli/src/cli_session.c",
+      "sha256" : "41dd9c1cc880cb29c19a367fb134f3e30a7696312d42a4e4975cc4cfbf7bc6ba"
+    },
+    {
+      "path" : "components/cli/src/cli_security_events.c",
+      "sha256" : "fd1bdd72907e03bcb76a447736f172ce02da76d4bb94093a56c14a1087f1e000"
+    },
+    {
+      "path" : "components/file_service/src/file_service.c",
+      "sha256" : "bc35c70aec6f290abe0512bafc7b59e7027eb09aa9f464623319dfe8f2a0204f"
+    },
+    {
+      "path" : "components/file_service/src/file_service_security_events.c",
+      "sha256" : "f2a6d8fd0a703c2a7446a78ea002a1a03dd4c5789d10ce044c5cb6ace1416f8e"
+    },
+    {
+      "path" : "tests/zephyr/entropy_boot/entropy_boot.c",
+      "sha256" : "b6a66dfc25419e2c4136d0bc23ab90adb9b1ac3746cae4580e4615733452334f"
+    },
+    {
+      "path" : "components/ssh/access/crux_ssh_host_key.c",
+      "sha256" : "ca742805eb2c99bd39a4ba591f491d8efea2fbe71d77a06ae850a7ff862e0592"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/src/main.c",
+      "sha256" : "e71722cb5cb94a4c192342b31cd7fe180994c9712aaadad0fd77b624f616a70d"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/src/ssh_target.c",
+      "sha256" : "72fad758c5cdaa9146cab15c56c78ce218d4ad96dc7b5c894b67d55f5ab00eec"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/src/bench_first_account.c",
+      "sha256" : "66a703ce09f7a16a029fce694cdfa4c92169e442918093225d0e4e49fccf6d15"
+    },
+    {
+      "path" : "components/web/session/web_session_routes.c",
+      "sha256" : "2b6f06f13afe18dcd08f07e39bb332a51372198a4ddf10a0901e3b17dc9b20fe"
+    },
+    {
+      "path" : "components/web/management/web_management_routes.c",
+      "sha256" : "5921eaf00e94f64aed5dbf9a83d7c7050d7dd40be9ed2f2de65de8b88bd15c21"
+    },
+    {
+      "path" : "components/web/management/web_management_network.c",
+      "sha256" : "2fd73cf0f6e5e8573c895d22bac61ebcbc69d109ee9a0d8033a3f4c115248492"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/src/bench_medium.c",
+      "sha256" : "1a6b50b1bd57142bb991c45c5369ed97108c45e822770a65415ec6b41f987d41"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/src/bench_medium_fs.c",
+      "sha256" : "b0762648df251427086c66ff28e7370bc89856f772aafdfc4a2a2e12c5c1771c"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/src/bench_report.c",
+      "sha256" : "4ecce7ca12c0eb9525404a14e380236d3af3f1618a04f4b15ef12f075250b687"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/report/bench_report_core.c",
+      "sha256" : "960dc981f4b1f53ce09a0392703990bfdba8074b313953b32b541b8943fb54c0"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/report/bench_report_format.c",
+      "sha256" : "799daffc2906a7339f47e95366eafb229abcd665c004bda998e8b4d06513cfef"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/report/bench_report_policy.c",
+      "sha256" : "8c195a175e06ee5bbfc7b41558f59d1e3ab76a324b8d8ea7cf84d206d869c82a"
+    },
+    {
+      "path" : "build/crux_web_assets/app/crux_web_assets.c",
+      "sha256" : "generated in the build directory"
+    },
+    {
+      "path" : "components/web/assets/web_assets.c",
+      "sha256" : "206fe1234d1dfa58e03cda27aed0550cad7a42b3a6548a4c3c5d30d4863bf356"
+    },
+    {
+      "path" : "build/crux_web_generated/app/crux_web_routes.c",
+      "sha256" : "generated in the build directory"
+    },
+    {
+      "path" : "build/crux_web_generated/app/crux_web_resources.c",
+      "sha256" : "generated in the build directory"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/first_account/bench_first_account_provision.c",
+      "sha256" : "6d7b808d189f0eb0fea3c7832e09a578fe4c898e71723898c431aef6ac949f57"
+    },
+    {
+      "path" : "build/bench_first_account_password.S",
+      "sha256" : "generated in the build directory"
+    },
+    {
+      "path" : "components/ssh/ports/zephyr/crux_ssh_wolf_provider.c",
+      "sha256" : "85c81f70d777b1a374bfffcdfdc1cfa1063e82cdf858ea17e35d90c021ca3bd0"
+    },
+    {
+      "path" : "components/ssh/src/crux_ssh_wire.c",
+      "sha256" : "ff30000544c28349bc146fab2280424a783bc213d7983cde86df5461bc962f7b"
+    },
+    {
+      "path" : "components/ssh/src/crux_ssh_callbacks.c",
+      "sha256" : "77ea8be940f9fe9f60c03d57af33b6d3ff82a7e66875a15e6c4bc7e9916cf189"
+    },
+    {
+      "path" : "components/ssh/access/crux_ssh_access.c",
+      "sha256" : "50a355fcec94d57ffa2dce2ddf87510dca80c691157973dc20e21c4df6098ffb"
+    },
+    {
+      "path" : "components/ssh/cli/crux_ssh_cli.c",
+      "sha256" : "d712cf50fac7cb9d27e0667acdd8898c253a2931d1f5b8ba2df18d9c67deca58"
+    },
+    {
+      "path" : "components/ssh/sftp/crux_ssh_sftp.c",
+      "sha256" : "80ca2f648e38fd52c3d066d0bbc7cd030d35cf38baa4e15ac5e910b8c2ae9f86"
+    }
+  ],
+  "test_forms" : 
+  {
+    "first_account_file" : 
+    {
+      "decision" : "D3",
+      "set" : true,
+      "state" : "selected",
+      "symbol" : "CRUX_BENCH_FIRST_ACCOUNT_FILE"
+    },
+    "microsd_card" : 
+    {
+      "decision" : "D2",
+      "set" : false,
+      "state" : "reserved",
+      "symbol" : "CRUX_BENCH_FILE_MICROSD"
+    },
+    "no_time_source" : 
+    {
+      "decision" : "D7",
+      "set" : true,
+      "state" : "selected",
+      "symbol" : "CRUX_BENCH_NO_TIME_SOURCE"
+    },
+    "ram_disk" : 
+    {
+      "decision" : "D2",
+      "set" : true,
+      "state" : "selected",
+      "symbol" : "CRUX_BENCH_FILE_RAM_DISK"
+    },
+    "test_host_key" : 
+    {
+      "decision" : "D5",
+      "set" : true,
+      "state" : "selected",
+      "symbol" : "CRUX_BENCH_TEST_HOST_KEY"
+    }
+  },
+  "wolfssl_profile" : 
+  {
+    "decision" : "D11",
+    "rsa" : "trimmed: CONFIG_WOLFSSL_RSA is off, so wolfCrypt is built with NO_RSA"
+  }
+}

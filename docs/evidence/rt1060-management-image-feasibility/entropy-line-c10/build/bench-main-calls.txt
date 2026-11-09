@@ -1,0 +1,24 @@
+60018554 <main>:
+bl	60057aba <printk>
+bl	60057aba <printk>
+bl	600184b4 <crux_entropy_boot_check>
+bl	60057aba <printk>
+bl	6001999c <crux_bench_report_main_exit>
+bl	600215cc <net_if_get_default>
+bl	60021e4c <z_impl_net_addr_pton>
+bl	60021e4c <z_impl_net_addr_pton>
+bl	6005a1ea <net_if_ipv4_addr_add>
+bl	6005a19a <net_if_ipv4_set_netmask_by_addr>
+bl	6005a652 <net_if_up>
+bl	600215cc <net_if_get_default>
+bl	60021e4c <z_impl_net_addr_pton>
+bl	60021634 <net_if_config_ipv4_get>
+bl	6000ddf0 <crux_native_management_store_state_at_start>
+bl	60018744 <crux_bench_first_account>
+bl	6000de34 <crux_native_management_services_start>
+bl	6000df20 <crux_native_management_services_certificate_generated>
+bl	600199d0 <crux_bench_report_certificate>
+bl	600186ac <crux_mgmt_rt1060_ssh_start>
+bl	60019990 <crux_bench_report_start>
+bl	60057aba <printk>
+bl	60054310 <crux_native_management_start>
