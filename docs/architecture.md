@@ -224,7 +224,7 @@ The folder and the names are decided. The move is not, and nothing is moved by t
 | 1 | It waits for the first board run of the S2 image (see the [board image profiles](board-image-profiles.md)) | That run |
 | 2 | Eight files under `scripts/` and `.github/workflows/host.yml` name `samples/controller`, and all of them are protected paths | The owner's explicit approval of those changes. Among them, `scripts/check-native-interfaces.py` already treats `applications` as a portable root, so the Host and Zephyr compositions of a moved application need a deliberate classification, as `samples/controller/host` and `samples/controller/zephyr` have today |
 | 3 | Under `docs/evidence/`, 99 files in 36 folders cite `samples/controller`, as of this revision | They stay unchanged, as retained evidence |
-| 4 | Per the owner's decision, `samples/controller` is the source of the accepted normal board image (the restore image) and of the M7 guard builds | Until the move it stays where it is, and its contents are frozen except for fixes |
+| 4 | `samples/controller` is the source of the accepted normal board image (the restore image): `scripts/test-controller-integration.sh` builds it from `samples/controller/zephyr`, and the [stage 1 evidence](evidence/networking-physical-stage1/README.md) records it as the normal image for entry and recovery | Proposed: until the move it stays where it is, and its contents are frozen except for fixes. The freeze is part of this proposal, not an owner decision |
 
 ### Current capability integration
 
