@@ -72,6 +72,31 @@ class BenchDeclaration(unittest.TestCase):
                           "NET_IPV6", "RTC", "FS_FATFS_MOUNT_MKFS", "CRUX_WEB_PLAIN_HTTP_FOR_TESTS"):
             self.assertIn(values.get(forbidden, "n"), ("n", ""), forbidden)
 
+    def test_wolfcrypt_is_built_without_rsa_and_the_declaration_says_so(self):
+        # Row C9, D11: the declared profile (TLS 1.3 with P-256, SSH with Ed25519 and ecdsa-sha2-nistp256, ECDSA and
+        # Ed25519 stored keys) uses no RSA. One module option drops it from wolfCrypt, wolfSSL, the single-precision
+        # math and wolfPSA together, and the three guard levels refuse the option and anything that would hide it.
+        rsa = DECLARATION["profile"]["wolfssl_rsa"]
+        self.assertEqual((rsa["symbol"], rsa["decision"], rsa["row"], rsa["state"]), ("WOLFSSL_RSA", "D11", "C9", "off"))
+        values = settings(BENCH / "target.conf")
+        self.assertEqual(values.get(rsa["symbol"]), "n")
+        kconfig = (BENCH / "Kconfig.bench").read_text()
+        head = kconfig[kconfig.index("config CRUX_MANAGEMENT_BENCH_IMAGE"):kconfig.index("if CRUX_MANAGEMENT_BENCH_IMAGE")]
+        self.assertIn(f"depends on !{rsa['symbol']}", head)
+        self.assertIn("!WOLFSSL_HAS_SETTINGS_FILE", head)
+        guard_h = (BENCH / "src/bench_guard.h").read_text()
+        self.assertIn(f"defined(CONFIG_{rsa['symbol']})", guard_h)
+        guard_cmake = (BENCH / "bench_guard.cmake").read_text()
+        self.assertIn("profile wolfssl_rsa symbol", guard_cmake)
+
+    def test_the_linked_image_is_checked_for_rsa_symbols(self):
+        # The knob is checked at three levels. The linked image is checked too, because a module update or another
+        # definition could bring RSA back with the knob still off.
+        cmake = (BENCH / "CMakeLists.txt").read_text()
+        self.assertIn("check_bench_rsa_symbols.py", cmake)
+        self.assertIn("ZEPHYR_FINAL_EXECUTABLE", cmake)
+        self.assertTrue((BENCH / "check_bench_rsa_symbols.py").is_file())
+
     def test_http_server_stack_starts_at_8192_and_the_declaration_does_not_pin_it(self):
         # The owner asked for 8 KB from the start (2026-11-08). Row C2 may raise it, so nothing may cap it.
         values = settings(BENCH / "target.conf")

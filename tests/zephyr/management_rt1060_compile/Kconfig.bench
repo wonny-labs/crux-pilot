@@ -10,11 +10,14 @@ config CRUX_MANAGEMENT_BENCH_IMAGE
 	depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION = "B"
 	depends on ENTROPY_MCUX_TRNG && !TEST_RANDOM_GENERATOR && !FAKE_ENTROPY_NATIVE_SIM
 	depends on !NET_DHCPV4 && !NET_IPV6
+	depends on !WOLFSSL_RSA
+	depends on !WOLFSSL_HAS_SETTINGS_FILE
 	help
 	  The declaration that allows the test forms below, for this board and this bench only. It is the
 	  Kconfig level of three: the CMake level is bench_guard.cmake and the C level is src/bench_guard.h.
 	  It needs the TRNG driver and no test entropy, and no DHCP and no IPv6, because the listeners
-	  answer on the one bench address (D10).
+	  answer on the one bench address (D10). It needs wolfCrypt built without RSA (D11, row C9): the declared
+	  profile uses none, and a wolfSSL settings file would hide whether RSA is built.
 
 if CRUX_MANAGEMENT_BENCH_IMAGE
 

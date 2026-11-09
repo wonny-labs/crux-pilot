@@ -59,3 +59,13 @@ target_sources(app PRIVATE first_account/bench_first_account_provision.c)
 target_include_directories(app PRIVATE first_account)
 crux_bench_first_account_prepare()
 crux_bench_manifest()
+# Row C9 (D11): wolfCrypt is built without RSA (CONFIG_WOLFSSL_RSA=n in target.conf, refused on at every guard level),
+# and the linked image is checked for RSA code too: a module update or another definition that brings it back with the
+# setting off fails the build here. It runs after the final link, and a missing image or nm is a failure, never a pass.
+crux_bench_find_python(crux_bench_rsa_python)
+add_custom_target(bench_rsa_symbols ALL
+    COMMAND "${crux_bench_rsa_python}" "${CMAKE_CURRENT_LIST_DIR}/check_bench_rsa_symbols.py" --nm "${CMAKE_NM}"
+            "$<TARGET_FILE:${ZEPHYR_FINAL_EXECUTABLE}>"
+    COMMENT "Checking the linked bench image for RSA code (D11, row C9)"
+    VERBATIM)
+add_dependencies(bench_rsa_symbols ${ZEPHYR_FINAL_EXECUTABLE})
