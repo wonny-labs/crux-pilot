@@ -66,6 +66,17 @@
     "patch_name": "zephyr-tls-4.4.1.patch",
     "patch_sha256": "3d1cc0307bbeea5f000698bca5be717f73fdb8c47e90083b003336364e8fdbda",
     "patched_file": "subsys/net/lib/sockets/sockets_tls.c",
-    "patched_file_sha256": "106acdbb725fc72e4eca242125fd02283b0cd67403b205c7c231b2db6328552a"
+    "patched_file_sha256": "106acdbb725fc72e4eca242125fd02283b0cd67403b205c7c231b2db6328552a",
+    "isn_fail_closed": {
+      "decision": "D-c",
+      "row": "C11",
+      "marker_file": ".crux-isn-fail-closed",
+      "patch_name": "zephyr-isn-fail-closed.patch",
+      "patch_sha256": "6ab0d074f3ddab826dd417b0fba10f1622f6ffeb006828b172d6313e8234aaa7",
+      "patched_file": "subsys/net/ip/tcp.c",
+      "original_file_sha256": "393b940e0d96adba9a0f7667c061b9e0e5d8d0ea2f49642e60f29ce1efdb7ad6",
+      "patched_file_sha256": "57a59c570bf979640208756d486858d9fc2d1dee49ce7f5fe2913d32e0ca81dd",
+      "requires_setting": "NET_TCP_ISN_RFC6528"
+    }
   }
 }

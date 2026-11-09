@@ -57,6 +57,12 @@ macro(crux_bench_read_declaration)
     string(JSON BENCH_PATCH_MARKER GET "${_bench_json}" patched_zephyr marker_file)
     string(JSON BENCH_PATCHED_FILE GET "${_bench_json}" patched_zephyr patched_file)
     string(JSON BENCH_PATCHED_FILE_SHA256 GET "${_bench_json}" patched_zephyr patched_file_sha256)
+    # Row C11, D-c: the second patch of the build-local copy, the fail-closed TCP initial sequence number.
+    foreach(_bench_field IN ITEMS decision row marker_file patch_name patch_sha256 patched_file
+            original_file_sha256 patched_file_sha256 requires_setting)
+        string(TOUPPER "${_bench_field}" _bench_upper)
+        string(JSON BENCH_ISN_${_bench_upper} GET "${_bench_json}" patched_zephyr isn_fail_closed ${_bench_field})
+    endforeach()
     # Each test form as "name|SYMBOL|state|decision".
     set(BENCH_FORMS "")
     string(JSON _bench_form_count LENGTH "${_bench_json}" test_forms)
@@ -263,6 +269,37 @@ function(crux_bench_guard)
         message(FATAL_ERROR "ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket "
                             "patch that the declaration names (${BENCH_PATCH_NAME} on ${BENCH_ZEPHYR_PIN})")
     endif()
+    # 9b. The second patch of the build-local copy (row C11, D-c): the TCP stack refuses a connection when it has no key for
+    # the initial sequence number, and hashes with a buffer of the digest's size. Its marker names the same pin and the
+    # patch's hash, and the patched file has the declared hash. The setting that makes the stack use the key must be on.
+    set(isn_marker "${ZEPHYR_BASE}/${BENCH_ISN_MARKER_FILE}")
+    set(isn_patched "${ZEPHYR_BASE}/${BENCH_ISN_PATCHED_FILE}")
+    if(NOT EXISTS "${isn_marker}" OR NOT EXISTS "${isn_patched}")
+        message(FATAL_ERROR "ZEPHYR_BASE is not the build-local Zephyr copy with the fail-closed TCP initial sequence "
+                            "number patch (scripts/prepare-isn-fail-closed.py): ${BENCH_ISN_MARKER_FILE} is missing")
+    endif()
+    file(READ "${isn_marker}" isn_marker_text)
+    string(STRIP "${isn_marker_text}" isn_marker_text)
+    file(SHA256 "${isn_patched}" isn_patched_hash)
+    if(NOT "${isn_marker_text}" STREQUAL "${BENCH_ZEPHYR_PIN} ${BENCH_ISN_PATCH_SHA256}")
+        message(FATAL_ERROR "ZEPHYR_BASE is not the build-local Zephyr copy with the fail-closed TCP initial sequence "
+                            "number patch that the declaration names (${BENCH_ISN_PATCH_NAME} on ${BENCH_ZEPHYR_PIN}): "
+                            "the marker ${BENCH_ISN_MARKER_FILE} differs")
+    endif()
+    if(NOT "${isn_patched_hash}" STREQUAL "${BENCH_ISN_PATCHED_FILE_SHA256}")
+        message(FATAL_ERROR "ZEPHYR_BASE is not the build-local Zephyr copy with the fail-closed TCP initial sequence "
+                            "number patch that the declaration names (${BENCH_ISN_PATCH_NAME} on ${BENCH_ZEPHYR_PIN}): "
+                            "${BENCH_ISN_PATCHED_FILE} differs")
+    endif()
+    if(NOT CONFIG_${BENCH_ISN_REQUIRES_SETTING})
+        message(FATAL_ERROR "The fail-closed initial sequence number protects the RFC 6528 one: "
+                            "CONFIG_${BENCH_ISN_REQUIRES_SETTING} is required, because without it Zephyr takes the "
+                            "number from sys_rand32_get() and the patch protects nothing")
+    endif()
+    if(CONFIG_NET_TEST OR CONFIG_NET_TEST_PROTOCOL)
+        message(FATAL_ERROR "The bench image makes its initial sequence numbers: CONFIG_NET_TEST and "
+                            "CONFIG_NET_TEST_PROTOCOL skip tcp_init_isn() and are refused")
+    endif()
     # 10. The network buffers, the TCP windows and the arena (row C6): sized for the declared load. A pool below its
     # need, a window that is not the declared one, and a session size raised without the pools are refused.
     foreach(setting IN ITEMS NET_BUF_DATA_SIZE NET_BUF_RX_COUNT NET_BUF_TX_COUNT NET_PKT_RX_COUNT NET_PKT_TX_COUNT
@@ -400,7 +437,7 @@ function(crux_bench_manifest)
     get_cmake_property(all_variables VARIABLES)
     list(SORT all_variables)
     foreach(variable IN LISTS all_variables)
-        if(variable MATCHES "^CONFIG_(CRUX_|HTTP_SERVER_STACK_SIZE|HTTP_SERVER_MAX_CLIENTS|MAIN_STACK_SIZE|COMMON_LIBC_MALLOC_ARENA_SIZE|NET_MAX_|NET_PKT_|NET_BUF_|NET_TCP_MAX_|ETH_NXP_ENET_RX_BUFFERS|NET_SOCKETS_TLS_MAX_CONTEXTS|ENTROPY_MCUX_TRNG|RTC|BOARD_TARGET)")
+        if(variable MATCHES "^CONFIG_(CRUX_|HTTP_SERVER_STACK_SIZE|HTTP_SERVER_MAX_CLIENTS|MAIN_STACK_SIZE|COMMON_LIBC_MALLOC_ARENA_SIZE|NET_MAX_|NET_PKT_|NET_BUF_|NET_TCP_MAX_|NET_TCP_ISN_RFC6528|ETH_NXP_ENET_RX_BUFFERS|NET_SOCKETS_TLS_MAX_CONTEXTS|ENTROPY_MCUX_TRNG|RTC|BOARD_TARGET)")
             set(value "${${variable}}")
             string(REPLACE "\\" "\\\\" value "${value}")
             string(REPLACE "\"" "\\\"" value "${value}")
@@ -445,6 +482,17 @@ function(crux_bench_manifest)
     string(JSON zephyr SET "${zephyr}" patch_sha256 "\"${BENCH_PATCH_SHA256}\"")
     string(JSON zephyr SET "${zephyr}" patched_file "\"${BENCH_PATCHED_FILE}\"")
     string(JSON zephyr SET "${zephyr}" patched_file_sha256 "\"${BENCH_PATCHED_FILE_SHA256}\"")
+    set(isn "{}")
+    string(JSON isn SET "${isn}" decision "\"${BENCH_ISN_DECISION}\"")
+    string(JSON isn SET "${isn}" row "\"${BENCH_ISN_ROW}\"")
+    string(JSON isn SET "${isn}" marker_file "\"${BENCH_ISN_MARKER_FILE}\"")
+    string(JSON isn SET "${isn}" patch "\"${BENCH_ISN_PATCH_NAME}\"")
+    string(JSON isn SET "${isn}" patch_sha256 "\"${BENCH_ISN_PATCH_SHA256}\"")
+    string(JSON isn SET "${isn}" patched_file "\"${BENCH_ISN_PATCHED_FILE}\"")
+    string(JSON isn SET "${isn}" original_file_sha256 "\"${BENCH_ISN_ORIGINAL_FILE_SHA256}\"")
+    string(JSON isn SET "${isn}" patched_file_sha256 "\"${BENCH_ISN_PATCHED_FILE_SHA256}\"")
+    string(JSON isn SET "${isn}" requires_setting "\"CONFIG_${BENCH_ISN_REQUIRES_SETTING}\"")
+    string(JSON zephyr SET "${zephyr}" isn_fail_closed "${isn}")
     string(JSON manifest SET "${manifest}" patched_zephyr "${zephyr}")
 
     # The source revision, when git can say it. A missing answer is recorded as such.
