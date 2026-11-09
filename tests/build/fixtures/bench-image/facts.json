@@ -7,7 +7,7 @@
     "firmware_identity": "de26ca4d9705cecfb8021e3c713aa7ee4d534cab616f13687c37c1549286af15",
     "configuration_sha256": "fd2f0bb0b3a5c6d4fb923cc90cf4c0a9ca3cc79e16f36b1d749390175d671427"
   },
-  "config_fixture": "bench.config holds 56 lines of the resolved .config of that build, unchanged and in their original order: every line the check requires, the features it refuses, and the four features that the M5 check forbids and the bench sets (LOG, FILE_SYSTEM, DISK_ACCESS, WATCHDOG)",
+  "config_fixture": "bench.config holds 56 lines of the resolved .config of that build, unchanged and in their original order: every line the check requires, the refused features that the resolved .config records as not set (five others, such as FLASH_MAP and NVS, are absent from it), and the four features that the M5 check forbids and the bench sets (LOG, FILE_SYSTEM, DISK_ACCESS, WATCHDOG)",
   "stack_symbols_nm_S": [
     ["_k_thread_stack_http_server_tid", 8256],
     ["listener_stack", 4160],

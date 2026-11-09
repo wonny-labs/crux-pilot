@@ -185,7 +185,7 @@ class RefusesOtherImages(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     other(*paths)
 
-    def test_the_m5_and_s2_synthetic_images_are_refused_by_the_bench_check(self):
+    def test_the_synthetic_m5_network_image_is_refused_by_the_bench_check(self):
         for profile in ('network',):
             with tempfile.TemporaryDirectory() as tmp:
                 with self.assertRaises(ValueError):
