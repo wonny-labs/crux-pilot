@@ -19,7 +19,10 @@ HEADER = (BOOT / "entropy_boot.h").read_text()
 
 
 def main_body():
-    return MAIN[MAIN.index("int main(void)"):]
+    # Since row C2 the body of the bench image's main() is bench_main(), and main() is a wrapper that records the main
+    # thread's stack on every way out. The order pinned here is that of the body.
+    start = MAIN.index("static int bench_main(void)") if "static int bench_main(void)" in MAIN else MAIN.index("int main(void)")
+    return MAIN[start:]
 
 
 def strip_comments(text):

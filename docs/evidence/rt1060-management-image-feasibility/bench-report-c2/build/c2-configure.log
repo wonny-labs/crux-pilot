@@ -1,0 +1,47 @@
+Loading Zephyr default modules (Zephyr base).
+-- Application: /ws/crux-pilot/tests/zephyr/management_rt1060_compile
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.2 (/zw)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found BOARD.dts: /zw/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
+-- Found devicetree overlay: /zw/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_B.overlay
+-- Found devicetree overlay: /ws/crux-pilot/samples/controller/zephyr/m3-network.overlay
+-- Found devicetree overlay: /ws/crux-pilot/tests/zephyr/management_rt1060_compile/target.overlay
+-- Generated zephyr.dts: /build/bench_c2/zephyr/zephyr.dts
+-- Generated pickled edt: /build/bench_c2/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /build/bench_c2/zephyr/include/generated/zephyr/devicetree_generated.h
+/build/bench_c2/zephyr/zephyr.dts:4239.36-4248.5: Warning (unique_unit_address_if_enabled): /soc/usbd@402e0000: duplicate unit-address (also used in node /soc/usbh@402e0000)
+Parsing /ws/crux-pilot/tests/zephyr/management_rt1060_compile/Kconfig
+Loaded configuration '/zw/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_defconfig'
+Merged configuration '/ws/crux-pilot/tests/zephyr/management_rt1060_compile/prj.conf'
+Merged configuration '/ws/crux-pilot/tests/native/tls_offload_probe/wolf.conf'
+Merged configuration '/ws/crux-pilot/tests/native/management_composition/profile-psa.conf'
+Merged configuration '/ws/crux-pilot/components/ssh/ports/zephyr/wolf-ssh.conf'
+Merged configuration '/ws/crux-pilot/tests/zephyr/management_rt1060_compile/target.conf'
+Configuration saved to '/build/bench_c2/zephyr/.config'
+Kconfig header saved to '/build/bench_c2/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1") 
+-- The C compiler identification is GNU 14.3.0
+-- The CXX compiler identification is GNU 14.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
+CMake Warning at /zw/CMakeLists.txt:688 (message):
+  ZEPHYR_BASE=/zw doesn't appear to be a git repository, please specify
+  '-DBUILD_VERSION=<version>'
+
+
+-- Crux Zephyr integration module discovered
+-- Looking for device MIMXRT1062 in /ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/
+-- Found device folder: /ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062
+-- Found gen_kobject_list: /zw/scripts/build/gen_kobject_list.py
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found version "3.12.3") found components: Interpreter 
+-- Bench manifest: /build/bench_c2/bench-manifest.json (15 sources)
+-- Configuring done (65.6s)
+-- Generating done (0.7s)
+-- Build files have been written to: /build/bench_c2

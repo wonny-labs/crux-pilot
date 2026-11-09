@@ -45,6 +45,11 @@ else()
     target_compile_definitions(app PRIVATE CRUX_BENCH_RUN_REFUSED=0)
 endif()
 target_include_directories(app PRIVATE src)
+# Row C2: the UART report of stack watermarks, heap and the certificate fingerprint. report/ holds the parts that
+# need no bench symbol (and that the host test and tests/native/bench_report build), src/bench_report.c the glue.
+target_sources(app PRIVATE src/bench_report.c report/bench_report_core.c report/bench_report_format.c
+    report/bench_report_policy.c)
+target_include_directories(app PRIVATE report)
 crux_web_assets(app FOLDER ${services_dir}/site STYLE strict)
 crux_web_routes(app SOURCES ${route_sources} ZEPHYR_RESOURCES REVIEWED ${services_dir}/reviewed-routes.txt)
 # Row C4 (D3): the first account's step, and its password file, which is checked here and whose bytes are embedded

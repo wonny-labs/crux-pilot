@@ -1,0 +1,28 @@
+common:
+  platform_allow:
+    - native_sim/native/64
+  tags:
+    - bench
+  timeout: 60
+  harness: console
+tests:
+  crux.native.bench_report:
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - '^BENCH-REPORT v=1 begin seq=1 reason=boot uptime_ms=\d+ bursts=0$'
+        # Zephyr lists the newest thread first, and the unnamed one is created after the HTTP one.
+        - '^BENCH-STACK seq=1 thread=thread@[0-9a-f]+ size=\d+ used=\d+ unused=\d+ state=live$'
+        - '^BENCH-STACK seq=1 thread=http_server_tid size=8192 used=\d+ unused=\d+ state=live$'
+        - '^BENCH-HEAP seq=1 arena=65536 in_use=\d+ peak=\d+ free=\d+$'
+        - '^BENCH-REPORT v=1 end seq=1 lines=\d+ missed=0$'
+        - '^BENCH-REPORT v=1 begin seq=2 reason=quiet uptime_ms=\d+ bursts=1$'
+        - '^BENCH-STACK seq=2 thread=main size=\d+ used=\d+ unused=\d+ state=ended$'
+        - '^BENCH-STACK seq=2 thread=ssh_worker size=16384 used=\d+ unused=\d+ state=ended$'
+        - '^BENCH-REPORT v=1 end seq=2 lines=\d+ missed=0$'
+        - '^BENCH-REPORT v=1 begin seq=3 reason=idle uptime_ms=\d+ bursts=1$'
+        - '^BENCH-REPORT v=1 end seq=3 lines=\d+ missed=0$'
+        - '^BENCH-REPORT v=1 begin seq=4 reason=idle uptime_ms=\d+ bursts=1$'
+        - '^BENCH-REPORT v=1 end seq=4 lines=\d+ missed=[1-9]\d*$'
+        - '^BENCH_REPORT_TEST complete$'
