@@ -11,4 +11,4 @@ target_sources(app PRIVATE main.c sd_replace.c ${CRUX_ROOT}/samples/storage_sd/s
   ${CRUX_ROOT}/samples/storage_sd_interrupt/sd_interrupt.c)
 target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
 target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_sd
-  ${CRUX_ROOT}/samples/storage_sd_interrupt ${CRUX_ROOT}/components/file/ports/zephyr)
+  ${CRUX_ROOT}/samples/storage_sd_interrupt)

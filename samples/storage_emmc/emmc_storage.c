@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "emmc_storage.h"
-#include "file_native.h"
 #include "fs_reliance_edge.h"
 #include <crux/file.h>
+#include <crux/file_zephyr.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <zephyr/fs/fs.h>

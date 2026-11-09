@@ -2,7 +2,7 @@
 
 Status: **PROVISIONAL, a first shape**, for review in a Draft PR. Refs #301, item 1. The schema and the checker are not frozen before a product's first real release, and nothing here is a compatibility promise. This change authorises no tag, no publication, no release and no hardware operation, and nothing ran on a board or in a Zephyr build.
 
-The [product composition guide](product-composition.md#release-bundle) describes the release bundle as a convention. This document records the first schema and the first checker for it. The checker is adapted from the one that the public consumer repository `wonny-labs/crux-controller` already uses (`release/check_bundle.py` at commit `f03dc79`, Apache-2.0), so that the platform and its consumers do not carry two checkers.
+The [product composition guide](product-composition.md#release-bundle) links this document and names the schema and the checker below as the provisional ones for the release bundle. This document records the first schema and the first checker. The checker is adapted from the one that the public consumer repository `wonny-labs/crux-controller` already uses (`release/check_bundle.py` at commit `f03dc79`, Apache-2.0), so that the platform and its consumers do not carry two checkers.
 
 ## Result
 
@@ -12,7 +12,7 @@ The [product composition guide](product-composition.md#release-bundle) describes
 | Checker | [`scripts/check-release-bundle.py`](../scripts/check-release-bundle.py) | New, provisional |
 | Tests | `tests/build/test_release_bundle.py`, run by the existing `python3 -m unittest discover -s tests/build` step of the Host workflow | New |
 | Assembler, `west crux-pins` output as a bundle item, template step | | **Not in this change** ([follow-ups](#follow-ups)) |
-| The guide's release table | [`product-composition.md`](product-composition.md#release-bundle) | **Unchanged**: it still says "convention" |
+| The guide's release table | [`product-composition.md`](product-composition.md#release-bundle) | **Updated** in the same Draft PR: it links this document, names the schema and the checker, and says that the checker enforces hashes only. The table itself is not split |
 
 Run the checker on a bundle folder:
 
@@ -144,7 +144,7 @@ Not ported: the assembler (`assemble_bundle.py`, which imports a budget collecto
 
 | Follow-up | Needs |
 | --- | --- |
-| Change the guide's "Release bundle" section from "convention" to a link to this document, and say that the hashes-only mode refuses the table's firmware image and debug-file rows | Owner decision on the next row |
+| Whether and how to split the guide's bundle table into public product repositories (hashes only) and private products, see [open question 1](#open-owner-questions) | Owner decision |
 | An assembler that writes this manifest, with no budget import and a required `--target`, adapted from the controller's | Approval |
 | `west crux-pins` output and the build record as bundle items, and a bundle step in `samples/product_template`. The pin report stays an optional item: the checker never requires it, and a product without west leaves it out | Approval |
 | The controller calls this script by a pinned commit once it is merged, and moves its product fields under `extensions` | The controller's owner. Nothing was posted or changed there |
