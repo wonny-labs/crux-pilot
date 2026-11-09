@@ -85,6 +85,7 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | `web/` | Management API specification, TypeScript client, mock server and browser tests for the web examples in `samples/web`. No C build needs it. See the [web guide](web/README.md). |
 | `scripts/` | Setup, build, analysis and test commands |
 | `tools/` | Test tooling for a machine that holds a board's probe and UART; outside the runtime build |
+| `templates/` | Copy-and-start skeletons for a product repository: `templates/product`, with its own README |
 | `.devcontainer/` | Linux development environment |
 | `.github/workflows/` | CI workflows |
 | `docs/` | Architecture, API contracts, decisions and evidence |

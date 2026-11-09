@@ -87,7 +87,7 @@ for it. It is the third step of the owner's review of 8 November 2026 (Refs #243
 samples that do not are listed below for the owner to move, or to leave, one by one.
 
 A sample is a small composition that shows one capability, one framework or one scenario through Crux's public contracts. It is
-not part of the platform API, and Crux does not maintain it as a product template, with `product_template` as the one folder that is one. A maintained integrated image is not a sample but an [application](#applications-proposed). The move of `product_template` to `templates/product/` is proposed in a separate change and does not alter this rule.
+not part of the platform API, and Crux does not maintain it as a product template. The product template, formerly `product_template`, is `templates/product`, outside `samples/` since 9 November 2026, and the rows below that name `product_template` describe the state before the move. A maintained integrated image is not a sample but an [application](#applications-proposed).
 
 | # | Rule | Why |
 | --- | --- | --- |
@@ -123,7 +123,7 @@ How a name is chosen:
 | --- | --- | --- |
 | A framework | The framework, in a family folder when it is one of several of a kind | `samples/web/preact`, `samples/web/angular` |
 | A capability | The capability, and a variant joins a family folder | `samples/networking`, `samples/storage/sd`, `samples/storage/emmc` |
-| A purpose that is neither | A short noun for the purpose | `samples/product_template` |
+| A purpose that is neither | A short noun for the purpose | none now: the product template moved to `templates/product` |
 
 #### Existing samples that do not follow it
 
@@ -164,7 +164,7 @@ An application is a maintained, integrated image of Crux. A sample shows one cap
 | Application | `applications/<name>` | An integrated image that composes several capabilities into one working whole | Built in CI on every code change. A `README.md` that states its supported configurations, its evidence for Host, `native_sim` and physical results, each on its own, and what it does not show. A named maintenance responsibility |
 | Sample | `samples/<name>` | One capability, framework or scenario through the public contracts | None of these. The rules above apply |
 | Test | `tests/` | A check of a claim | An application's or a sample's run does not replace tests. Tests stay under `tests/` |
-| Project template | `templates/product/` (proposed in a separate change) | A repository skeleton that a product copies | Not part of this proposal; today it is `samples/product_template` |
+| Project template | `templates/product/` | A repository skeleton that a product copies | Not part of this proposal; it moved there from `samples/product_template` on 9 November 2026 |
 | Out-of-tree reference | The separate `crux-controller` repository | A product-shaped repository that consumes Crux as a west project | It is not an application of this repository and stays outside it |
 
 **A new application is admitted only when all three conditions hold:**
@@ -191,7 +191,7 @@ flowchart TB
     comp["components/<br/>public contracts and usage targets"]
     samples["samples/<br/>one capability each"]
     apps["applications/ (decided, not yet created)<br/>io_controller, managed_controller"]
-    tmpl["templates/product/ (proposed, separate change)<br/>skeleton that a product copies"]
+    tmpl["templates/product/ (moved 9 November 2026)<br/>skeleton that a product copies"]
     tests["tests/<br/>checks of capabilities, samples and applications"]
     ctrl["crux-controller (separate repository)<br/>out-of-tree product-shaped reference"]
     prod["a product repository"]
