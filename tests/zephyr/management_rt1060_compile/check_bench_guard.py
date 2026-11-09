@@ -139,7 +139,7 @@ def backend_settings(declaration):
 BUFFER_SETTINGS = ("NET_BUF_DATA_SIZE", "NET_BUF_RX_COUNT", "NET_BUF_TX_COUNT", "NET_PKT_RX_COUNT",
                    "NET_PKT_TX_COUNT", "NET_TCP_MAX_RECV_WINDOW_SIZE", "NET_TCP_MAX_SEND_WINDOW_SIZE",
                    "ETH_NXP_ENET_RX_BUFFERS", "CRUX_SSH_MAX_CONNECTIONS", "HTTP_SERVER_MAX_CLIENTS",
-                   "CRUX_SSH_WINDOW_BYTES", "COMMON_LIBC_MALLOC_ARENA_SIZE")
+                   "CRUX_WEB_BACKLOG", "CRUX_SSH_WINDOW_BYTES", "COMMON_LIBC_MALLOC_ARENA_SIZE")
 
 
 def target_conf_values():
@@ -170,7 +170,7 @@ def buffer_needs(declaration, values):
     window = b["window_segments"] * b["mss_bytes"]
     frame_bufs = ceil_div(b["frame_bytes"], data)
     served = ssh + http
-    connections = served + b["backlog_connections"]
+    connections = served + int(values["CRUX_WEB_BACKLOG"])
     typical_segments = ceil_div(window, b["typical_segment_bytes"])
     typical_bufs = ceil_div(b["typical_segment_bytes"] + b["segment_header_bytes"], data)
     held_bufs = max(b["window_segments"] * frame_bufs, typical_segments * typical_bufs)
@@ -184,9 +184,9 @@ def buffer_needs(declaration, values):
         "window": window,
         "ring_min": b["window_segments"] + b["ring_spare_frames"],
         "rx_bufs": ceil_div(margin * (connections * held_bufs + ring * frame_bufs), 100),
-        "tx_bufs": ceil_div(margin * (served * ceil_div(window, data) + senders * b["copies_per_sender"] * frame_bufs), 100),
+        "tx_bufs": ceil_div(margin * (served * ceil_div(window, data) + senders * (frame_bufs + b["header_buffers_per_sender"])), 100),
         "rx_pkts": ceil_div(margin * (connections * held_pkts + ring), 100),
-        "tx_pkts": ceil_div(margin * senders * b["copies_per_sender"], 100),
+        "tx_pkts": ceil_div(margin * senders * b["packets_per_sender"], 100),
         "paper_peak": paper_peak,
         "arena": ceil_div(paper_peak * 100, h["paper_peak_limit_percent"]),
     }
@@ -366,6 +366,8 @@ def buffer_cases(tree):
          "CONFIG_NET_BUF_RX_COUNT"),
         ("eight HTTPS clients, the pools as they are", {"CONFIG_HTTP_SERVER_MAX_CLIENTS": "8"},
          "CONFIG_NET_BUF_RX_COUNT"),
+        ("a web listener backlog of 8, the pools as they are", {"CONFIG_CRUX_WEB_BACKLOG": "8"},
+         "CONFIG_NET_BUF_RX_COUNT"),
         ("a 128 KiB SSH window, the arena as it is", {"CONFIG_CRUX_SSH_WINDOW_BYTES": "131072"},
          "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE"),
         ("a data buffer of 64 B, the counts as they are", {"CONFIG_NET_BUF_DATA_SIZE": "64"}, "is under the"),
@@ -411,11 +413,12 @@ def buffer_controls(tree):
         "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE": str(rounded["arena"]),
         "DECLARATION_EDITS": {("network_buffers", "margin_percent"): 130, ("heap", "paper_peak_limit_percent"): 60}}))
     # Bigger windows of SSH and bigger sessions: the needs are those of the raised sizes, and exactly them is accepted.
-    for ssh, http, window in (("6", "5", "32768"), ("2", "1", "8192")):
-        sized = dict(values, CRUX_SSH_MAX_CONNECTIONS=ssh, HTTP_SERVER_MAX_CLIENTS=http, CRUX_SSH_WINDOW_BYTES=window)
+    for ssh, http, window, backlog in (("6", "5", "32768", "8"), ("2", "1", "8192", "1")):
+        sized = dict(values, CRUX_SSH_MAX_CONNECTIONS=ssh, HTTP_SERVER_MAX_CLIENTS=http, CRUX_SSH_WINDOW_BYTES=window,
+                     CRUX_WEB_BACKLOG=backlog)
         more = buffer_needs(tree.declaration, sized)
-        controls.append((f"{ssh} SSH connections, {http} HTTPS clients and an SSH window of {window} B, exactly at their need", {
-            "CONFIG_CRUX_SSH_MAX_CONNECTIONS": ssh, "CONFIG_HTTP_SERVER_MAX_CLIENTS": http,
+        controls.append((f"{ssh} SSH connections, {http} HTTPS clients, a web backlog of {backlog} and an SSH window of {window} B, exactly at their need", {
+            "CONFIG_CRUX_SSH_MAX_CONNECTIONS": ssh, "CONFIG_HTTP_SERVER_MAX_CLIENTS": http, "CONFIG_CRUX_WEB_BACKLOG": backlog,
             "CONFIG_CRUX_SSH_WINDOW_BYTES": window, "CONFIG_NET_BUF_RX_COUNT": str(more["rx_bufs"]),
             "CONFIG_NET_BUF_TX_COUNT": str(more["tx_bufs"]), "CONFIG_NET_PKT_RX_COUNT": str(more["rx_pkts"]),
             "CONFIG_NET_PKT_TX_COUNT": str(more["tx_pkts"]),
@@ -907,7 +910,7 @@ ARITHMETIC_MUTANTS = (
     ("the receive buffers leave out the driver's ring", "${connections} * ${held_bufs} + ${ring} * ${frame_bufs}",
      "${connections} * ${held_bufs}"),
     ("the receive buffers are not rounded up", "${ring} * ${frame_bufs}) + 99) / 100", "${ring} * ${frame_bufs}) + 0) / 100"),
-    ("the backlog is left out of the connections", 'math(EXPR connections "${served} + ${BENCH_NB_BACKLOG_CONNECTIONS}")',
+    ("the web backlog is left out of the connections", 'math(EXPR connections "${served} + ${CONFIG_CRUX_WEB_BACKLOG}")',
      'math(EXPR connections "${served}")'),
     ("a connection holds full frames only, never the typical segments", "if(typical_window_bufs GREATER held_bufs)", "if(0)"),
     ("a connection holds as many packets as full frames only", "if(typical_segments GREATER held_pkts)", "if(0)"),
@@ -916,8 +919,11 @@ ARITHMETIC_MUTANTS = (
     ("a typical segment is 5 buffers whatever the buffer size",
      'math(EXPR typical_bufs "(${BENCH_NB_TYPICAL_SEGMENT_BYTES} + ${BENCH_NB_SEGMENT_HEADER_BYTES} + ${data} - 1) / ${data}")',
      'math(EXPR typical_bufs "5")'),
-    ("the transmit buffers leave out the senders' copies",
-     "${senders} * ${BENCH_NB_COPIES_PER_SENDER} * ${frame_bufs}) + 99) / 100", "0) + 99) / 100"),
+    ("the transmit buffers leave out the senders' segments",
+     "${senders} * (${frame_bufs} + ${BENCH_NB_HEADER_BUFFERS_PER_SENDER})) + 99) / 100", "0) + 99) / 100"),
+    ("the senders' header buffer is not counted", " + ${BENCH_NB_HEADER_BUFFERS_PER_SENDER})) + 99) / 100", ")) + 99) / 100"),
+    ("the transmit packets count one packet per sender", "${senders} * ${BENCH_NB_PACKETS_PER_SENDER} + 99) / 100",
+     "${senders} + 99) / 100"),
     ("the transmit buffers leave out the queued windows", "(${margin} * (${served} * ${window_data_bufs} +",
      "(${margin} * (0 +"),
     ("the HTTP server thread is not a sender", 'math(EXPR senders "${ssh} + 1 + ${BENCH_NB_SENDER_THREADS_BEYOND_SLOTS}")',
@@ -1006,6 +1012,17 @@ def mutants(root):
 def check_mutants(tree, kconfiglib):
     failures = []
     results = []
+    # The control of the mutation check: an unmutated copy must pass every check. Without it a copy that fails for any
+    # other reason "kills" every mutant, which is how the CMake group was vacuous from row C3 to row C6.
+    with tempfile.TemporaryDirectory() as scratch:
+        copy = Path(scratch)
+        copy_tree(tree.root, copy)
+        control = Tree(copy)
+        found = check_cmake(control) + check_c(control)
+        if kconfiglib is not None:
+            found += check_kconfig(control, kconfiglib)
+        if found:
+            return [f"the control of the mutation check failed: an unmutated copy does not pass: {found[0]}"], results
     for description, relative, text, group in mutants(tree.root):
         if text is None:
             failures.append(f"mutation not applicable: {description}")

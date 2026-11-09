@@ -28,6 +28,10 @@ CHECKER_MUTANTS = [
     ('+ len(current["pool"]) + len(current["net"])', '+ len(current["net"])', "pool lines not counted in the end line"),
     ('if len(current["net"]) > 1:', "if False:", "two BENCH-NET lines accepted"),
     ('if name in expected_pools and entry["size"]', 'if name in expected_pools and False and entry["size"]', "declared size skipped"),
+    ('if bool(current["pool"]) != bool(current["net"]):', "if False:", "pool rows without a net line (or the reverse) accepted"),
+    ('if not report["pool"]:', "if False:", "a report without pool rows accepted among reports that have them"),
+    ("net = counters[-1] if counters else None", 'net = max(counters, key=lambda c: c["tcp_rexmit"]) if counters else None',
+     "the highest counter read instead of the last report's"),
 ]
 
 FORMAT_MUTANTS = [
@@ -62,6 +66,10 @@ def run_checker_tests():
 
 
 def main():
+    # The control: the unmutated files must pass every test, or every mutant would be "killed" for that reason.
+    if run_checker_tests() != 0:
+        raise SystemExit("the control failed: the unmutated tests do not pass")
+    print("control: the unmutated tests pass")
     results = []
     original = open(CHECKER).read()
     try:

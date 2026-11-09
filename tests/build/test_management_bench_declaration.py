@@ -89,7 +89,7 @@ class BenchDeclaration(unittest.TestCase):
             sys.path.remove(str(BENCH))
         values = settings(BENCH / "target.conf")
         needs = check_bench_guard.buffer_needs(DECLARATION, values)
-        self.assertEqual(needs, {"window": 5840, "ring_min": 6, "rx_bufs": 915, "tx_bufs": 613, "rx_pkts": 173,
+        self.assertEqual(needs, {"window": 5840, "ring_min": 6, "rx_bufs": 915, "tx_bufs": 517, "rx_pkts": 173,
                                  "tx_pkts": 18, "paper_peak": 347104, "arena": 694208})
         self.assertEqual(int(values["NET_TCP_MAX_RECV_WINDOW_SIZE"]), needs["window"])
         self.assertEqual(int(values["NET_TCP_MAX_SEND_WINDOW_SIZE"]), needs["window"])
@@ -100,8 +100,7 @@ class BenchDeclaration(unittest.TestCase):
             self.assertGreaterEqual(int(values[symbol]), needs[key], symbol)
         # D9 is not changed by this row: 4 SSH connections, 3 HTTPS clients, the SSH window at the provider's 16 KiB.
         self.assertEqual((int(values["CRUX_SSH_MAX_CONNECTIONS"]), int(values["HTTP_SERVER_MAX_CLIENTS"]),
-                          int(values["CRUX_SSH_WINDOW_BYTES"])), (4, 3, 16384))
-        # What the pools cost, in SDRAM, from the 28 B header of a data buffer and the 128 B it holds.
+                          int(values["CRUX_SSH_WINDOW_BYTES"]), int(values["CRUX_WEB_BACKLOG"])), (4, 3, 16384, 4))
         self.assertEqual(int(values["NET_BUF_DATA_SIZE"]), 128)
         # The window stays under what the driver's ring can take, which is the reason for it.
         self.assertLessEqual(DECLARATION["network_buffers"]["window_segments"] + DECLARATION["network_buffers"]["ring_spare_frames"],

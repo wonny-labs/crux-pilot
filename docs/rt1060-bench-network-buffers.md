@@ -7,12 +7,12 @@ Status: **row C6 of stage 2** of [the RT1060-EVKB feasibility report](rt1060-man
 | Question | Answer |
 | --- | --- |
 | What is decided? | **TCP windows of 4 segments (5,840 B) each way. 1,024 receive and 768 transmit data buffers of 128 B, 192 receive and 32 transmit packets. A heap arena of 1 MiB.** Every number is a paper rule from the declared load, written down in `bench_declaration.json` and enforced by the guard: [the table](#what-was-decided). |
-| Why not leave the M5 image's values? | **They would not have worked for more than one client.** The pools were 32 buffers of 128 B each way (4 KiB), made for 32-byte echo frames. Zephyr then derives a TCP window of 1,365 B from them, which is **less than one segment (1,460 B)**: every transfer is stop and wait. And 4 KiB of transmit buffers cannot hold one window of one connection plus the copy of a segment that a send makes: [the arithmetic](#the-load-and-the-arithmetic). |
+| Why not leave the M5 image's values? | **They would very probably not have worked for several clients at once (paper).** The pools were 32 buffers of 128 B each way (4 KiB), made for 32-byte echo frames. Zephyr then derives a TCP window of 1,365 B from them, which is **less than one segment (1,460 B)**: every transfer is stop and wait. And, on the paper rule, 4 KiB of transmit buffers (32 buffers) cannot hold what 7 declared sessions queue and send at once (7 queued windows and 7 senders' segments are about 410 buffers), so a connection would end with `ENOBUFS`: [the arithmetic](#the-load-and-the-arithmetic). That is a paper prediction for several clients, not an observation. |
 | Is "a short pool slows TCP and does not break it" true? | **For receive, yes. For transmit, no.** A shortage of transmit data buffers makes `send()` fail with `ENOBUFS` after 100 ms, and **both the TLS socket layer and the SSH provider turn that error into a failed connection**: [what each shortage does](#what-each-shortage-does). The earlier statement was an assumption and is corrected in the feasibility report. |
 | Was a driver count found that is not counted? | **Yes.** The ENET driver drops a received frame when it cannot allocate a packet, **and counts nothing**: it has no statistics callback, so Zephyr's call to count the error does nothing. A short receive pool is therefore visible only in the pools' high-water marks and in the retransmissions that the host sees. |
 | Sockets and contexts? | **Unchanged** (`NET_MAX_CONTEXTS` 32, `NET_MAX_CONN` 32, `ZVFS_OPEN_MAX` 48, TLS contexts 6). The only evidence is `native_sim` (about 9 of 48 sockets), which says there is room, not that more is needed. The report now prints `tcp_conndrop`, which is the number that would show a shortage. |
 | What does it cost? | **Flash +888 B (597,584 B, 7.12 % of 8 MB), RAM +806,272 B (2,172,076 B)** from two real cross-builds of the bench image: [cost](#cost). The RAM is SDRAM, 32 MB of which 6.47 percent is used. |
-| Is the guard stronger? | **Yes, and a hole in the old one was found and closed.** A new refusal checks the pools, the windows, the driver ring and the arena against the declared load, with 96 mutants killed. The mutation check of the CMake guard had been vacuous since row C3 (its copy lacked a file, so every mutant failed for that reason): [the guard](#the-guard). |
+| Is the guard stronger? | **Yes, and a hole in the old one was found and closed.** A new refusal checks the pools, the windows, the driver ring and the arena against the declared load, with 98 mutants killed. The mutation check of the CMake guard had been vacuous since row C3 (its copy lacked a file, so every mutant failed for that reason): [the guard](#the-guard). |
 | What can a board run read? | The report now prints the high-water mark of all four pools and the TCP counters, and the judge fails a pool over 80 percent of its size. The list of what a run must read for the plan of row C8 is [below](#what-a-board-run-must-read). |
 
 ## What was decided
@@ -24,7 +24,7 @@ Provenance: **P** = paper rule (arithmetic from the declared load), **S** = read
 | `NET_TCP_MAX_RECV_WINDOW_SIZE` | 0 (auto: 1,365 B) | **5,840** | P, S | 4 segments of 1,460 B. The driver's receive ring is 6 frames and a window can arrive as one burst, so it keeps 2 frames spare. Zephyr's auto rule (a third of the pool) would give 43,690 B, 30 segments into a ring of 6. |
 | `NET_TCP_MAX_SEND_WINDOW_SIZE` | 0 (auto: 1,365 B) | **5,840** | P, S | The same, the other way. It also bounds what a connection queues, which is what the transmit pool must hold. |
 | `NET_BUF_RX_COUNT` | 32 | **1,024** | P | Need 915: [below](#the-load-and-the-arithmetic) |
-| `NET_BUF_TX_COUNT` | 32 | **768** | P | Need 613 |
+| `NET_BUF_TX_COUNT` | 32 | **768** | P | Need 517 |
 | `NET_PKT_RX_COUNT` | 16 | **192** | P | Need 173 |
 | `NET_PKT_TX_COUNT` | 16 | **32** | P | Need 18 |
 | `NET_BUF_DATA_SIZE` | 128 | 128 (written down) | S | Zephyr's default, which the M5 image ran with. A full frame is 12 buffers. |
@@ -45,46 +45,47 @@ flowchart LR
     rxpkt --> q["Socket receive queue<br/>one packet per segment,<br/>until the application reads"]
     q --> app["wolfSSL or wolfSSH worker<br/>reads, decrypts"]
     app -->|"send(), DONTWAIT"| sd["Connection's send queue<br/>one chain, at most one window<br/>(tx data buffers)"]
-    sd -->|"copy of one segment, and its clone"| txpkt["TX packet + 12 buffers<br/>(tx pools)"]
+    sd -->|"copy of one segment, then a header packet"| txpkt["TX data packet (up to 12 buffers)<br/>and a header packet (1 buffer)<br/>(tx pools)"]
     txpkt --> eth["ENET: one transmit buffer,<br/>the frame is copied out"]
 ```
 
-The pools are sized for **the declared sessions** (D9: 4 SSH connections and 3 HTTPS clients, which are the 7 network slots; plus a backlog of 4 that the listeners hold and that TCP has accepted but nothing serves yet), each holding a window that the application has not read, and for the senders' copies. Each term is in `bench_declaration.json` (`network_buffers`), and `bench_guard.cmake` and `check_bench_guard.py` hold the same rule twice.
+The pools are sized for **the declared sessions** (D9: 4 SSH connections and 3 HTTPS clients, which are the 7 network slots; plus the web listener's backlog, `CRUX_WEB_BACKLOG` 4, which TCP has accepted and nothing serves yet because the HTTP server stops polling its listener at its client limit), each holding a window that the application has not read, and for the senders' segments. The SSH listener's own backlog is not counted: its listener accepts at once and refuses what it cannot serve, so those connections are brief. Each term is in `bench_declaration.json` (`network_buffers`), and `bench_guard.cmake` and `check_bench_guard.py` hold the same rule twice.
 
 | Input | Value | From |
 | --- | ---: | --- |
 | Data buffer | 128 B | `NET_BUF_DATA_SIZE` |
 | Largest frame, in buffers | 1,514 B, **12** | Ethernet frame without checksum. 1,514 / 128 = 11.8 |
 | Window | 5,840 B = 4 × 1,460 B | `window_segments` × `mss_bytes` |
-| Connections that hold a window | 7 served + 4 backlog = **11** | `CRUX_SSH_MAX_CONNECTIONS` + `HTTP_SERVER_MAX_CLIENTS` + `backlog_connections` |
+| Connections that hold a window | 7 served + 4 web backlog = **11** | `CRUX_SSH_MAX_CONNECTIONS` + `HTTP_SERVER_MAX_CLIENTS` + `CRUX_WEB_BACKLOG` |
 | A typical segment | 512 B payload + 54 B headers = **5** buffers; **12** segments per window | `typical_segment_bytes`, `segment_header_bytes` |
 | Held per connection | max(4 full frames × 12 = 48, 12 × 5 = 60) = **60** buffers, **12** packets | A segment is held in its own packet, whole, until the application reads: `zsock_received_cb` queues the packet |
 | Driver ring | 6 frames × 12 = **72** buffers | `ETH_NXP_ENET_RX_BUFFERS` |
-| Senders | 4 SSH workers + the HTTP server thread + the TCP work queue + the network receive thread = **7**; each holds a segment copy and its clone (2) of 12 buffers | `tcp_send_data` and `tcp_out_ext` |
+| Senders | 4 SSH workers + the HTTP server thread + the TCP work queue + the network receive thread = **7**; each holds, while it sends, a data packet that copies one segment (up to 12 buffers, `tcp_send_data`) and a header packet (1 buffer, `tcp_out_ext`, which moves the data buffers into it): **2 packets, 13 buffers**. There is no clone on Ethernet: only 6LoWPAN links copy again (`tcp_send`). | `tcp_send_data` and `tcp_out_ext` |
 | Margin | 125 percent | |
 
 | Pool | Need | Rule | Chosen | Margin over need |
 | --- | ---: | --- | ---: | ---: |
 | RX data buffers | **915** | 1.25 × (11 × 60 + 72) | 1,024 | 12 % |
-| TX data buffers | **613** | 1.25 × (7 × 46 + 7 × 2 × 12). 46 = a window in buffers, 5,840 / 128. | 768 | 25 % |
+| TX data buffers | **517** | 1.25 × (7 × 46 + 7 × (12 + 1)). 46 = a window in buffers, 5,840 / 128. | 768 | 49 % |
 | RX packets | **173** | 1.25 × (11 × 12 + 6) | 192 | 11 % |
-| TX packets | **18** | 1.25 × 7 × 2 | 32 | 78 % |
+| TX packets | **18** | 1.25 × 7 × 2 (a data packet and a header packet per sender) | 32 | 78 % |
 
 The chosen counts are the next round number above the need (1,024 and 768 are powers of two and a multiple of 256, 192 and 32 likewise). The checks of the guard are floors: a larger pool passes.
 
 **The segment size is an assumption.** The held-buffer figure depends on how large the segments are that a connection holds unread. A full frame costs 12 buffers for 1,460 B (0.008 per byte), a 512 B segment 5 for 512 B (0.010), a 128 B segment 2 for 128 B (0.016). The rule takes 512 B as typical, because TLS handshake flights, HTTP requests and SSH packets are mostly below it and bulk transfers are full frames. How the need moves:
 
-| Segment held | Buffers per connection | RX need, 11 connections and the ring | Fits 1,024? |
-| ---: | ---: | ---: | --- |
-| 1,460 B | 48 | 600 | yes |
-| 1,024 B | 54 | 666 | yes |
-| 512 B (the rule) | 60 | 732 | yes, with 25 % over it at 915 |
-| 256 B | 69 | 831 | yes |
-| 192 B | 62 | 754 | yes |
-| 128 B | 92 | 1,084 | **no, 6 % short** |
-| 64 B | 92 | 1,084 | no |
+| Segment held | Buffers per connection | RX buffers needed (11 connections and the ring) | Fits 1,024? | Packets held (11 × segments per window, and the ring) | Fits 192? |
+| ---: | ---: | ---: | --- | ---: | --- |
+| 1,460 B | 48 | 600 | yes | 50 | yes |
+| 1,024 B | 54 | 666 | yes | 72 | yes |
+| 512 B (the rule) | 60 | 732 | yes, 25 % over it at 915 | 138 | yes, 25 % over it at 173 |
+| 365 B | 60 | 732 | yes | 182 | yes (the limit) |
+| 256 B | 69 | 831 | yes | 259 | **no** |
+| 192 B | 62 | 754 | yes | 347 | **no** |
+| 128 B | 92 | 1,084 | **no, 6 % short** | 512 | **no** |
+| 64 B | 92 | 1,084 | no | 1,018 | no |
 
-A run of 128-byte segments that **all 11 connections hold unread at once** is not covered. Receive shortage costs a drop and a retransmission, not a connection: [next](#what-each-shortage-does).
+**The packet pool is the narrower of the two:** it covers held segments of about 365 B and more (16 per window), the buffer pool segments of about 150 B and more. A run in which **all 11 connections hold segments under about 365 B unread at once** is not covered. Receive shortage costs a drop and a retransmission, not a connection: [next](#what-each-shortage-does).
 
 ### Why 4 segments
 
@@ -109,7 +110,7 @@ Read from the patched Zephyr copy of D8 (`VERSION` 4.4.2) and the Crux provider.
 | **TX data buffers** | `tcp_pkt_append()` waits `NET_TCP_PKT_ALLOC_TIMEOUT` (100 ms) for the buffers of the data that `send()` queues, then returns `-ENOBUFS` **to the caller** | **The connection ends.** `tls_wolf_tx()` turns every errno but `EAGAIN` into `WOLFSSL_CBIO_ERR_GENERAL`, and the SSH provider's `io_result()` turns it into `WS_CBIO_ERR_GENERAL`. Neither retries it | `subsys/net/lib/sockets/sockets_tls.c`, `tls_wolf_tx()`; `components/ssh/ports/zephyr/crux_ssh_wolf_provider.c`, `io_result()`; `tcp.c`, `tcp_pkt_append()` |
 | The heap arena | `accept` fails for a TLS client, or wolfSSH cannot allocate in a handshake | That client is refused and the server goes on: [measured on `native_sim`](https-composition.md) | Carried |
 
-So the transmit data pool is the one that must not be short, and it is sized from what a connection can have queued (at most one send window, because `net_tcp_queue()` queues no more) and from the copies of the senders.
+So the transmit data pool is the one that must not be short, and it is sized from what a connection can have queued (at most one send window, because `net_tcp_queue()` queues no more) and from the segments the senders hold while they send.
 
 ## The heap arena
 
@@ -142,11 +143,11 @@ The declared rule is that the paper peak stays under **half** the arena (`paper_
 | `NET_BUF_RX_COUNT … is under the …` and the three like it | A pool under the need of the declared sessions, or a session size raised without the pools |
 | `MALLOC_ARENA_SIZE … is under the …` | The arena under the need |
 
-`check_bench_guard.py` writes the rule again in Python, apart from the CMake, and runs 45 new cases and 6 controls: every setting missing and malformed, each pool and the arena **one under its need (refused) and exactly at it (accepted)**, 8 SSH connections and 8 HTTPS clients with the pools as they are, a 128 KiB SSH window with the arena as it is, buffers of 64 B and 256 B with counts at their own need, other session sizes at their own need, and a declaration with another margin so that the needs have fractions. The real `target.conf` is the control, so the guard also shows that the image's own configuration meets it. Red first: [before the guard](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/red1-guard-script-no-guard.txt), and [with the guard and the old `target.conf`](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/red2-guard-refuses-target-conf-before.txt).
+`check_bench_guard.py` writes the rule again in Python, apart from the CMake, and runs 48 new cases and 6 controls: every setting missing and malformed, each pool and the arena **one under its need (refused) and exactly at it (accepted)**, 8 SSH connections and 8 HTTPS clients with the pools as they are, a 128 KiB SSH window with the arena as it is, buffers of 64 B and 256 B with counts at their own need, other session sizes at their own need, and a declaration with another margin so that the needs have fractions. The real `target.conf` is the control, so the guard also shows that the image's own configuration meets it. Red first: [before the guard](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/red1-guard-script-no-guard.txt), and [with the guard and the old `target.conf`](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/red2-guard-refuses-target-conf-before.txt).
 
 | Mutation check | Result |
 | --- | --- |
-| Every `message(FATAL_ERROR` weakened to a log, and the 30 arithmetic and comparison mutants of the new rule | **96 of 96 killed**, with the CMake mutants now genuinely tested |
+| Every `message(FATAL_ERROR` weakened to a log, and the 32 arithmetic and comparison mutants of the new rule | **98 of 98 killed**, with the CMake mutants now genuinely tested |
 | **A finding about the old check** | `copy_tree()` did not copy `ram_disk.overlay`, which `crux_bench_manifest()` reads (row C3). A copy then failed `check_manifest()` whatever the mutant, so **every CMake mutant had been "killed" for that one reason since C3**, and the counts of C3 and C4 for that group said nothing. The script now copies the file. An unmutated copy passes and **no earlier mutant survived the fix**, so the earlier guards hold. |
 
 ## The report, and the judge
@@ -200,7 +201,9 @@ This list feeds the plan of row C8. Each item names how, the figure that passes,
 | 6 | The heap | `BENCH-HEAP` peak | At or under 80 percent of the arena (the judge), and the paper says about 33 percent | A peak far under 33 percent is the basis to shrink the arena. A peak over it says which term of the table was wrong. |
 | 7 | The heap at rest after every client has left | `BENCH-HEAP in_use` at the last `idle` report | Back to the boot figure, within a few hundred bytes | A leak, or a held connection |
 | 8 | The round trip and the throughput | `ping -c 20 192.168.77.2`, then `sftp` put and get of 1 MiB with `time`, and `curl -w '%{speed_download}'` for the page | Recorded. There is no pass figure: none was agreed. Compare with the bound of 5,840 B per round trip | A large gap to the bound with all pools low points at the stack's TCP timers (delayed acknowledgement) |
-| 9 | The sizes the build declared | `check_bench_uart.py --manifest bench-manifest.json` | Pool sizes, arena and HTTP stack equal the manifest | A stale image |
+| 9 | The stress that the rule sizes for: the board's application slow to read while peers keep sending, and the web backlog full | Four SSH shells and three web logins as in item 1, then 4 more connections opened and held (`nc 192.168.77.2 443`, which TCP accepts and the HTTP server does not serve), with an SFTP put in progress | The pool peaks of item 1 stay under 80 percent: this is where the held-window terms of the rule are exercised | Raise the pool, or lower `CRUX_WEB_BACKLOG` and the window |
+| 10 | That the advertised window really is 5,840 B | `tcpdump -nn -i <bench interface> 'src 192.168.77.2 and tcp'` on the host during a transfer: the `win` field | `win 5840` (it falls below that while data is unread) | The window setting did not take, or the stack changes it |
+| 11 | The sizes the build declared | `check_bench_uart.py --manifest bench-manifest.json` | Pool sizes, arena and HTTP stack equal the manifest | A stale image |
 
 ## What was not covered
 
@@ -210,7 +213,7 @@ This list feeds the plan of row C8. Each item names how, the figure that passes,
 | The throughput and the round trip of the bench link | Not measured. The bound is arithmetic. |
 | Whether the ring of 6 frames keeps up with 4 segment bursts from several connections | Paper: the receive thread and the network thread together are estimated at about the wire rate. Item 5 of the list reads the host's view. |
 | A 16 KiB TLS record's real cost on the arena | Declared from the source of `GrowInputBuffer` and an allowance |
-| Receive-queue behaviour with segments of 128 B or less held by all connections | Not covered by the pool: [the table](#the-load-and-the-arithmetic) |
+| Receive-queue behaviour with segments under about 365 B held unread by all 11 connections (packets) or under about 150 B (buffers) | Not covered by the pools: [the table](#the-load-and-the-arithmetic) |
 | The CI workflows | `.github/` is protected and not changed. The guard script and the unit tests are not wired into a workflow. |
 
 ## Decisions taken in C6

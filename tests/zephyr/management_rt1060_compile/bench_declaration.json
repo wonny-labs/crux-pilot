@@ -24,11 +24,11 @@
     "mss_bytes": 1460,
     "window_segments": 4,
     "ring_spare_frames": 2,
-    "backlog_connections": 4,
     "typical_segment_bytes": 512,
     "segment_header_bytes": 54,
     "sender_threads_beyond_slots": 2,
-    "copies_per_sender": 2,
+    "packets_per_sender": 2,
+    "header_buffers_per_sender": 1,
     "margin_percent": 125
   },
   "heap": {

@@ -8,6 +8,9 @@
  *   t = 46 s     a table overflow on purpose: 60 more threads, so the report must say missed=N and
  * stop at the table's size and not print past it
  *
+ * The network lines (row C6) come from a fake read of made-up pools and counters; its third read
+ * fails.
+ *
  * The output is the bench image's own lines. tests/build/test_management_bench_report.py documents
  * how the capture is fed to check_bench_uart.py. The stack numbers are native_sim's and mean
  * nothing.
@@ -33,6 +36,35 @@ static uint32_t read_activity(void)
     return activity;
 }
 
+/* The network side of the report (row C6) with made-up figures: the image's own callback reads the
+ * network stack, which native_sim does not have in this test. The third snapshot's read fails on
+ * purpose, so that the report must leave the pool and counter lines out and say so in its line
+ * count. */
+static bool fake_net(bench_report_net_t *out)
+{
+    static unsigned calls;
+    static const struct {
+        const char *name;
+        uint32_t size;
+        uint32_t peak;
+    } pools[BENCH_REPORT_POOLS_MAX] = {
+        {"rx_pkt", 192u, 20u}, {"tx_pkt", 32u, 6u}, {"rx_buf", 1024u, 150u}, {"tx_buf", 768u, 90u}};
+
+    calls++;
+    if (calls == 3u) {
+        return false;
+    }
+    for (uint32_t i = 0; i < BENCH_REPORT_POOLS_MAX; i++) {
+        out->pools[i] = (bench_report_pool_t){.name = pools[i].name,
+                                              .size = pools[i].size,
+                                              .used = 3u,
+                                              .peak = pools[i].peak + calls};
+    }
+    out->pool_count = BENCH_REPORT_POOLS_MAX;
+    out->tcp_rexmit = calls - 1u;
+    return true;
+}
+
 static void note_worker(void)
 {
     /* What the provider keeps for the workers that ended, here a made-up figure. */
@@ -55,6 +87,7 @@ int main(void)
         .activity = read_activity,
         .refresh = note_worker,
         .arena_bytes = CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE,
+        .net = fake_net,
     };
 
     (void)k_thread_create(&http_thread, http_stack, K_THREAD_STACK_SIZEOF(http_stack), sleeper,

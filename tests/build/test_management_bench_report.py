@@ -399,6 +399,30 @@ class Pools(unittest.TestCase):
         result = run_checker(text, "--json")
         self.assertEqual(json.loads(result.stdout)["net"]["tcp_rexmit"], 7)
 
+    def test_pool_rows_and_the_net_line_come_together(self):
+        for drop, lines in (("BENCH-NET", "lines=10"), ("BENCH-POOL", "lines=7")):
+            kept = [line for line in report(1, "boot", pools={}).splitlines() if not line.startswith(drop)]
+            text = "\n".join(kept).replace("lines=11", lines) + "\n"
+            result = run_checker(capture(reports=[text]), "--min-client-reports", "0")
+            self.assertEqual(result.returncode, 1, f"{drop}: {result.stdout}")
+            self.assertIn("come together", result.stdout)
+
+    def test_every_report_holds_pools_once_one_does(self):
+        text = capture(reports=[report(1, "boot"), report(2, "quiet", pools={})])
+        result = run_checker(text)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("no BENCH-POOL rows", result.stdout)
+        with tempfile.TemporaryDirectory() as folder:
+            manifest = manifest_with(folder, **MANIFEST_POOLS)
+            partial = capture(reports=[report(1, "boot", pools={}), report(2, "quiet")])
+            self.assertEqual(run_checker(partial, "--manifest", str(manifest)).returncode, 1)
+
+    def test_the_last_report_is_the_one_read_even_when_a_counter_is_lower(self):
+        # Counters grow on a board; the judge reads the last report, not the highest value.
+        text = capture(reports=[report(1, "boot", pools={"net": "ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=7 tcp_conndrop=0"}),
+                                report(2, "quiet", pools={"net": "ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=0 tcp_conndrop=0"})])
+        self.assertEqual(json.loads(run_checker(text, "--json").stdout)["net"]["tcp_rexmit"], 0)
+
     def test_a_malformed_net_line_fails(self):
         text = capture(reports=[report(1, "boot", pools={})]).replace("tcp_rexmit=0", "tcp_rexmit=x", 1)
         self.assertEqual(run_checker(text, "--min-client-reports", "0").returncode, 1)
@@ -410,7 +434,9 @@ class NativeTestcase(unittest.TestCase):
 
     def test_ordered_regexes_match_the_recorded_run_in_order(self):
         import re
-        evidence = ROOT / "docs/evidence/rt1060-management-image-feasibility/bench-report-c2/native/run-no-rt.txt"
+        # Row C6 added the pool and counter lines to the scenario, so the run that matches is the one recorded with it
+        # (the run that C2 recorded has none of them and stays unchanged as C2's evidence).
+        evidence = ROOT / "docs/evidence/rt1060-management-image-feasibility/network-buffers-c6/native/run-no-rt.txt"
         patterns = [m.group(1) for m in re.finditer(r"^\s+- '(.+)'$",
                                                     (ROOT / "tests/native/bench_report/testcase.yaml").read_text(),
                                                     re.MULTILINE)]
@@ -422,6 +448,17 @@ class NativeTestcase(unittest.TestCase):
                 at += 1
             self.assertLess(at, len(lines), f"not found, in order: {pattern}")
             at += 1
+
+
+    def test_the_recorded_run_has_pool_lines_in_three_of_four_reports_and_counts_them(self):
+        # The fake read of tests/native/bench_report/src/main.c fails the third time: that report has no pool and no
+        # counter lines, and its end line must say so. The checker's own line count is what catches a wrong count.
+        evidence = ROOT / "docs/evidence/rt1060-management-image-feasibility/network-buffers-c6/native/run-no-rt.txt"
+        parsed = checker.Capture(evidence.read_text())
+        self.assertEqual([len(r["pool"]) for r in parsed.reports], [4, 4, 0, 4])
+        self.assertEqual([len(r["net"]) for r in parsed.reports], [1, 1, 0, 1])
+        self.assertEqual([m for m in parsed.failures if "missed" not in m], [])
+        self.assertEqual([r["net"][0]["tcp_rexmit"] for r in parsed.reports if r["net"]], [0, 1, 3])
 
 
 class Certificate(unittest.TestCase):

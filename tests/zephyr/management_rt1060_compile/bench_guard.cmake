@@ -34,8 +34,9 @@ macro(crux_bench_read_declaration)
     string(JSON BENCH_HTTPS_PORT GET "${_bench_json}" listeners https_port)
     string(JSON BENCH_SSH_PORT GET "${_bench_json}" listeners ssh_port)
     # Row C6: the load that the network buffers and the heap are sized for.
-    foreach(_bench_field IN ITEMS frame_bytes mss_bytes window_segments ring_spare_frames backlog_connections
-            typical_segment_bytes segment_header_bytes sender_threads_beyond_slots copies_per_sender margin_percent)
+    foreach(_bench_field IN ITEMS frame_bytes mss_bytes window_segments ring_spare_frames
+            typical_segment_bytes segment_header_bytes sender_threads_beyond_slots packets_per_sender
+            header_buffers_per_sender margin_percent)
         string(TOUPPER "${_bench_field}" _bench_upper)
         string(JSON BENCH_NB_${_bench_upper} GET "${_bench_json}" network_buffers ${_bench_field})
     endforeach()
@@ -68,7 +69,7 @@ macro(crux_bench_read_declaration)
 endmacro()
 
 # Row C6: what the declared load needs of the network buffers and the heap, in BENCH_NEED_* of the caller. The load is
-# the session sizes of D9 (SSH connections, HTTPS clients) and the declared window, with a margin, from the arithmetic
+# the session sizes of D9 (SSH connections, HTTPS clients), the web listener's backlog and the declared window, with a margin, from the arithmetic
 # of docs/rt1060-bench-network-buffers.md. check_bench_guard.py writes the same rule again in Python and compares.
 function(crux_bench_buffer_needs)
     set(data ${CONFIG_NET_BUF_DATA_SIZE})
@@ -78,7 +79,7 @@ function(crux_bench_buffer_needs)
     math(EXPR window "${BENCH_NB_WINDOW_SEGMENTS} * ${BENCH_NB_MSS_BYTES}")
     math(EXPR frame_bufs "(${BENCH_NB_FRAME_BYTES} + ${data} - 1) / ${data}")
     math(EXPR served "${ssh} + ${http}")
-    math(EXPR connections "${served} + ${BENCH_NB_BACKLOG_CONNECTIONS}")
+    math(EXPR connections "${served} + ${CONFIG_CRUX_WEB_BACKLOG}")
     math(EXPR typical_segments "(${window} + ${BENCH_NB_TYPICAL_SEGMENT_BYTES} - 1) / ${BENCH_NB_TYPICAL_SEGMENT_BYTES}")
     math(EXPR typical_bufs "(${BENCH_NB_TYPICAL_SEGMENT_BYTES} + ${BENCH_NB_SEGMENT_HEADER_BYTES} + ${data} - 1) / ${data}")
     math(EXPR full_bufs "${BENCH_NB_WINDOW_SEGMENTS} * ${frame_bufs}")
@@ -95,9 +96,9 @@ function(crux_bench_buffer_needs)
     math(EXPR window_data_bufs "(${window} + ${data} - 1) / ${data}")
     set(margin ${BENCH_NB_MARGIN_PERCENT})
     math(EXPR rx_bufs "(${margin} * (${connections} * ${held_bufs} + ${ring} * ${frame_bufs}) + 99) / 100")
-    math(EXPR tx_bufs "(${margin} * (${served} * ${window_data_bufs} + ${senders} * ${BENCH_NB_COPIES_PER_SENDER} * ${frame_bufs}) + 99) / 100")
+    math(EXPR tx_bufs "(${margin} * (${served} * ${window_data_bufs} + ${senders} * (${frame_bufs} + ${BENCH_NB_HEADER_BUFFERS_PER_SENDER})) + 99) / 100")
     math(EXPR rx_pkts "(${margin} * (${connections} * ${held_pkts} + ${ring}) + 99) / 100")
-    math(EXPR tx_pkts "(${margin} * ${senders} * ${BENCH_NB_COPIES_PER_SENDER} + 99) / 100")
+    math(EXPR tx_pkts "(${margin} * ${senders} * ${BENCH_NB_PACKETS_PER_SENDER} + 99) / 100")
     math(EXPR ring_min "${BENCH_NB_WINDOW_SEGMENTS} + ${BENCH_NB_RING_SPARE_FRAMES}")
     # The heap: the paper peak of the declared sessions, and an arena in which it stays under the declared share.
     math(EXPR ssh_each "2 * ${CONFIG_CRUX_SSH_WINDOW_BYTES} + ${BENCH_HEAP_SSH_WINDOW_EXTRA_BYTES}")
@@ -253,7 +254,7 @@ function(crux_bench_guard)
     # need, a window that is not the declared one, and a session size raised without the pools are refused.
     foreach(setting IN ITEMS NET_BUF_DATA_SIZE NET_BUF_RX_COUNT NET_BUF_TX_COUNT NET_PKT_RX_COUNT NET_PKT_TX_COUNT
             NET_TCP_MAX_RECV_WINDOW_SIZE NET_TCP_MAX_SEND_WINDOW_SIZE ETH_NXP_ENET_RX_BUFFERS
-            CRUX_SSH_MAX_CONNECTIONS HTTP_SERVER_MAX_CLIENTS CRUX_SSH_WINDOW_BYTES
+            CRUX_SSH_MAX_CONNECTIONS HTTP_SERVER_MAX_CLIENTS CRUX_WEB_BACKLOG CRUX_SSH_WINDOW_BYTES
             COMMON_LIBC_MALLOC_ARENA_SIZE)
         if(NOT "${CONFIG_${setting}}" MATCHES "^[0-9]+$")
             message(FATAL_ERROR "CONFIG_${setting} is not set to a number: the buffer and heap rule of row C6 "

@@ -181,6 +181,9 @@ class Capture:
                 if current["pool"] and {row["name"] for row in current["pool"]} != set(POOL_SYMBOLS):
                     missing = sorted(set(POOL_SYMBOLS) - {row["name"] for row in current["pool"]})
                     self.fail(f"report seq={current['seq']}: pools {missing} have no BENCH-POOL row")
+                if bool(current["pool"]) != bool(current["net"]):
+                    self.fail(f"report seq={current['seq']}: the BENCH-POOL rows and the BENCH-NET line come together, "
+                              "and one of them is missing")
                 if len(current["net"]) > 1:
                     self.fail(f"report seq={current['seq']}: {len(current['net'])} BENCH-NET lines, at most 1")
                 if len(current["heap"]) != 1:
@@ -205,6 +208,10 @@ def judge_pools(reports, options, expected_pools, failures, warnings):
             failures.append("no BENCH-POOL line: the build declares network pools (row C6) and the run did not report "
                             "them" if expected_pools else "no BENCH-POOL line (--require-pools)")
         return None, None
+    # Once the image reports pools, every report holds them: a snapshot that failed leaves a hole in the record.
+    for report in reports:
+        if not report["pool"]:
+            failures.append(f"report seq={report['seq']}: no BENCH-POOL rows, though other reports have them")
     pools = {}
     for _, row in rows:
         entry = pools.setdefault(row["name"], {"size": row["size"], "peak_max": row["peak"], "sizes": {row["size"]}})
