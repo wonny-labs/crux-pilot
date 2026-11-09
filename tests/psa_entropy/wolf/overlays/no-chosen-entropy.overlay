@@ -1,0 +1,18 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* CONTROL. No chosen entropy device, and none that could be: native_sim's own generator and the test device are
+ * switched off. This is the one condition, with CONFIG_ENTROPY_GENERATOR off, under which wolfCrypt's Zephyr seed
+ * function does not read a driver and calls sys_rand_get() instead. */
+/ {
+	chosen {
+		/delete-property/ zephyr,entropy;
+	};
+
+	crux_test_entropy: crux-test-entropy {
+		compatible = "crux,test-entropy";
+		status = "disabled";
+	};
+};
+
+&rng {
+	status = "disabled";
+};
