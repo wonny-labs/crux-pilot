@@ -94,7 +94,7 @@ class BenchDeclaration(unittest.TestCase):
         # definition could bring RSA back with the knob still off.
         cmake = (BENCH / "CMakeLists.txt").read_text()
         self.assertIn("check_bench_rsa_symbols.py", cmake)
-        self.assertIn("ZEPHYR_FINAL_EXECUTABLE", cmake)
+        self.assertIn("add_dependencies(bench_rsa_symbols zephyr_final)", cmake)
         self.assertTrue((BENCH / "check_bench_rsa_symbols.py").is_file())
 
     def test_http_server_stack_starts_at_8192_and_the_declaration_does_not_pin_it(self):
