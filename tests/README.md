@@ -224,7 +224,7 @@ not been exercised.
 
 ## Product template
 
-`tests/build/test_product_template.py` checks `samples/product_template`: its C file and CMake
+`tests/build/test_product_template.py` checks `templates/product`: its C file and CMake
 use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also

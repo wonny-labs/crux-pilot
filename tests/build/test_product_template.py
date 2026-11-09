@@ -17,7 +17,7 @@ except ImportError:
     yaml = None
 
 REPO = Path(__file__).resolve().parents[2]
-TEMPLATE = REPO / "samples/product_template"
+TEMPLATE = REPO / "templates/product"
 MANIFEST = TEMPLATE / "west.yml"
 GUIDE = REPO / "docs/product-composition.md"
 RELEASE = TEMPLATE / "RELEASE.md"
@@ -132,13 +132,37 @@ class TemplateFilesTest(unittest.TestCase):
         self.assertRegex((TEMPLATE / ".gitignore").read_text(), r"(?m)^/?build/$")
 
 
+class TemplateLocationTest(unittest.TestCase):
+    """The template moved from samples/product_template to templates/product on 9 November 2026."""
+
+    def test_the_template_files_are_under_templates_product(self):
+        for name in (".gitignore", "README.md", "RELEASE.md", "west.yml",
+                     "app/CMakeLists.txt", "app/prj.conf", "app/src/main.c"):
+            with self.subTest(name=name):
+                self.assertTrue((REPO / "templates/product" / name).is_file())
+
+    def test_the_old_location_is_gone_and_leaves_no_stub(self):
+        self.assertFalse((REPO / "samples/product_template").exists())
+
+    def test_the_readme_records_the_move(self):
+        head = "\n".join((TEMPLATE / "README.md").read_text().splitlines()[:8])
+        self.assertIn("samples/product_template", head)
+        self.assertIn("9 November 2026", head)
+        self.assertNotIn("samples/product_template", RELEASE.read_text())
+
+    def test_the_copy_command_names_the_new_location(self):
+        text = (TEMPLATE / "README.md").read_text()
+        self.assertIn("cp -R crux-pilot/templates/product acme-workspace/product-x", text)
+        self.assertNotIn("cp -R crux-pilot/samples/", text)
+
+
 class TemplateScriptTest(unittest.TestCase):
     def test_the_script_builds_the_template_application_and_runs_these_tests(self):
         script = (REPO / "scripts/test-product-template.sh")
         self.assertTrue(os.access(script, os.X_OK))
         text = script.read_text()
         self.assertIn("west build -p always", text)
-        self.assertIn("samples/product_template/app", text)
+        self.assertIn("templates/product/app", text)
         self.assertIn("test_product_template.py", text)
         self.assertNotRegex(text, r"\bwest (flash|debug|attach)\b")
 
