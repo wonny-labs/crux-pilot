@@ -109,6 +109,11 @@ The order is the TLS patch first. The two patches touch different files; step 2 
 
 **What whoever builds the bench image next must do.** The board image is built later from a pinned commit by the main session. Make a **new** copy with the two commands above (do not use a copy that only has the TLS patch: configuration refuses it), build from the pinned commit, and keep the manifest. A freeze that pins stock Zephyr records a tree that was not compiled ([blocker B2](rt1060-bench-image-plan.md)): it now has two patches to account for, and the plan's options for the copy apply to both.
 
+### How this relates to the freeze design
+
+[`rt1060-bench-freeze-and-capture-design.md`](rt1060-bench-freeze-and-capture-design.md) (merged as #373) proposes, for the later freeze of the copy, a declaration with an **ordered list** of patches and one marker that carries every patch's hash. Its finding F12 could not read the shape of this patch. Here it is: one file (`subsys/net/ip/tcp.c`), changed by this patch only and not by the TLS patch (the copy's `tcp.c` is the pinned file after the first patch, [evidence](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/copy/tls-copy-hashes.txt)), applied second.
+This row does **not** migrate to that shape: it keeps the existing D8 keys and the marker `.crux-wolf-tls` exactly as they are, and adds a sibling block `patched_zephyr.isn_fail_closed` with its own marker `.crux-isn-fail-closed`, because extending the first marker would change a check that must stay as it is. Two markers are what the freeze design's single marker replaces; the migration is a rewrite of the declaration block and of two guard checks, and is the freeze row's to do ([decision 10](#decisions-for-review)).
+
 ## The guards
 
 The existing guards keep every check. New checks, each with a case that fails without it and a mutant that is killed:
@@ -206,5 +211,6 @@ The call-site scan ([`call-sites.txt`](evidence/rt1060-management-image-feasibil
 | 7 | The script refuses a Git checkout and changes the tree **in place** | A copy that other sessions use as a read-only input is never changed: the next copy is made new |
 | 8 | The decision keeps the plan's label **D-c** and the declaration says `"row": "C11"`; the marker is `.crux-isn-fail-closed` | Names follow `.crux-wolf-tls` and the existing `D8` block |
 | 9 | The native test classifies numbers by recomputing the hash. The passive path hashes with a port the stack chooses at random, so the test tries all 65,536 ports | The port is not observable from outside; the cost is a fraction of a second |
+| 10 | **Two markers now, not the single extended marker of the freeze design (#373)** | The existing guard compares `.crux-wolf-tls` to one exact text and the task keeps the D8 entries and checks as they are. The freeze row can fold the two blocks into its ordered list |
 
 Approvals needed: the owner's review of the PR and the independent review. A merge needs the owner's explicit authorisation (`AGENTS.md`).
