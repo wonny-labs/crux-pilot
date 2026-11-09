@@ -52,10 +52,11 @@ config CRUX_BENCH_FILE_MICROSD
 	  tools. Even then a mount that fails is reported and the card is never formatted by this image.
 
 config CRUX_BENCH_FIRST_ACCOUNT_FILE
-	bool "First account from an untracked file (D3). Reserved for row C4: nothing implements it yet"
+	bool "First account from a password in a file outside the repository (D3)"
 	help
-	  The password is read from a file that is not in the repository, hashed into the manifest, and
-	  never printed. Row C4 adds the step and changes this symbol's state in bench_declaration.json to
-	  selected.
+	  The password is read at configuration from the file that CRUX_BENCH_PASSWORD_FILE names, which must be private,
+	  outside every git work tree and at least 16 characters, and is embedded in this image as plaintext in read-only
+	  data, because Access takes a plaintext password and derives its own record. The build records the file's
+	  SHA-256 in the manifest and never the password. A product creates its first account in a serial setup step.
 
 endif # CRUX_MANAGEMENT_BENCH_IMAGE

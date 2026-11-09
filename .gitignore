@@ -19,3 +19,8 @@ __pycache__/
 
 # West state belongs to the parent workspace, but ignore it if misdirected.
 /.west/
+
+# Bench secrets (docs/rt1060-management-image-feasibility.md, row C4). The first-account password file lives outside
+# the repository; these rules only catch a copy made inside it by mistake.
+bench-first-account.password
+*.bench-password

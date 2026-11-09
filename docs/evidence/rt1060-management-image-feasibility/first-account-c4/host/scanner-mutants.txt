@@ -1,0 +1,14 @@
+killed   drop the hex needles
+killed   drop the reversed needle
+killed   drop two of three base64 alignments
+killed   an image file may hold anything
+killed   the image count is not checked
+killed   the mode is not checked
+killed   the work tree is not checked
+killed   the public test password is accepted
+killed   no minimum length
+killed   links are followed
+killed   the path of the file is not looked for
+killed   the manifest hash is not compared
+killed   no UTF-16 needle
+restored copy passes
