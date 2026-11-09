@@ -1,0 +1,29 @@
+killed         checker: pool peak limit ignored
+killed         checker: pool limit compared with >= (off by one)
+killed         checker: pool peak not kept over reports
+killed         checker: pool size not compared with the build
+killed         checker: a pool that changes size is accepted
+killed         checker: a report with a pool missing is accepted
+killed         checker: a pool row over its size is accepted
+killed         checker: a second row for one pool is accepted
+killed         checker: --strict does not fail a non-zero counter
+killed         checker: a non-zero counter always fails
+killed         checker: first report read for the counters
+killed         checker: missing pool lines accepted
+killed         checker: pool lines not counted in the end line
+killed         checker: two BENCH-NET lines accepted
+killed         checker: declared size skipped
+killed         formatter: a peak over the size is accepted
+killed         formatter: a use over the size is accepted
+killed         formatter: a bad name is accepted
+killed         formatter: upper case names accepted
+killed         formatter: an underscore is not part of a name
+killed         formatter: no length limit on a pool name
+killed         formatter: a hyphen is part of a name
+killed         formatter: peak printed as used
+killed         formatter: used printed as peak
+killed         formatter: size printed as used
+killed         formatter: retransmissions printed as drops
+killed         formatter: connection drops printed as segment drops
+killed         formatter: IP drops printed as TCP drops
+28 of 28 killed

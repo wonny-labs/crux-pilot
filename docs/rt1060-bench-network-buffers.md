@@ -11,7 +11,7 @@ Status: **row C6 of stage 2** of [the RT1060-EVKB feasibility report](rt1060-man
 | Is "a short pool slows TCP and does not break it" true? | **For receive, yes. For transmit, no.** A shortage of transmit data buffers makes `send()` fail with `ENOBUFS` after 100 ms, and **both the TLS socket layer and the SSH provider turn that error into a failed connection**: [what each shortage does](#what-each-shortage-does). The earlier statement was an assumption and is corrected in the feasibility report. |
 | Was a driver count found that is not counted? | **Yes.** The ENET driver drops a received frame when it cannot allocate a packet, **and counts nothing**: it has no statistics callback, so Zephyr's call to count the error does nothing. A short receive pool is therefore visible only in the pools' high-water marks and in the retransmissions that the host sees. |
 | Sockets and contexts? | **Unchanged** (`NET_MAX_CONTEXTS` 32, `NET_MAX_CONN` 32, `ZVFS_OPEN_MAX` 48, TLS contexts 6). The only evidence is `native_sim` (about 9 of 48 sockets), which says there is room, not that more is needed. The report now prints `tcp_conndrop`, which is the number that would show a shortage. |
-| What does it cost? | **Flash @FLASH_DELTA@, RAM @RAM_DELTA@** from two real cross-builds of the bench image: [cost](#cost). The RAM is SDRAM, 32 MB of which @RAM_AFTER_PERCENT@ is used. |
+| What does it cost? | **Flash +888 B (597,584 B, 7.12 % of 8 MB), RAM +806,272 B (2,172,076 B)** from two real cross-builds of the bench image: [cost](#cost). The RAM is SDRAM, 32 MB of which 6.47 percent is used. |
 | Is the guard stronger? | **Yes, and a hole in the old one was found and closed.** A new refusal checks the pools, the windows, the driver ring and the arena against the declared load, with 96 mutants killed. The mutation check of the CMake guard had been vacuous since row C3 (its copy lacked a file, so every mutant failed for that reason): [the guard](#the-guard). |
 | What can a board run read? | The report now prints the high-water mark of all four pools and the TCP counters, and the judge fails a pool over 80 percent of its size. The list of what a run must read for the plan of row C8 is [below](#what-a-board-run-must-read). |
 
@@ -142,7 +142,7 @@ The declared rule is that the paper peak stays under **half** the arena (`paper_
 | `NET_BUF_RX_COUNT … is under the …` and the three like it | A pool under the need of the declared sessions, or a session size raised without the pools |
 | `MALLOC_ARENA_SIZE … is under the …` | The arena under the need |
 
-`check_bench_guard.py` writes the rule again in Python, apart from the CMake, and runs 46 new cases and 5 controls: every setting missing and malformed, each pool and the arena **one under its need (refused) and exactly at it (accepted)**, 8 SSH connections and 8 HTTPS clients with the pools as they are, a 128 KiB SSH window with the arena as it is, buffers of 64 B and 256 B with counts at their own need, other session sizes at their own need, and a declaration with another margin so that the needs have fractions. The real `target.conf` is the control, so the guard also shows that the image's own configuration meets it. Red first: [before the guard](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/red1-guard-script-no-guard.txt), and [with the guard and the old `target.conf`](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/red2-guard-refuses-target-conf-before.txt).
+`check_bench_guard.py` writes the rule again in Python, apart from the CMake, and runs 45 new cases and 6 controls: every setting missing and malformed, each pool and the arena **one under its need (refused) and exactly at it (accepted)**, 8 SSH connections and 8 HTTPS clients with the pools as they are, a 128 KiB SSH window with the arena as it is, buffers of 64 B and 256 B with counts at their own need, other session sizes at their own need, and a declaration with another margin so that the needs have fractions. The real `target.conf` is the control, so the guard also shows that the image's own configuration meets it. Red first: [before the guard](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/red1-guard-script-no-guard.txt), and [with the guard and the old `target.conf`](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/red2-guard-refuses-target-conf-before.txt).
 
 | Mutation check | Result |
 | --- | --- |
@@ -158,11 +158,33 @@ The report of row C2 prints, after `BENCH-HEAP`, the high-water mark of each poo
 | `BENCH-POOL seq=N pool=rx_pkt\|tx_pkt\|rx_buf\|tx_buf size=S used=U peak=P` | The count the pool was built with, in use now, and the most ever in use. 4 lines per report. |
 | `BENCH-NET seq=N ip_drop=.. tcp_drop=.. tcp_seg_drop=.. tcp_rexmit=.. tcp_conndrop=..` | Counters of the one interface since boot: IPv4 drops, TCP drops, dropped segments, **our** retransmissions, and connection attempts dropped for want of a connection slot. No receive-drop counter exists in this driver. |
 
-`BENCH-REPORT … end` counts these lines too. `check_bench_uart.py` now fails a pool whose peak is over **80 percent of its size** (`--pool-peak-limit-percent`), a pool whose size differs from the build's manifest (the manifest records the four counts), a report with a pool missing or repeated, a manifest that declares pools and a capture with none (`--require-pools` asks for them without a manifest), and warns on a non-zero counter, which `--strict` fails. Counters are cumulative, so the last report is read. 15 mutants of the checker and 11 of the formatter: [result](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/report-mutants.txt).
+`BENCH-REPORT … end` counts these lines too. `check_bench_uart.py` now fails a pool whose peak is over **80 percent of its size** (`--pool-peak-limit-percent`), a pool whose size differs from the build's manifest (the manifest records the four counts), a report with a pool missing or repeated, a manifest that declares pools and a capture with none (`--require-pools` asks for them without a manifest), and warns on a non-zero counter, which `--strict` fails. Counters are cumulative, so the last report is read. 15 mutants of the checker and 13 of the formatter, **28 of 28 killed**: [result](evidence/rt1060-management-image-feasibility/network-buffers-c6/host/report-mutants.txt).
 
 ## Cost
 
-@COST_SECTION@
+Two cross-builds for `mimxrt1060_evk@B//qspi` of the same recipe, in the Dev Container, with the guards inside the configure: `origin/main` at `4794f4dd` (rows C1 to C5 merged) and this change at `ccac6aa7`. The sources and settings of the second build are those of the commit (the manifest's 97 repository file hashes equal the commit's); the one uncommitted file was this document. Three warnings in both, all in wolfSSH `wolfsftp.c`, as before. The configure printed `Bench network buffers meet the declared load: rx buffers 1024 (need 915), tx buffers 768 (613), rx packets 192 (173), tx packets 32 (18), window 5840, arena 1048576 (694208)`.
+
+| | Before (`4794f4dd`) | After (`ccac6aa7`) | Delta |
+| --- | ---: | ---: | ---: |
+| **FLASH** | 596,696 B (7.11 % of 8 MB) | **597,584 B** (7.12 %) | **+888 B** |
+| **RAM** (all in SDRAM, 32 MB) | 1,365,804 B (4.07 %) | **2,172,076 B** (6.47 %) | **+806,272 B** |
+| `size`: text, data, bss | 592,324, 4,356, 1,361,414 | 593,184, 4,380, 2,167,650 | +860, +24, +806,236 |
+| ITCM, DTCM, OCRAM, OCRAM2 | 0 | 0 | |
+| Steps, warnings | 555, 3 | 555, 3 | |
+
+The Flash is the pool and counter lines (formatter, glue and strings). No component changed.
+
+| Where the RAM goes | Before | After | Delta |
+| --- | ---: | ---: | ---: |
+| Heap arena (`malloc_arena`) | 524,288 B | 1,048,576 B | +524,288 B |
+| RX data buffers: data, then the 28 B headers | 4,096 + 896 B | 131,072 + 28,672 B | +154,752 B |
+| TX data buffers: data, then headers | 4,096 + 896 B | 98,304 + 21,504 B | +114,816 B |
+| RX packets (64 B each) | 1,024 B | 12,288 B | +11,264 B |
+| TX packets | 1,024 B | 2,048 B | +1,024 B |
+| The rest: the report's snapshot buffer and the slabs' high-water fields | | | +128 B |
+| **Total** | | | **+806,272 B** |
+
+The symbol sizes are in the build's [`net-symbols`](evidence/rt1060-management-image-feasibility/network-buffers-c6/build/after.net-symbols.txt), the pools alone are 281,856 B more, and the arena is 65 percent of the growth. The report thread's stack is still 2,048 B: the snapshot buffer is static, under the report's lock.
 
 ## What a board run must read
 
