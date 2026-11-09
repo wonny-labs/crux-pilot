@@ -29,7 +29,7 @@ cat $K/prepare-isn-refuses-checkout.txt
 set +e
 M="/ws/crux-pilot;/ws/modules/crypto/wolfssl;/ws/modules/crypto/wolfssh;/ws/modules/crypto/wolfpsa;/ws/modules/crypto/mbedtls;/ws/modules/crypto/tf-psa-crypto;/ws/modules/fs/fatfs;/ws/modules/hal/cmsis;/ws/modules/hal/cmsis_6;/ws/modules/hal/nxp"
 rm -rf /build/out/control
-ZEPHYR_BASE=/build/zephyr-wolf CRUX_BENCH_PASSWORD_FILE=/secret/c11.pw cmake -S /ws/crux-pilot/tests/zephyr/management_rt1060_compile -B /build/out/control -G Ninja -DBOARD='mimxrt1060_evk@B//qspi' "-DZEPHYR_MODULES=$M" -DPython3_EXECUTABLE=$(command -v python3) > $K/control-tls-only-configure.log 2>&1
+ZEPHYR_BASE=/build/zephyr-wolf CRUX_BENCH_PASSWORD_FILE=<password file> cmake -S /ws/crux-pilot/tests/zephyr/management_rt1060_compile -B /build/out/control -G Ninja -DBOARD='mimxrt1060_evk@B//qspi' "-DZEPHYR_MODULES=$M" -DPython3_EXECUTABLE=$(command -v python3) > $K/control-tls-only-configure.log 2>&1
 echo "configure exit $?" >> $K/control-tls-only-configure.log
 grep -n "fail-closed TCP initial sequence\|CMake Error\|configure exit" $K/control-tls-only-configure.log | head
 rm -rf /build/out/control

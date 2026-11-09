@@ -1,12 +1,12 @@
 # usage: build.sh NAME COPY SRC : one cross-build of the bench image of SRC (a clean detached checkout) for
-# mimxrt1060_evk@B//qspi, on the Zephyr copy at /build/COPY (read-only use), with CRUX_BENCH_PASSWORD_FILE=/secret/c11.pw
+# mimxrt1060_evk@B//qspi, on the Zephyr copy at /build/COPY (read-only use), with CRUX_BENCH_PASSWORD_FILE=<password file>
 # (a throwaway file). Keeps the size report, the manifest, the configuration, the call-site scan of the ELF and the
 # scan for the password, and deletes the build tree. No board is touched.
 set -e
 export PATH=/opt/crux-cache/venv/bin:$PATH
 git config --global --add safe.directory '*'
 export PYTHONDONTWRITEBYTECODE=1
-export CRUX_BENCH_PASSWORD_FILE=/secret/c11.pw
+export CRUX_BENCH_PASSWORD_FILE=<password file>
 name=$1
 export ZEPHYR_BASE=/build/$2
 SRC=$3
@@ -49,7 +49,7 @@ done
 cat $K/call-sites.txt
 # C4's scan: no plaintext of the password, or an encoding of it, outside the image files
 set +e
-python3 /ws/crux-pilot/tests/zephyr/management_rt1060_compile/bench_first_account_file.py scan --password-file /secret/c11.pw \
+python3 /ws/crux-pilot/tests/zephyr/management_rt1060_compile/bench_first_account_file.py scan --password-file <password file> \
   --build $B --repo $SRC --also $K --allow-in-image --expect-in-image $E --manifest $B/bench-manifest.json > $K/scan-bench.txt 2>&1; echo "exit $?" >> $K/scan-bench.txt
 cat $K/scan-bench.txt
 rm -rf $B $OD

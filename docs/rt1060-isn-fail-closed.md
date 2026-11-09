@@ -161,14 +161,14 @@ The green run shows the key check and the hash fix together: refusal when the re
 ### 3. The target cross-build, the guards and the call sites in the ELF (Dev Container, compile and link only)
 
 Two builds of the bench image for `mimxrt1060_evk@B//qspi` from clean detached checkouts, with a throwaway first-account password file made by C4's generator outside every repository (deleted afterwards), the C1 recipe (`-j2`, the Dev Container under emulation) and the same module pins.
-**Before** is `origin/main` `52e894e8` on a copy with the TLS patch only. **After** is this branch (`e479e2de`, the code of `d4fcaa83`) on a copy with both patches.
+**Before** is `origin/main` `52e894e8` on a copy with the TLS patch only. **After** is this branch at `8314cc75` (the code of the head; only documents and the evidence were added since) on a copy with both patches.
 
 | | Before | After |
 | --- | --- | --- |
 | The guards in the configure | passed | passed, including the new ones; the manifest records `patched_zephyr.isn_fail_closed` and `CONFIG_NET_TCP_ISN_RFC6528=y` |
 | Flash (`text` + `data`) | 562,212 B (557,864 + 4,348) | **562,296 B** (557,948 + 4,348): **+84 B** |
 | RAM (`data` + `bss`, all SDRAM) | 2,171,998 B (4,348 + 2,167,650) | 2,171,998 B: **unchanged** |
-| `zephyr.bin` SHA-256 | `be4ff311…` | `f7b03a1c…` (the same in two runs of each) |
+| `zephyr.bin` SHA-256 | `e9af5b81…` | `5aa5fa23…` (one run of each; the hashes differ from run to run of this evidence only through the throwaway password embedded in the image) |
 | Warnings | 4 (wolfSSH `wolfsftp.c`, wolfPSA `psa_key_storage.c`) | the same 4, none in `tcp.c` |
 | C4's scan for the throwaway password | clean | clean |
 | Negative control: the real configure of the after tree on the copy with the TLS patch only | | **refused**: `.crux-isn-fail-closed is missing` ([log](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/copy/control-tls-only-configure.log)) |

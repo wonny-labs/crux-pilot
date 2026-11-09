@@ -43,8 +43,8 @@ CMake Warning at /build/zephyr-bench/CMakeLists.txt:688 (message):
 -- Found gen_kobject_list: /build/zephyr-bench/scripts/build/gen_kobject_list.py
 -- Bench network buffers meet the declared load: rx buffers 1024 (need 915), tx buffers 768 (517), rx packets 192 (173), tx packets 32 (18), window 5840, arena 1048576 (694208)
 -- Found Python3: /opt/crux-cache/venv/bin/python3 (found version "3.12.3") found components: Interpreter 
--- Bench first account: password file checked, sha256 2a265a5a1ee5bbc8c73f2ca85261e605bbbd2514f2fa659bfa32687105df6df9
+-- Bench first account: password file checked, sha256 aa3a5d96fd4c76f26ed534ec6fe593d38c79265784c181f6a45c477dde55f733
 -- Bench manifest: /build/out/after/bench-manifest.json (18 sources)
--- Configuring done (18.4s)
--- Generating done (0.6s)
+-- Configuring done (18.1s)
+-- Generating done (0.5s)
 -- Build files have been written to: /build/out/after

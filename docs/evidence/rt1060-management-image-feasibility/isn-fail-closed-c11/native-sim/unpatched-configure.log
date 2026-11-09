@@ -36,6 +36,6 @@ CMake Warning at /ws/zephyr/CMakeLists.txt:1081 (message):
   Excluding target from build.
 
 
--- Configuring done (58.9s)
+-- Configuring done (55.0s)
 -- Generating done (0.2s)
 -- Build files have been written to: /build/out/isn/unpatched
