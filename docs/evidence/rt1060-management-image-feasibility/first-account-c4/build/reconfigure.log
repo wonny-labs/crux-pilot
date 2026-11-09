@@ -1,0 +1,37 @@
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: /ws/crux-pilot/tests/zephyr/management_rt1060_compile
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.2 (/build/zephyr-wolf)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found BOARD.dts: /build/zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
+-- Found devicetree overlay: /build/zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_B.overlay
+-- Found devicetree overlay: /ws/crux-pilot/samples/controller/zephyr/m3-network.overlay
+-- Found devicetree overlay: /ws/crux-pilot/tests/zephyr/management_rt1060_compile/target.overlay
+-- Generated zephyr.dts: /build/c4_bench/zephyr/zephyr.dts
+-- Generated pickled edt: /build/c4_bench/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /build/c4_bench/zephyr/include/generated/zephyr/devicetree_generated.h
+/build/c4_bench/zephyr/zephyr.dts:4239.36-4248.5: Warning (unique_unit_address_if_enabled): /soc/usbd@402e0000: duplicate unit-address (also used in node /soc/usbh@402e0000)
+Parsing /ws/crux-pilot/tests/zephyr/management_rt1060_compile/Kconfig
+Loaded configuration '/build/c4_bench/zephyr/.config'
+No change to configuration in '/build/c4_bench/zephyr/.config'
+No change to Kconfig header in '/build/c4_bench/zephyr/include/generated/zephyr/autoconf.h'
+CMake Warning at /build/zephyr-wolf/CMakeLists.txt:688 (message):
+  ZEPHYR_BASE=/build/zephyr-wolf doesn't appear to be a git repository,
+  please specify '-DBUILD_VERSION=<version>'
+
+
+-- Crux Zephyr integration module discovered
+-- Looking for device MIMXRT1062 in /ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/
+-- Found device folder: /ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062
+-- Found gen_kobject_list: /build/zephyr-wolf/scripts/build/gen_kobject_list.py
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found version "3.12.3") found components: Interpreter 
+-- Bench first account: password file checked, sha256 1a008400d068ed85e49f30913c5fcb54041aff1df23269a810163d7097758736
+-- Bench manifest: /build/c4_bench/bench-manifest.json (17 sources)
+-- Configuring done (137.2s)
+-- Generating done (1.4s)
+-- Build files have been written to: /build/c4_bench

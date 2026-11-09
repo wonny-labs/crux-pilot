@@ -1,0 +1,117 @@
+ninja: Entering directory `/build/wolf-entropy/guard'
+[1/250] Preparing syscall dependency handling
+
+[2/250] Generating include/generated/zephyr/version.h
+-- Zephyr version: 4.4.2 (/ws/zephyr), build: v4.4.2
+[3/250] Generating misc/generated/syscalls_subdirs.trigger
+[4/250] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[5/250] Generating include/generated/zephyr/driver-validation.h
+[6/250] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_exports_llext.c, syscall_weakdefs_llext.c, include/generated/zephyr/syscall_list.h
+[7/250] Generating include/generated/device-api-sections.ld, include/generated/device-api-sections.cmake
+[8/250] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[9/250] Building C object zephyr/lib/heap/CMakeFiles/heap_constants.dir/heap_constants.c.obj
+[10/250] Generating ../../include/generated/zephyr/heap_constants.h
+[11/250] Building C object zephyr/CMakeFiles/offsets.dir/arch/posix/core/offsets/offsets.c.obj
+[12/250] Generating include/generated/zephyr/offsets.h
+[13/250] Building C object CMakeFiles/app.dir/src/test_entropy.c.obj
+[14/250] Building C object CMakeFiles/app.dir/src/main.c.obj
+[15/250] Building C object CMakeFiles/app.dir/ws/crux-pilot/tests/psa_ports/device_id_double.c.obj
+[16/250] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/ports/psa/access_psa.c.obj
+[17/250] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/ports/psa/credential_psa.c.obj
+[18/250] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/tls_certificate/ports/psa/tls_certificate_psa.c.obj
+[19/250] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/ports/psa/web_session_psa.c.obj
+[20/250] Building C object zephyr/CMakeFiles/zephyr.dir/lib/libc/validate_libc.c.obj
+[21/250] Building C object CMakeFiles/app.dir/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c.obj
+FAILED: CMakeFiles/app.dir/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c.obj 
+ccache /usr/bin/gcc -DCRUX_WOLF_ENTROPY_VARIANT_NAME=\"guard\" -DKERNEL -DK_HEAP_MEM_POOL_SIZE=0 -DWOLFSSL_AESGCM_STREAM -DWOLFSSL_AES_COUNTER -DWOLFSSL_ED25519_STREAMING_VERIFY -DWOLFSSL_HAVE_MAX -DWOLFSSL_HAVE_MIN -DWOLFSSL_KEY_GEN -DWOLFSSL_USER_SETTINGS -DWOLFSSL_WOLFSSH -DWOLFSSL_ZEPHYR -D__ZEPHYR__=1 -I/ws/crux-pilot/tests/psa_ports -I/ws/crux-pilot/tests/zephyr/entropy_boot -I/ws/crux-pilot/components/base/include -I/ws/crux-pilot/components/access/include -I/ws/crux-pilot/components/access/adapter -I/ws/crux-pilot/components/access/src -I/ws/crux-pilot/components/credential/include -I/ws/crux-pilot/components/credential/adapter -I/ws/crux-pilot/components/credential/src -I/ws/crux-pilot/components/credential/ports/psa -I/ws/crux-pilot/components/file/include -I/ws/crux-pilot/components/tls_certificate/include -I/ws/crux-pilot/components/tls_certificate/adapter -I/ws/crux-pilot/components/tls_certificate/src -I/ws/crux-pilot/components/web/session -I/ws/crux-pilot/components/web/adapter -I/ws/crux-pilot/components/web/src -I/ws/modules/crypto/wolfpsa -I/ws/modules/crypto/wolfpsa/wolfpsa -I/build/wolf-entropy/guard/zephyr/include/generated/zephyr -I/ws/zephyr/include -I/build/wolf-entropy/guard/zephyr/include/generated -I/ws/zephyr/soc/native/inf_clock -I/ws/zephyr/boards/native/native_sim -I/ws/zephyr/scripts/native_simulator/common/src/include -I/ws/zephyr/scripts/native_simulator/native/src/include -I/ws/zephyr/subsys/testsuite/include -I/ws/zephyr/subsys/testsuite/coverage -I/ws/zephyr/subsys/testsuite/ztest/include -I/ws/modules/crypto/wolfssl -I/ws/modules/crypto/wolfssl/wolfssl -I/ws/modules/crypto/wolfssl/zephyr -I/build/wolf-entropy/guard/modules/wolfpsa/wolfpsa_gen -Wall -Wextra -Werror -fno-strict-aliasing -Os -imacros /build/wolf-entropy/guard/zephyr/include/generated/zephyr/autoconf.h -fno-common -g -gdwarf-4 -fdiagnostics-color=always -Wformat -Wformat-security -Wno-format-zero-length -Wdouble-promotion -Wno-pointer-sign -Wpointer-arith -Wexpansion-to-defined -Wno-unused-but-set-variable -Werror=implicit-int -fno-pic -fno-pie -fno-asynchronous-unwind-tables -fno-reorder-functions --param=min-pagesize=0 -fno-defer-pop -fmacro-prefix-map=/ws/crux-pilot/tests/psa_entropy/wolf=CMAKE_SOURCE_DIR -fmacro-prefix-map=/ws/zephyr=ZEPHYR_BASE -ffunction-sections -fdata-sections -m64 -fPIC -fvisibility=hidden -fno-freestanding -std=c17 -MD -MT CMakeFiles/app.dir/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c.obj -MF CMakeFiles/app.dir/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c.obj.d -o CMakeFiles/app.dir/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c.obj -c /ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:24:2: error: #error "wolfCrypt would seed from sys_rand_get(): this build needs an entropy driver and a chosen zephyr,entropy node"
+   24 | #error                                                                                             \
+      |  ^~~~~
+In file included from /ws/zephyr/include/zephyr/toolchain.h:52,
+                 from /ws/zephyr/include/zephyr/sys/__assert.h:11,
+                 from /ws/zephyr/include/zephyr/irq_multilevel.h:15,
+                 from /ws/zephyr/include/zephyr/devicetree.h:21,
+                 from /ws/zephyr/include/zephyr/device.h:12,
+                 from /ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:10:
+/ws/zephyr/include/zephyr/toolchain/gcc.h:87:36: error: static assertion failed: "wolfCrypt would seed from sys_rand_get(): a test random generator is selected"
+   87 | #define BUILD_ASSERT(EXPR, MSG...) _Static_assert((EXPR), "" MSG)
+      |                                    ^~~~~~~~~~~~~~
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:27:1: note: in expansion of macro ‘BUILD_ASSERT’
+   27 | BUILD_ASSERT(!IS_ENABLED(CONFIG_TEST_RANDOM_GENERATOR),
+      | ^~~~~~~~~~~~
+In file included from /ws/zephyr/include/zephyr/toolchain/gcc.h:98:
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c: In function ‘crux_entropy_boot_check’:
+/ws/zephyr/include/zephyr/device.h:96:41: error: ‘__device_dts_ord_DT_CHOSEN_zephyr_entropy_ORD’ undeclared (first use in this function)
+   96 | #define DEVICE_NAME_GET(dev_id) _CONCAT(__device_, dev_id)
+      |                                         ^~~~~~~~~
+/ws/zephyr/include/zephyr/toolchain/common.h:169:26: note: in definition of macro ‘_DO_CONCAT’
+  169 | #define _DO_CONCAT(x, y) x ## y
+      |                          ^
+/ws/zephyr/include/zephyr/device.h:96:33: note: in expansion of macro ‘_CONCAT’
+   96 | #define DEVICE_NAME_GET(dev_id) _CONCAT(__device_, dev_id)
+      |                                 ^~~~~~~
+/ws/zephyr/include/zephyr/device.h:300:37: note: in expansion of macro ‘DEVICE_NAME_GET’
+  300 | #define DEVICE_DT_NAME_GET(node_id) DEVICE_NAME_GET(Z_DEVICE_DT_DEV_ID(node_id))
+      |                                     ^~~~~~~~~~~~~~~
+/ws/zephyr/include/zephyr/device.h:317:34: note: in expansion of macro ‘DEVICE_DT_NAME_GET’
+  317 | #define DEVICE_DT_GET(node_id) (&DEVICE_DT_NAME_GET(node_id))
+      |                                  ^~~~~~~~~~~~~~~~~~
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:36:35: note: in expansion of macro ‘DEVICE_DT_GET’
+   36 |     const struct device *device = DEVICE_DT_GET(SOURCE);
+      |                                   ^~~~~~~~~~~~~
+/ws/zephyr/include/zephyr/device.h:96:41: note: each undeclared identifier is reported only once for each function it appears in
+   96 | #define DEVICE_NAME_GET(dev_id) _CONCAT(__device_, dev_id)
+      |                                         ^~~~~~~~~
+/ws/zephyr/include/zephyr/toolchain/common.h:169:26: note: in definition of macro ‘_DO_CONCAT’
+  169 | #define _DO_CONCAT(x, y) x ## y
+      |                          ^
+/ws/zephyr/include/zephyr/device.h:96:33: note: in expansion of macro ‘_CONCAT’
+   96 | #define DEVICE_NAME_GET(dev_id) _CONCAT(__device_, dev_id)
+      |                                 ^~~~~~~
+/ws/zephyr/include/zephyr/device.h:300:37: note: in expansion of macro ‘DEVICE_NAME_GET’
+  300 | #define DEVICE_DT_NAME_GET(node_id) DEVICE_NAME_GET(Z_DEVICE_DT_DEV_ID(node_id))
+      |                                     ^~~~~~~~~~~~~~~
+/ws/zephyr/include/zephyr/device.h:317:34: note: in expansion of macro ‘DEVICE_DT_NAME_GET’
+  317 | #define DEVICE_DT_GET(node_id) (&DEVICE_DT_NAME_GET(node_id))
+      |                                  ^~~~~~~~~~~~~~~~~~
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:36:35: note: in expansion of macro ‘DEVICE_DT_GET’
+   36 |     const struct device *device = DEVICE_DT_GET(SOURCE);
+      |                                   ^~~~~~~~~~~~~
+/ws/zephyr/include/zephyr/devicetree.h:3099:32: error: ‘DT_CHOSEN_zephyr_entropy_FULL_NAME’ undeclared (first use in this function)
+ 3099 | #define DT_CHOSEN(prop) DT_CAT(DT_CHOSEN_, prop)
+      |                                ^~~~~~~~~~
+/ws/zephyr/include/zephyr/devicetree.h:5831:24: note: in definition of macro ‘DT_CAT’
+ 5831 | #define DT_CAT(a1, a2) a1 ## a2
+      |                        ^~
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:51:49: note: in expansion of macro ‘DT_NODE_FULL_NAME’
+   51 |                           ok ? "ok" : "failed", DT_NODE_FULL_NAME(SOURCE),
+      |                                                 ^~~~~~~~~~~~~~~~~
+/ws/zephyr/include/zephyr/devicetree.h:3099:25: note: in expansion of macro ‘DT_CAT’
+ 3099 | #define DT_CHOSEN(prop) DT_CAT(DT_CHOSEN_, prop)
+      |                         ^~~~~~
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:30:16: note: in expansion of macro ‘DT_CHOSEN’
+   30 | #define SOURCE DT_CHOSEN(zephyr_entropy)
+      |                ^~~~~~~~~
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:51:67: note: in expansion of macro ‘SOURCE’
+   51 |                           ok ? "ok" : "failed", DT_NODE_FULL_NAME(SOURCE),
+      |                                                                   ^~~~~~
+/ws/zephyr/include/zephyr/devicetree.h:3099:32: error: ‘DT_CHOSEN_zephyr_entropy_P_compatible_IDX_0’ undeclared (first use in this function); did you mean ‘DT_N_S_crux_test_entropy_P_compatible_IDX_0’?
+ 3099 | #define DT_CHOSEN(prop) DT_CAT(DT_CHOSEN_, prop)
+      |                                ^~~~~~~~~~
+/ws/zephyr/include/zephyr/devicetree.h:5837:37: note: in definition of macro ‘DT_CAT5’
+ 5837 | #define DT_CAT5(a1, a2, a3, a4, a5) a1 ## a2 ## a3 ## a4 ## a5
+      |                                     ^~
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:52:27: note: in expansion of macro ‘DT_PROP_BY_IDX’
+   52 |                           DT_PROP_BY_IDX(SOURCE, compatible, 0), (unsigned)CRUX_ENTROPY_BOOT_BYTES,
+      |                           ^~~~~~~~~~~~~~
+/ws/zephyr/include/zephyr/devicetree.h:3099:25: note: in expansion of macro ‘DT_CAT’
+ 3099 | #define DT_CHOSEN(prop) DT_CAT(DT_CHOSEN_, prop)
+      |                         ^~~~~~
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:30:16: note: in expansion of macro ‘DT_CHOSEN’
+   30 | #define SOURCE DT_CHOSEN(zephyr_entropy)
+      |                ^~~~~~~~~
+/ws/crux-pilot/tests/zephyr/entropy_boot/entropy_boot.c:52:42: note: in expansion of macro ‘SOURCE’
+   52 |                           DT_PROP_BY_IDX(SOURCE, compatible, 0), (unsigned)CRUX_ENTROPY_BOOT_BYTES,
+      |                                          ^~~~~~
+[22/250] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap.c.obj
+ninja: build stopped: subcommand failed.

@@ -107,5 +107,5 @@ No Crux tag exists, and this change does not create one. `v0.1.0` is decided but
 ## Follow-ups
 
 - **CI.** The host CI job installs no PyYAML, so the manifest cases of `tests/build/test_compat_table.py` skip there, and the job that installs west runs only named suites. Running them needs a workflow change, which is outside this change: install PyYAML on the host job, or add this test to a job that has west. Until then the cases run only where PyYAML is installed.
-- **Release notes template.** The release documentation template in `samples/product_template` is a separate item of #301. It can call this generator.
+- **Release notes template.** The release documentation template in `templates/product` is a separate item of #301. It can call this generator.
 - **A fuller table.** A column for the compiler or SDK version, the CMake or Python tool pins and the Docker image is outside the owner's decision and is not in the generator.

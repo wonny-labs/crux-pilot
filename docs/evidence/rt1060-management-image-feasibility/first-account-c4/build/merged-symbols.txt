@@ -1,0 +1,8 @@
+00000001 A CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE
+6000ea30 000001e4 T crux_access_provision_first_account
+60018670 00000044 T crux_bench_first_account
+6007f848 00000019 R crux_bench_first_account_password
+6007f861 r crux_bench_first_account_password_end
+6007f864 00000004 R crux_bench_first_account_password_size
+60019738 00000050 T crux_bench_first_account_provision
+60018404 000000a0 T crux_entropy_boot_check

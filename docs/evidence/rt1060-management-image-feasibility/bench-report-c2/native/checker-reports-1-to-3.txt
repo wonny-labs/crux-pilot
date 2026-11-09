@@ -1,0 +1,13 @@
+3 reports (boot 1, quiet 1, idle 1)
+thread                      size  used max  unused min  unused %
+bench_report                2048        40        2008     98.0%
+http_server_tid             8192        40        8152     99.5%
+idle                         256        40         216     84.4%
+logging                     2048        40        2008     98.0%
+main                        4096        40        4056     99.0%
+ssh_worker                 16384     10384        6000     36.6%
+thread@417040               1024        40         984     96.1%
+heap: peak 0 B of 65536 B (0.0 percent, limit 80), in use at most 0 B
+certificate: None
+PASS
+rc=0

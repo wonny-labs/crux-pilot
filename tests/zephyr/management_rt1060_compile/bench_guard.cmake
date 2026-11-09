@@ -33,6 +33,24 @@ macro(crux_bench_read_declaration)
     string(JSON BENCH_PEER GET "${_bench_json}" network peer)
     string(JSON BENCH_HTTPS_PORT GET "${_bench_json}" listeners https_port)
     string(JSON BENCH_SSH_PORT GET "${_bench_json}" listeners ssh_port)
+    # Row C6: the load that the network buffers and the heap are sized for.
+    foreach(_bench_field IN ITEMS frame_bytes mss_bytes window_segments ring_spare_frames
+            typical_segment_bytes segment_header_bytes sender_threads_beyond_slots packets_per_sender
+            header_buffers_per_sender margin_percent)
+        string(TOUPPER "${_bench_field}" _bench_upper)
+        string(JSON BENCH_NB_${_bench_upper} GET "${_bench_json}" network_buffers ${_bench_field})
+    endforeach()
+    foreach(_bench_field IN ITEMS ssh_connection_floor_bytes ssh_window_extra_bytes tls_record_bytes
+            tls_record_overhead_bytes tls_connection_object_bytes tls_handshake_bytes other_users_bytes
+            paper_peak_limit_percent)
+        string(TOUPPER "${_bench_field}" _bench_upper)
+        string(JSON BENCH_HEAP_${_bench_upper} GET "${_bench_json}" heap ${_bench_field})
+    endforeach()
+    string(JSON BENCH_RSA_SYMBOL GET "${_bench_json}" profile wolfssl_rsa symbol)
+    string(JSON BENCH_RSA_DECISION GET "${_bench_json}" profile wolfssl_rsa decision)
+    string(JSON BENCH_FIRST_ACCOUNT_USER GET "${_bench_json}" first_account user)
+    string(JSON BENCH_FIRST_ACCOUNT_ROLE GET "${_bench_json}" first_account role)
+    string(JSON BENCH_FIRST_ACCOUNT_ENV GET "${_bench_json}" first_account password_file_env)
     string(JSON BENCH_ZEPHYR_PIN GET "${_bench_json}" patched_zephyr zephyr_pin)
     string(JSON BENCH_PATCH_NAME GET "${_bench_json}" patched_zephyr patch_name)
     string(JSON BENCH_PATCH_SHA256 GET "${_bench_json}" patched_zephyr patch_sha256)
@@ -51,6 +69,56 @@ macro(crux_bench_read_declaration)
         list(APPEND BENCH_FORMS "${_bench_name}|${_bench_symbol}|${_bench_state}|${_bench_decision}")
     endforeach()
 endmacro()
+
+# Row C6: what the declared load needs of the network buffers and the heap, in BENCH_NEED_* of the caller. The load is
+# the session sizes of D9 (SSH connections, HTTPS clients), the web listener's backlog and the declared window, with a margin, from the arithmetic
+# of docs/rt1060-bench-network-buffers.md. check_bench_guard.py writes the same rule again in Python and compares.
+function(crux_bench_buffer_needs)
+    set(data ${CONFIG_NET_BUF_DATA_SIZE})
+    set(ring ${CONFIG_ETH_NXP_ENET_RX_BUFFERS})
+    set(ssh ${CONFIG_CRUX_SSH_MAX_CONNECTIONS})
+    set(http ${CONFIG_HTTP_SERVER_MAX_CLIENTS})
+    math(EXPR window "${BENCH_NB_WINDOW_SEGMENTS} * ${BENCH_NB_MSS_BYTES}")
+    math(EXPR frame_bufs "(${BENCH_NB_FRAME_BYTES} + ${data} - 1) / ${data}")
+    math(EXPR served "${ssh} + ${http}")
+    math(EXPR connections "${served} + ${CONFIG_CRUX_WEB_BACKLOG}")
+    math(EXPR typical_segments "(${window} + ${BENCH_NB_TYPICAL_SEGMENT_BYTES} - 1) / ${BENCH_NB_TYPICAL_SEGMENT_BYTES}")
+    math(EXPR typical_bufs "(${BENCH_NB_TYPICAL_SEGMENT_BYTES} + ${BENCH_NB_SEGMENT_HEADER_BYTES} + ${data} - 1) / ${data}")
+    math(EXPR full_bufs "${BENCH_NB_WINDOW_SEGMENTS} * ${frame_bufs}")
+    math(EXPR typical_window_bufs "${typical_segments} * ${typical_bufs}")
+    set(held_bufs ${full_bufs})
+    if(typical_window_bufs GREATER held_bufs)
+        set(held_bufs ${typical_window_bufs})
+    endif()
+    set(held_pkts ${BENCH_NB_WINDOW_SEGMENTS})
+    if(typical_segments GREATER held_pkts)
+        set(held_pkts ${typical_segments})
+    endif()
+    math(EXPR senders "${ssh} + 1 + ${BENCH_NB_SENDER_THREADS_BEYOND_SLOTS}")
+    math(EXPR window_data_bufs "(${window} + ${data} - 1) / ${data}")
+    set(margin ${BENCH_NB_MARGIN_PERCENT})
+    math(EXPR rx_bufs "(${margin} * (${connections} * ${held_bufs} + ${ring} * ${frame_bufs}) + 99) / 100")
+    math(EXPR tx_bufs "(${margin} * (${served} * ${window_data_bufs} + ${senders} * (${frame_bufs} + ${BENCH_NB_HEADER_BUFFERS_PER_SENDER})) + 99) / 100")
+    math(EXPR rx_pkts "(${margin} * (${connections} * ${held_pkts} + ${ring}) + 99) / 100")
+    math(EXPR tx_pkts "(${margin} * ${senders} * ${BENCH_NB_PACKETS_PER_SENDER} + 99) / 100")
+    math(EXPR ring_min "${BENCH_NB_WINDOW_SEGMENTS} + ${BENCH_NB_RING_SPARE_FRAMES}")
+    # The heap: the paper peak of the declared sessions, and an arena in which it stays under the declared share.
+    math(EXPR ssh_each "2 * ${CONFIG_CRUX_SSH_WINDOW_BYTES} + ${BENCH_HEAP_SSH_WINDOW_EXTRA_BYTES}")
+    if(BENCH_HEAP_SSH_CONNECTION_FLOOR_BYTES GREATER ssh_each)
+        set(ssh_each ${BENCH_HEAP_SSH_CONNECTION_FLOOR_BYTES})
+    endif()
+    math(EXPR tls_each "2 * (${BENCH_HEAP_TLS_RECORD_BYTES} + ${BENCH_HEAP_TLS_RECORD_OVERHEAD_BYTES}) + ${BENCH_HEAP_TLS_CONNECTION_OBJECT_BYTES}")
+    math(EXPR paper_peak "${ssh} * ${ssh_each} + ${http} * ${tls_each} + ${BENCH_HEAP_TLS_HANDSHAKE_BYTES} + ${BENCH_HEAP_OTHER_USERS_BYTES}")
+    math(EXPR arena "(${paper_peak} * 100 + ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT} - 1) / ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT}")
+    set(BENCH_NEED_WINDOW ${window} PARENT_SCOPE)
+    set(BENCH_NEED_RING ${ring_min} PARENT_SCOPE)
+    set(BENCH_NEED_RX_BUFS ${rx_bufs} PARENT_SCOPE)
+    set(BENCH_NEED_TX_BUFS ${tx_bufs} PARENT_SCOPE)
+    set(BENCH_NEED_RX_PKTS ${rx_pkts} PARENT_SCOPE)
+    set(BENCH_NEED_TX_PKTS ${tx_pkts} PARENT_SCOPE)
+    set(BENCH_NEED_PAPER_PEAK ${paper_peak} PARENT_SCOPE)
+    set(BENCH_NEED_ARENA ${arena} PARENT_SCOPE)
+endfunction()
 
 function(crux_bench_guard)
     crux_bench_read_declaration()
@@ -88,6 +156,17 @@ function(crux_bench_guard)
     endif()
     if(NOT CONFIG_CRUX_LOGGING)
         message(FATAL_ERROR "The security events write to Crux Logging: CONFIG_CRUX_LOGGING is required")
+    endif()
+    # 5b. wolfCrypt without RSA (D11, row C9): the declared profile uses none, and one module option drops it from
+    # wolfCrypt, wolfSSL, the single-precision math and wolfPSA. A wolfSSL settings file would take the options out of
+    # the build (they all depend on there being none) and hide whether RSA is built.
+    if(CONFIG_${BENCH_RSA_SYMBOL})
+        message(FATAL_ERROR "The bench image has no RSA (${BENCH_RSA_DECISION}): CONFIG_${BENCH_RSA_SYMBOL} is "
+                            "refused, so that wolfCrypt is built with NO_RSA")
+    endif()
+    if(CONFIG_WOLFSSL_HAS_SETTINGS_FILE)
+        message(FATAL_ERROR "The bench image takes wolfSSL's settings from the module's Kconfig options only: "
+                            "a settings file would hide whether RSA is built")
     endif()
     # 6. Network: the static bench address, and listeners on that address only (D10).
     if(CONFIG_NET_DHCPV4 OR CONFIG_NET_IPV6 OR CONFIG_NET_CONFIG_SETTINGS)
@@ -139,6 +218,36 @@ function(crux_bench_guard)
             message(FATAL_ERROR "${variable} is a bench test form that bench_declaration.json does not list")
         endif()
     endforeach()
+    # 8b. The file backend (D2, row C3): exactly one, and the provider, the disk drivers and the form agree. The
+    # RAM disk image has no card driver at all, so no card is there to mount or format. The state of each form was
+    # checked above, so a microSD build is possible only after the declaration says so.
+    if(CONFIG_CRUX_BENCH_FILE_RAM_DISK AND CONFIG_CRUX_BENCH_FILE_MICROSD)
+        message(FATAL_ERROR "The bench image has exactly one file backend: the RAM disk and the microSD card "
+                            "forms are both set")
+    endif()
+    if(NOT CONFIG_CRUX_BENCH_FILE_RAM_DISK AND NOT CONFIG_CRUX_BENCH_FILE_MICROSD)
+        message(FATAL_ERROR "The bench image needs a file backend: exactly one of the RAM disk and the microSD "
+                            "card forms")
+    endif()
+    if(CONFIG_CRUX_BENCH_FILE_RAM_DISK)
+        if(NOT CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR NOT CONFIG_DISK_DRIVER_RAM)
+            message(FATAL_ERROR "The RAM disk form needs the RAM disk File provider and the RAM disk driver: "
+                                "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK and CONFIG_DISK_DRIVER_RAM")
+        endif()
+        if(CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_DISK_DRIVER_SDMMC OR CONFIG_IMX_USDHC OR
+           CONFIG_DISK_DRIVER_FLASH)
+            message(FATAL_ERROR "The RAM disk image has no card: the microSD provider, the SD card driver, the "
+                                "USDHC host and the flash disk driver are refused")
+        endif()
+    else()
+        if(NOT CONFIG_CRUX_FILE_FATFS_RT1060 OR NOT CONFIG_DISK_DRIVER_SDMMC)
+            message(FATAL_ERROR "The microSD form needs the microSD File provider and the SD card driver: "
+                                "CONFIG_CRUX_FILE_FATFS_RT1060 and CONFIG_DISK_DRIVER_SDMMC")
+        endif()
+        if(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR CONFIG_DISK_DRIVER_RAM)
+            message(FATAL_ERROR "The microSD image has no RAM disk: the RAM disk provider and driver are refused")
+        endif()
+    endif()
     # 9. The build-local Zephyr copy with the wolfSSL TLS socket patch (D8).
     set(marker "${ZEPHYR_BASE}/${BENCH_PATCH_MARKER}")
     set(patched "${ZEPHYR_BASE}/${BENCH_PATCHED_FILE}")
@@ -154,6 +263,61 @@ function(crux_bench_guard)
         message(FATAL_ERROR "ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket "
                             "patch that the declaration names (${BENCH_PATCH_NAME} on ${BENCH_ZEPHYR_PIN})")
     endif()
+    # 10. The network buffers, the TCP windows and the arena (row C6): sized for the declared load. A pool below its
+    # need, a window that is not the declared one, and a session size raised without the pools are refused.
+    foreach(setting IN ITEMS NET_BUF_DATA_SIZE NET_BUF_RX_COUNT NET_BUF_TX_COUNT NET_PKT_RX_COUNT NET_PKT_TX_COUNT
+            NET_TCP_MAX_RECV_WINDOW_SIZE NET_TCP_MAX_SEND_WINDOW_SIZE ETH_NXP_ENET_RX_BUFFERS
+            CRUX_SSH_MAX_CONNECTIONS HTTP_SERVER_MAX_CLIENTS CRUX_WEB_BACKLOG CRUX_SSH_WINDOW_BYTES
+            COMMON_LIBC_MALLOC_ARENA_SIZE)
+        if(NOT "${CONFIG_${setting}}" MATCHES "^[0-9]+$")
+            message(FATAL_ERROR "CONFIG_${setting} is not set to a number: the buffer and heap rule of row C6 "
+                                "reads it")
+        endif()
+    endforeach()
+    crux_bench_buffer_needs()
+    if(NOT "${CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE}" STREQUAL "${BENCH_NEED_WINDOW}")
+        message(FATAL_ERROR "The TCP receive window must be the declared ${BENCH_NEED_WINDOW} B "
+                            "(${BENCH_NB_WINDOW_SEGMENTS} segments of ${BENCH_NB_MSS_BYTES} B), and not the value Zephyr "
+                            "derives from the buffer counts: CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE is "
+                            "${CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE}")
+    endif()
+    if(NOT "${CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE}" STREQUAL "${BENCH_NEED_WINDOW}")
+        message(FATAL_ERROR "The TCP send window must be the declared ${BENCH_NEED_WINDOW} B "
+                            "(${BENCH_NB_WINDOW_SEGMENTS} segments of ${BENCH_NB_MSS_BYTES} B), and not the value Zephyr "
+                            "derives from the buffer counts: CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE is "
+                            "${CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE}")
+    endif()
+    if(CONFIG_ETH_NXP_ENET_RX_BUFFERS LESS BENCH_NEED_RING)
+        message(FATAL_ERROR "The Ethernet driver's receive ring of ${CONFIG_ETH_NXP_ENET_RX_BUFFERS} frames must "
+                            "hold the declared window (${BENCH_NB_WINDOW_SEGMENTS} segments) and "
+                            "${BENCH_NB_RING_SPARE_FRAMES} spare frames: at least ${BENCH_NEED_RING}")
+    endif()
+    if(CONFIG_NET_BUF_RX_COUNT LESS BENCH_NEED_RX_BUFS)
+        message(FATAL_ERROR "CONFIG_NET_BUF_RX_COUNT ${CONFIG_NET_BUF_RX_COUNT} is under the ${BENCH_NEED_RX_BUFS} "
+                            "receive data buffers that the declared load needs")
+    endif()
+    if(CONFIG_NET_BUF_TX_COUNT LESS BENCH_NEED_TX_BUFS)
+        message(FATAL_ERROR "CONFIG_NET_BUF_TX_COUNT ${CONFIG_NET_BUF_TX_COUNT} is under the ${BENCH_NEED_TX_BUFS} "
+                            "transmit data buffers that the declared load needs")
+    endif()
+    if(CONFIG_NET_PKT_RX_COUNT LESS BENCH_NEED_RX_PKTS)
+        message(FATAL_ERROR "CONFIG_NET_PKT_RX_COUNT ${CONFIG_NET_PKT_RX_COUNT} is under the ${BENCH_NEED_RX_PKTS} "
+                            "receive packets that the declared load needs")
+    endif()
+    if(CONFIG_NET_PKT_TX_COUNT LESS BENCH_NEED_TX_PKTS)
+        message(FATAL_ERROR "CONFIG_NET_PKT_TX_COUNT ${CONFIG_NET_PKT_TX_COUNT} is under the ${BENCH_NEED_TX_PKTS} "
+                            "transmit packets that the declared load needs")
+    endif()
+    if(CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE LESS BENCH_NEED_ARENA)
+        message(FATAL_ERROR "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE ${CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE} is under "
+                            "the ${BENCH_NEED_ARENA} B in which the declared sessions' paper peak of "
+                            "${BENCH_NEED_PAPER_PEAK} B stays under ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT} percent")
+    endif()
+    message(STATUS "Bench network buffers meet the declared load: rx buffers ${CONFIG_NET_BUF_RX_COUNT} (need "
+                   "${BENCH_NEED_RX_BUFS}), tx buffers ${CONFIG_NET_BUF_TX_COUNT} (${BENCH_NEED_TX_BUFS}), rx packets "
+                   "${CONFIG_NET_PKT_RX_COUNT} (${BENCH_NEED_RX_PKTS}), tx packets ${CONFIG_NET_PKT_TX_COUNT} "
+                   "(${BENCH_NEED_TX_PKTS}), window ${BENCH_NEED_WINDOW}, arena ${CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE} "
+                   "(${BENCH_NEED_ARENA})")
 endfunction()
 
 # The definitions that carry the declaration into C. src/bench_guard.h refuses a source without them.
@@ -164,7 +328,9 @@ function(crux_bench_definitions target)
         "CRUX_BENCH_IMAGE_ID=\"${BENCH_IMAGE_ID}\""
         "CRUX_BENCH_ADDRESS=\"${BENCH_ADDRESS}\""
         "CRUX_BENCH_NETMASK=\"${BENCH_NETMASK}\""
-        CRUX_BENCH_PREFIX_LENGTH=${BENCH_PREFIX_LENGTH})
+        CRUX_BENCH_PREFIX_LENGTH=${BENCH_PREFIX_LENGTH}
+        "CRUX_BENCH_FIRST_ACCOUNT_USER=\"${BENCH_FIRST_ACCOUNT_USER}\""
+        "CRUX_BENCH_FIRST_ACCOUNT_ROLE=\"${BENCH_FIRST_ACCOUNT_ROLE}\"")
 endfunction()
 
 # Writes ${CMAKE_BINARY_DIR}/bench-manifest.json. Call it last, after every source is added. It records what
@@ -202,11 +368,39 @@ function(crux_bench_manifest)
     endforeach()
     string(JSON manifest SET "${manifest}" test_forms "${forms}")
 
+    # The wolfSSL profile (D11, row C9): RSA is trimmed. CONFIG_${BENCH_RSA_SYMBOL} is off, which CMake cannot show as a
+    # variable, so the manifest says what the guard accepted.
+    set(profile "{}")
+    string(JSON profile SET "${profile}" decision "\"${BENCH_RSA_DECISION}\"")
+    string(JSON profile SET "${profile}" rsa "\"trimmed: CONFIG_${BENCH_RSA_SYMBOL} is off, so wolfCrypt is built with NO_RSA\"")
+    string(JSON manifest SET "${manifest}" wolfssl_profile "${profile}")
+
+    # The first account (D3, row C4): where its password comes from, and the hash of that file. Never the password.
+    # The plaintext is in the image, as the report says, and so the manifest says it too.
+    if(CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE)
+        get_property(first_account_hash GLOBAL PROPERTY CRUX_BENCH_FIRST_ACCOUNT_SHA256)
+        if("${first_account_hash}" STREQUAL "")
+            message(FATAL_ERROR "The first account's password file was not checked before the manifest: "
+                                "crux_bench_first_account_prepare() must run first")
+        endif()
+        set(first "{}")
+        string(JSON first SET "${first}" decision "\"D3\"")
+        string(JSON first SET "${first}" user "\"${BENCH_FIRST_ACCOUNT_USER}\"")
+        string(JSON first SET "${first}" role "\"${BENCH_FIRST_ACCOUNT_ROLE}\"")
+        string(JSON first SET "${first}" source
+               "\"a file outside the repository, named by the environment variable ${BENCH_FIRST_ACCOUNT_ENV}\"")
+        string(JSON first SET "${first}" file_sha256 "\"${first_account_hash}\"")
+        string(JSON first SET "${first}" plaintext_in_image true)
+        string(JSON first SET "${first}" plaintext_elsewhere
+               "\"none: not in this manifest, the configuration, a generated source, a log or the map\"")
+        string(JSON manifest SET "${manifest}" first_account "${first}")
+    endif()
+
     set(settings "{}")
     get_cmake_property(all_variables VARIABLES)
     list(SORT all_variables)
     foreach(variable IN LISTS all_variables)
-        if(variable MATCHES "^CONFIG_(CRUX_|HTTP_SERVER_STACK_SIZE|MAIN_STACK_SIZE|COMMON_LIBC_MALLOC_ARENA_SIZE|NET_MAX_|NET_SOCKETS_TLS_MAX_CONTEXTS|ENTROPY_MCUX_TRNG|RTC|BOARD_TARGET)")
+        if(variable MATCHES "^CONFIG_(CRUX_|HTTP_SERVER_STACK_SIZE|HTTP_SERVER_MAX_CLIENTS|MAIN_STACK_SIZE|COMMON_LIBC_MALLOC_ARENA_SIZE|NET_MAX_|NET_PKT_|NET_BUF_|NET_TCP_MAX_|ETH_NXP_ENET_RX_BUFFERS|NET_SOCKETS_TLS_MAX_CONTEXTS|ENTROPY_MCUX_TRNG|RTC|BOARD_TARGET)")
             set(value "${${variable}}")
             string(REPLACE "\\" "\\\\" value "${value}")
             string(REPLACE "\"" "\\\"" value "${value}")
@@ -214,6 +408,35 @@ function(crux_bench_manifest)
         endif()
     endforeach()
     string(JSON manifest SET "${manifest}" settings "${settings}")
+
+    # The file backend (row C3, D2): what persists and what does not, which the owner reads before a run.
+    set(backend "{}")
+    if(CONFIG_CRUX_BENCH_FILE_RAM_DISK)
+        set(ram_overlay "${CRUX_BENCH_DIR}/ram_disk.overlay")
+        file(READ "${ram_overlay}" ram_overlay_text)
+        string(REGEX MATCH "sector-size = <([0-9]+)>" _unused "${ram_overlay_text}")
+        set(ram_sector_size "${CMAKE_MATCH_1}")
+        string(REGEX MATCH "sector-count = <([0-9]+)>" _unused "${ram_overlay_text}")
+        set(ram_sector_count "${CMAKE_MATCH_1}")
+        math(EXPR ram_bytes "${ram_sector_size} * ${ram_sector_count}")
+        string(JSON backend SET "${backend}" kind "\"ram_disk\"")
+        string(JSON backend SET "${backend}" disk_name "\"RAM\"")
+        string(JSON backend SET "${backend}" size_bytes "${ram_bytes}")
+        string(JSON backend SET "${backend}" sector_size "${ram_sector_size}")
+        string(JSON backend SET "${backend}" sector_count "${ram_sector_count}")
+        string(JSON backend SET "${backend}" memory "\"SDRAM, the .bss of the RAM disk driver\"")
+        string(JSON backend SET "${backend}" persists_across_reset false)
+        string(JSON backend SET "${backend}" formatted_by_the_image "\"the RAM disk only, at every boot\"")
+        string(JSON backend SET "${backend}" card_in_image false)
+        string(JSON backend SET "${backend}" lost_at_reset "[\"accounts\", \"keys\", \"certificate\", \"events\", \"files\"]")
+        string(JSON backend SET "${backend}" note "\"Every boot is a first boot. The host key and the certificate are generated again, so a client sees new fingerprints after a reset. That shows that the entropy source varies, and is not a statement on its quality.\"")
+    elseif(CONFIG_CRUX_BENCH_FILE_MICROSD)
+        string(JSON backend SET "${backend}" kind "\"microsd_card\"")
+        string(JSON backend SET "${backend}" persists_across_reset true)
+        string(JSON backend SET "${backend}" formatted_by_the_image "\"never\"")
+        string(JSON backend SET "${backend}" card_in_image true)
+    endif()
+    string(JSON manifest SET "${manifest}" file_backend "${backend}")
 
     set(zephyr "{}")
     string(JSON zephyr SET "${zephyr}" decision "\"D8\"")
@@ -290,6 +513,7 @@ function(crux_bench_manifest)
     set(configuration_files
         "${CRUX_BENCH_DIR}/bench_declaration.json" "${CRUX_BENCH_DIR}/bench_guard.cmake"
         "${CRUX_BENCH_DIR}/management_target.cmake" "${CRUX_BENCH_DIR}/CMakeLists.txt"
+        "${CRUX_BENCH_DIR}/bench_first_account.cmake" "${CRUX_BENCH_DIR}/bench_first_account_file.py"
         "${CRUX_BENCH_DIR}/Kconfig" "${CRUX_BENCH_DIR}/Kconfig.bench" "${CRUX_BENCH_DIR}/prj.conf"
         "${CRUX_BENCH_DIR}/target.conf" "${CRUX_BENCH_DIR}/target.overlay")
     foreach(file IN LISTS configuration_files EXTRA_CONF_FILE DTC_OVERLAY_FILE)

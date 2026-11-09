@@ -48,6 +48,14 @@ config NET_IPV6
 	bool "stub"
 config RTC
 	bool "stub"
+config DISK_DRIVER_RAM
+	bool "stub"
+config DISK_DRIVER_SDMMC
+	bool "stub"
+config WOLFSSL_RSA
+	bool "stub"
+config WOLFSSL_HAS_SETTINGS_FILE
+	bool "stub"
 source "{kconfig_bench}"
 """
 
@@ -95,7 +103,7 @@ class Tree:
 # ---- CMake level -----------------------------------------------------------------------------------------------
 
 
-def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=None):
+def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=None, states=None, edits=None):
     """A stand-in for the build-local Zephyr copy, and a declaration copy that names its hash."""
     patch = tree.declaration["patched_zephyr"]
     base = Path(directory) / "zephyr"
@@ -105,16 +113,93 @@ def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=N
     pin = pin or patch["zephyr_pin"]
     if marker is not False:
         (base / patch["marker_file"]).write_text(marker or f"{pin} {patch['patch_sha256']}\n")
-    declaration = json.loads(json.dumps(tree.declaration))
+    declaration = declared_with(tree, states)
+    for (section, key), value in (edits or {}).items():
+        declaration[section][key] = value
     declaration["patched_zephyr"]["patched_file_sha256"] = hashlib.sha256(patched_text.encode()).hexdigest()
     declared = Path(directory) / "declaration.json"
     declared.write_text(json.dumps(declaration))
     return base, declared
 
 
-def good_cmake_settings(tree):
-    net = tree.declaration["network"]
-    listeners = tree.declaration["listeners"]
+def declared_with(tree, states=None):
+    """A copy of the declaration, with the state of some test forms changed: {form name: state}."""
+    declaration = json.loads(json.dumps(tree.declaration))
+    for name, state in (states or {}).items():
+        declaration["test_forms"][name]["state"] = state
+    return declaration
+
+
+def backend_settings(declaration):
+    """The File provider and disk drivers that the declared file backend goes with (row C3, D2)."""
+    forms = declaration["test_forms"]
+    if forms["microsd_card"]["state"] == "selected":
+        return {"CONFIG_CRUX_FILE_FATFS_RT1060": "y", "CONFIG_DISK_DRIVER_SDMMC": "y"}
+    return {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": "y", "CONFIG_DISK_DRIVER_RAM": "y"}
+
+
+# The settings that the buffer and heap rule of row C6 reads (bench_guard.cmake, step 10). They come from the real
+# target.conf, so that the control also shows that the image's own configuration meets the rule.
+BUFFER_SETTINGS = ("NET_BUF_DATA_SIZE", "NET_BUF_RX_COUNT", "NET_BUF_TX_COUNT", "NET_PKT_RX_COUNT",
+                   "NET_PKT_TX_COUNT", "NET_TCP_MAX_RECV_WINDOW_SIZE", "NET_TCP_MAX_SEND_WINDOW_SIZE",
+                   "ETH_NXP_ENET_RX_BUFFERS", "CRUX_SSH_MAX_CONNECTIONS", "HTTP_SERVER_MAX_CLIENTS",
+                   "CRUX_WEB_BACKLOG", "CRUX_SSH_WINDOW_BYTES", "COMMON_LIBC_MALLOC_ARENA_SIZE")
+
+
+def target_conf_values():
+    """CONFIG_ settings of target.conf, by name without the prefix. The mutants change the guards and not this file."""
+    values = {}
+    for line in (HERE / "target.conf").read_text().splitlines():
+        match = re.match(r"^CONFIG_([A-Z0-9_]+)=(.*)$", line)
+        if match:
+            values[match.group(1)] = match.group(2).strip('"')
+    return values
+
+
+def ceil_div(numerator, denominator):
+    return -(-numerator // denominator)
+
+
+def buffer_needs(declaration, values):
+    """What the declared load needs, with the rule of row C6 written again here, apart from bench_guard.cmake.
+
+    Network: a connection holds at most one window of received data that its application has not read, each segment
+    in its own packet, and the driver's ring may hold frames beside. Every pool is the load plus a margin."""
+    b = declaration["network_buffers"]
+    h = declaration["heap"]
+    data = int(values["NET_BUF_DATA_SIZE"])
+    ssh = int(values["CRUX_SSH_MAX_CONNECTIONS"])
+    http = int(values["HTTP_SERVER_MAX_CLIENTS"])
+    ring = int(values["ETH_NXP_ENET_RX_BUFFERS"])
+    window = b["window_segments"] * b["mss_bytes"]
+    frame_bufs = ceil_div(b["frame_bytes"], data)
+    served = ssh + http
+    connections = served + int(values["CRUX_WEB_BACKLOG"])
+    typical_segments = ceil_div(window, b["typical_segment_bytes"])
+    typical_bufs = ceil_div(b["typical_segment_bytes"] + b["segment_header_bytes"], data)
+    held_bufs = max(b["window_segments"] * frame_bufs, typical_segments * typical_bufs)
+    held_pkts = max(b["window_segments"], typical_segments)
+    senders = ssh + 1 + b["sender_threads_beyond_slots"]
+    margin = b["margin_percent"]
+    ssh_each = max(h["ssh_connection_floor_bytes"], 2 * int(values["CRUX_SSH_WINDOW_BYTES"]) + h["ssh_window_extra_bytes"])
+    tls_each = 2 * (h["tls_record_bytes"] + h["tls_record_overhead_bytes"]) + h["tls_connection_object_bytes"]
+    paper_peak = ssh * ssh_each + http * tls_each + h["tls_handshake_bytes"] + h["other_users_bytes"]
+    return {
+        "window": window,
+        "ring_min": b["window_segments"] + b["ring_spare_frames"],
+        "rx_bufs": ceil_div(margin * (connections * held_bufs + ring * frame_bufs), 100),
+        "tx_bufs": ceil_div(margin * (served * ceil_div(window, data) + senders * (frame_bufs + b["header_buffers_per_sender"])), 100),
+        "rx_pkts": ceil_div(margin * (connections * held_pkts + ring), 100),
+        "tx_pkts": ceil_div(margin * senders * b["packets_per_sender"], 100),
+        "paper_peak": paper_peak,
+        "arena": ceil_div(paper_peak * 100, h["paper_peak_limit_percent"]),
+    }
+
+
+def good_cmake_settings(tree, declaration=None):
+    declaration = declaration or tree.declaration
+    net = declaration["network"]
+    listeners = declaration["listeners"]
     settings = {
         "CRUX_MANAGEMENT_BENCH_IMAGE": "ON",
         "CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI": "y",
@@ -133,8 +218,13 @@ def good_cmake_settings(tree):
         "CONFIG_CRUX_WEB_PORT": str(listeners["https_port"]),
         "CONFIG_CRUX_SSH_PORT": str(listeners["ssh_port"]),
     }
-    for symbol in tree.selected_forms():
-        settings[f"CONFIG_{symbol}"] = "y"
+    for form in declaration["test_forms"].values():
+        if form["state"] == "selected":
+            settings[f"CONFIG_{form['symbol']}"] = "y"
+    settings.update(backend_settings(declaration))
+    values = target_conf_values()
+    for name in BUFFER_SETTINGS:
+        settings[f"CONFIG_{name}"] = values.get(name, "")
     return settings
 
 
@@ -159,6 +249,10 @@ def cmake_cases(tree):
         ("no wolfPSA", {"CONFIG_WOLFPSA": None}, "needs the Wolf profile"),
         ("the Mbed profile", {"CONFIG_MBEDTLS": "y"}, "needs the Wolf profile"),
         ("the Mbed PSA provider", {"CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS": "y"}, "needs the Wolf profile"),
+        # wolfCrypt without RSA (row C9, D11): the setting that drops it, and the setting that would hide it.
+        ("RSA in wolfCrypt", {"CONFIG_WOLFSSL_RSA": "y"}, "has no RSA"),
+        ("a wolfSSL settings file", {"CONFIG_WOLFSSL_HAS_SETTINGS_FILE": "y"},
+         "takes wolfSSL's settings from the module's Kconfig options only"),
         ("no SSH", {"CONFIG_CRUX_SSH": None}, "HTTPS only, and SSH with CLI and SFTP"),
         ("no command line", {"CONFIG_CRUX_SSH_CLI": None}, "HTTPS only, and SSH with CLI and SFTP"),
         ("no SFTP", {"CONFIG_CRUX_SSH_SFTP": None}, "HTTPS only, and SSH with CLI and SFTP"),
@@ -185,7 +279,36 @@ def cmake_cases(tree):
         ("mkfs on mount", {"CONFIG_FS_FATFS_MOUNT_MKFS": "y"}, "never formats a card"),
         ("an unknown bench test form", {"CONFIG_CRUX_BENCH_INVENTED_FORM": "y"},
          "does not list"),
+        # The file backend (row C3, D2): the provider, the disk drivers and the form agree, and no card is reachable.
+        ("no RAM disk provider", {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": None},
+         "needs the RAM disk File provider and the RAM disk driver"),
+        ("no RAM disk driver", {"CONFIG_DISK_DRIVER_RAM": None},
+         "needs the RAM disk File provider and the RAM disk driver"),
+        ("the SD card driver in the RAM disk image", {"CONFIG_DISK_DRIVER_SDMMC": "y"}, "has no card"),
+        ("the USDHC host in the RAM disk image", {"CONFIG_IMX_USDHC": "y"}, "has no card"),
+        ("the microSD provider in the RAM disk image", {"CONFIG_CRUX_FILE_FATFS_RT1060": "y"}, "has no card"),
+        ("a flash disk in the RAM disk image", {"CONFIG_DISK_DRIVER_FLASH": "y"}, "has no card"),
+        ("both file forms declared selected and set",
+         {"DECLARATION_STATES": {"microsd_card": "selected"}, "CONFIG_CRUX_BENCH_FILE_MICROSD": "y"},
+         "has exactly one file backend"),
+        ("no file form declared selected and none set",
+         {"DECLARATION_STATES": {"ram_disk": "reserved"}, "CONFIG_CRUX_BENCH_FILE_RAM_DISK": None,
+          "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": None, "CONFIG_DISK_DRIVER_RAM": None},
+         "needs a file backend"),
+        ("the microSD form declared selected, with no microSD provider",
+         {"DECLARATION_STATES": {"ram_disk": "reserved", "microsd_card": "selected"},
+          "CONFIG_CRUX_FILE_FATFS_RT1060": None}, "needs the microSD File provider and the SD card driver"),
+        ("the microSD form declared selected, with no SD card driver",
+         {"DECLARATION_STATES": {"ram_disk": "reserved", "microsd_card": "selected"},
+          "CONFIG_DISK_DRIVER_SDMMC": None}, "needs the microSD File provider and the SD card driver"),
+        ("the microSD form declared selected, with the RAM disk provider",
+         {"DECLARATION_STATES": {"ram_disk": "reserved", "microsd_card": "selected"},
+          "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": "y"}, "has no RAM disk"),
+        ("the microSD form declared selected, with the RAM disk driver",
+         {"DECLARATION_STATES": {"ram_disk": "reserved", "microsd_card": "selected"},
+          "CONFIG_DISK_DRIVER_RAM": "y"}, "has no RAM disk"),
     ]
+    cases.extend(buffer_cases(tree))
     for name, form in tree.declaration["test_forms"].items():
         symbol = f"CONFIG_{form['symbol']}"
         if form["state"] == "selected":
@@ -199,6 +322,116 @@ def cmake_cases(tree):
         ("a Zephyr copy with another patch", {"ZEPHYR_BASE_BROKEN": "file"}, "is not the build-local Zephyr copy"),
     ])
     return cases
+
+
+def buffer_cases(tree):
+    """Row C6: the buffers, the windows and the arena must meet the declared load. A pool one below its need is
+    refused and the need itself is accepted, so that a changed formula is seen on both sides of the line."""
+    values = target_conf_values()
+    needs = buffer_needs(tree.declaration, values)
+    cases = []
+    for name in BUFFER_SETTINGS:
+        cases.append((f"{name} not set", {f"CONFIG_{name}": None}, "is not set to a number"))
+        cases.append((f"{name} not a number", {f"CONFIG_{name}": "auto"}, "is not set to a number"))
+    cases += [
+        ("the receive window left to Zephyr (0)", {"CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE": "0"},
+         "receive window must be the declared"),
+        ("a receive window one byte over the declared", {"CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE": str(needs["window"] + 1)},
+         "receive window must be the declared"),
+        ("a receive window one byte under the declared", {"CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE": str(needs["window"] - 1)},
+         "receive window must be the declared"),
+        ("the send window left to Zephyr (0)", {"CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE": "0"},
+         "send window must be the declared"),
+        ("a send window of 8 segments", {"CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE": str(8 * 1460)},
+         "send window must be the declared"),
+        ("a driver ring one frame short of the window and its spare frames",
+         {"CONFIG_ETH_NXP_ENET_RX_BUFFERS": str(needs["ring_min"] - 1)}, "receive ring"),
+    ]
+    # Pools: at the need accepted (the good settings below are the real ones, which are above), one under refused.
+    for label, symbol, need, reason in (
+            ("the receive data buffers", "NET_BUF_RX_COUNT", needs["rx_bufs"], "NET_BUF_RX_COUNT"),
+            ("the transmit data buffers", "NET_BUF_TX_COUNT", needs["tx_bufs"], "NET_BUF_TX_COUNT"),
+            ("the receive packets", "NET_PKT_RX_COUNT", needs["rx_pkts"], "NET_PKT_RX_COUNT"),
+            ("the transmit packets", "NET_PKT_TX_COUNT", needs["tx_pkts"], "NET_PKT_TX_COUNT"),
+            ("the arena", "COMMON_LIBC_MALLOC_ARENA_SIZE", needs["arena"], "COMMON_LIBC_MALLOC_ARENA_SIZE")):
+        cases.append((f"{label} one under the need ({need - 1})", {f"CONFIG_{symbol}": str(need - 1)},
+                      f"CONFIG_{reason} {need - 1} is under the {need}"))
+    edited = copy_declaration_edit(tree, {("network_buffers", "margin_percent"): 130,
+                                          ("heap", "paper_peak_limit_percent"): 60})
+    rounded = buffer_needs(edited, values)
+    for symbol, key in (("NET_BUF_RX_COUNT", "rx_bufs"), ("NET_BUF_TX_COUNT", "tx_bufs"),
+                        ("NET_PKT_RX_COUNT", "rx_pkts"), ("NET_PKT_TX_COUNT", "tx_pkts"),
+                        ("COMMON_LIBC_MALLOC_ARENA_SIZE", "arena")):
+        cases.append((f"a 130 percent margin and a 60 percent paper peak, {symbol} one under its need",
+                      {f"CONFIG_{symbol}": str(rounded[key] - 1), "DECLARATION_EDITS": {
+                          ("network_buffers", "margin_percent"): 130, ("heap", "paper_peak_limit_percent"): 60}},
+                      f"CONFIG_{symbol} {rounded[key] - 1} is under the {rounded[key]}"))
+    cases.append(("a count with letters after its digits", {"CONFIG_NET_BUF_RX_COUNT": "1024k"}, "is not set to a number"))
+    # The load is read from the session sizes of D9: more connections or a bigger SSH window raise every need. The
+    # pools have headroom over the need of the declared sizes, so the raise that trips them is larger than one.
+    cases += [
+        ("eight SSH connections, the pools as they are", {"CONFIG_CRUX_SSH_MAX_CONNECTIONS": "8"},
+         "CONFIG_NET_BUF_RX_COUNT"),
+        ("eight HTTPS clients, the pools as they are", {"CONFIG_HTTP_SERVER_MAX_CLIENTS": "8"},
+         "CONFIG_NET_BUF_RX_COUNT"),
+        ("a web listener backlog of 8, the pools as they are", {"CONFIG_CRUX_WEB_BACKLOG": "8"},
+         "CONFIG_NET_BUF_RX_COUNT"),
+        ("a 128 KiB SSH window, the arena as it is", {"CONFIG_CRUX_SSH_WINDOW_BYTES": "131072"},
+         "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE"),
+        ("a data buffer of 64 B, the counts as they are", {"CONFIG_NET_BUF_DATA_SIZE": "64"}, "is under the"),
+    ]
+    return cases
+
+
+def copy_declaration_edit(tree, edits):
+    declaration = json.loads(json.dumps(tree.declaration))
+    for (section, key), value in edits.items():
+        declaration[section][key] = value
+    return declaration
+
+
+def buffer_controls(tree):
+    """Row C6, the other side of the line: each pool and the arena exactly at its need is accepted, and so is a
+    configuration with 256 B data buffers whose counts are exactly the (smaller) need of that size. A guard that
+    refused the need itself, or that ignored the size of a buffer, fails here."""
+    values = target_conf_values()
+    needs = buffer_needs(tree.declaration, values)
+    controls = [
+        ("every pool and the arena exactly at its need", {
+            "CONFIG_NET_BUF_RX_COUNT": str(needs["rx_bufs"]), "CONFIG_NET_BUF_TX_COUNT": str(needs["tx_bufs"]),
+            "CONFIG_NET_PKT_RX_COUNT": str(needs["rx_pkts"]), "CONFIG_NET_PKT_TX_COUNT": str(needs["tx_pkts"]),
+            "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE": str(needs["arena"]),
+            "CONFIG_ETH_NXP_ENET_RX_BUFFERS": str(needs["ring_min"])}),
+    ]
+    for data in ("256", "64"):
+        sized = dict(values, NET_BUF_DATA_SIZE=data)
+        small = buffer_needs(tree.declaration, sized)
+        controls.append((f"{data} B data buffers with the counts exactly at their need for that size", {
+            "CONFIG_NET_BUF_DATA_SIZE": data, "CONFIG_NET_BUF_RX_COUNT": str(small["rx_bufs"]),
+            "CONFIG_NET_BUF_TX_COUNT": str(small["tx_bufs"]), "CONFIG_NET_PKT_RX_COUNT": str(small["rx_pkts"]),
+            "CONFIG_NET_PKT_TX_COUNT": str(small["tx_pkts"])}))
+    # A declaration with another margin and another paper-peak share, so that the needs have fractions and the rounding
+    # up is seen: the declared 125 and 50 percent give whole numbers at every size above.
+    edited = copy_declaration_edit(tree, {("network_buffers", "margin_percent"): 130,
+                                          ("heap", "paper_peak_limit_percent"): 60})
+    rounded = buffer_needs(edited, values)
+    controls.append(("a declaration of a 130 percent margin and a 60 percent paper peak, exactly at its needs", {
+        "CONFIG_NET_BUF_RX_COUNT": str(rounded["rx_bufs"]), "CONFIG_NET_BUF_TX_COUNT": str(rounded["tx_bufs"]),
+        "CONFIG_NET_PKT_RX_COUNT": str(rounded["rx_pkts"]), "CONFIG_NET_PKT_TX_COUNT": str(rounded["tx_pkts"]),
+        "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE": str(rounded["arena"]),
+        "DECLARATION_EDITS": {("network_buffers", "margin_percent"): 130, ("heap", "paper_peak_limit_percent"): 60}}))
+    # Bigger windows of SSH and bigger sessions: the needs are those of the raised sizes, and exactly them is accepted.
+    for ssh, http, window, backlog in (("6", "5", "32768", "8"), ("2", "1", "8192", "1")):
+        sized = dict(values, CRUX_SSH_MAX_CONNECTIONS=ssh, HTTP_SERVER_MAX_CLIENTS=http, CRUX_SSH_WINDOW_BYTES=window,
+                     CRUX_WEB_BACKLOG=backlog)
+        more = buffer_needs(tree.declaration, sized)
+        controls.append((f"{ssh} SSH connections, {http} HTTPS clients, a web backlog of {backlog} and an SSH window of {window} B, exactly at their need", {
+            "CONFIG_CRUX_SSH_MAX_CONNECTIONS": ssh, "CONFIG_HTTP_SERVER_MAX_CLIENTS": http, "CONFIG_CRUX_WEB_BACKLOG": backlog,
+            "CONFIG_CRUX_SSH_WINDOW_BYTES": window, "CONFIG_NET_BUF_RX_COUNT": str(more["rx_bufs"]),
+            "CONFIG_NET_BUF_TX_COUNT": str(more["tx_bufs"]), "CONFIG_NET_PKT_RX_COUNT": str(more["rx_pkts"]),
+            "CONFIG_NET_PKT_TX_COUNT": str(more["tx_pkts"]),
+            "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE": str(more["arena"])}))
+    return controls
 
 
 def run_cmake(tree, settings, zephyr_base, declaration):
@@ -227,8 +460,37 @@ def check_cmake(tree):
         control = run_cmake(tree, good_cmake_settings(tree), zephyr, declaration)
         if control.returncode != 0 or "bench guard passed" not in control.stderr + control.stdout:
             failures.append(f"bench_guard.cmake refused the declared bench: {squeeze(control.stderr)}")
+        # The microSD state of the declaration, which a later run would take, is accepted by the same guard with
+        # the card's provider and driver, and is what the RAM disk settings above are refused under.
+        card_dir = Path(scratch) / "card"
+        card_dir.mkdir()
+        card_states = {"ram_disk": "reserved", "microsd_card": "selected"}
+        zephyr, declaration = make_zephyr_base(tree, card_dir, states=card_states)
+        card = run_cmake(tree, good_cmake_settings(tree, declared_with(tree, card_states)), zephyr, declaration)
+        if card.returncode != 0 or "bench guard passed" not in card.stderr + card.stdout:
+            failures.append(f"bench_guard.cmake refused the microSD state of the declaration: {squeeze(card.stderr)}")
+        else:
+            TRANSCRIPT.append(("CMake", "control: the microSD state of the declaration, with the card's provider and driver", "accepted"))
+        zephyr, declaration = make_zephyr_base(tree, card_dir, states=card_states)
+        under_card = run_cmake(tree, good_cmake_settings(tree), zephyr, declaration)
+        if under_card.returncode == 0 or "is declared selected" not in squeeze(under_card.stderr):
+            failures.append("bench_guard.cmake accepted the RAM disk settings under the microSD state: "
+                            f"{squeeze(under_card.stderr)}")
+        for index, (name, change) in enumerate(buffer_controls(tree)):
+            control_dir = Path(scratch) / f"buffer-control{index}"
+            control_dir.mkdir()
+            edits = change.get("DECLARATION_EDITS")
+            zephyr, declaration = make_zephyr_base(tree, control_dir, edits=edits)
+            result = run_cmake(tree, dict(good_cmake_settings(tree),
+                                          **{k: v for k, v in change.items() if k != "DECLARATION_EDITS"}),
+                               zephyr, declaration)
+            if result.returncode != 0 or "bench guard passed" not in result.stderr + result.stdout:
+                failures.append(f"bench_guard.cmake refused {name}: {squeeze(result.stderr)}")
+            else:
+                TRANSCRIPT.append(("CMake", f"control: {name}", "accepted"))
         for index, (name, change, reason) in enumerate(cmake_cases(tree)):
-            settings = good_cmake_settings(tree)
+            states = change.get("DECLARATION_STATES")
+            settings = good_cmake_settings(tree, declared_with(tree, states))
             case_dir = Path(scratch) / f"case{index}"
             case_dir.mkdir()
             broken = change.get("ZEPHYR_BASE_BROKEN")
@@ -243,9 +505,10 @@ def check_cmake(tree):
                 zephyr, declaration = make_zephyr_base(tree, case_dir)
                 (zephyr / tree.declaration["patched_zephyr"]["patched_file"]).write_text("another file")
             else:
-                zephyr, declaration = make_zephyr_base(tree, case_dir)
+                zephyr, declaration = make_zephyr_base(tree, case_dir, states=states,
+                                                       edits=change.get("DECLARATION_EDITS"))
             for key, value in change.items():
-                if key == "ZEPHYR_BASE_BROKEN":
+                if key in ("ZEPHYR_BASE_BROKEN", "DECLARATION_STATES", "DECLARATION_EDITS"):
                     continue
                 if value is None:
                     settings.pop(key, None)
@@ -258,6 +521,56 @@ def check_cmake(tree):
             else:
                 said = squeeze(result.stderr).split("CMake Error at", 1)[-1]
                 TRANSCRIPT.append(("CMake", name, said.split(":", 1)[-1].split("(message):", 1)[-1].split(" Call Stack")[0].strip()))
+    failures += check_manifest(tree)
+    return failures
+
+
+def run_manifest(tree, directory, hash_value):
+    """crux_bench_manifest() in script mode, with the first account's hash recorded as prepare would, or not."""
+    root = HERE.parents[2]
+    with tempfile.NamedTemporaryFile("w", suffix=".cmake", delete=False) as script:
+        script.write("cmake_minimum_required(VERSION 3.20.0)\n")
+        script.write(f'set(CRUX_ROOT "{root}")\nset(CMAKE_BINARY_DIR "{directory}")\n')
+        script.write(f'set(CRUX_BENCH_DECLARATION_OVERRIDE "{tree.root / "bench_declaration.json"}")\n')
+        for symbol in tree.selected_forms():
+            script.write(f'set(CONFIG_{symbol} "y")\n')
+        if hash_value is not None:
+            script.write(f'set_property(GLOBAL PROPERTY CRUX_BENCH_FIRST_ACCOUNT_SHA256 "{hash_value}")\n')
+        script.write(f'include("{tree.root / "bench_guard.cmake"}")\ncrux_bench_manifest()\n')
+    result = subprocess.run(["cmake", "-P", script.name], capture_output=True, text=True, check=False)
+    Path(script.name).unlink()
+    return result
+
+
+def check_manifest(tree):
+    """The manifest records the first account's file hash, and refuses to be written without one (row C4)."""
+    failures = []
+    expected = "ab" * 32
+    with tempfile.TemporaryDirectory() as scratch:
+        good = Path(scratch) / "good"
+        good.mkdir()
+        result = run_manifest(tree, good, expected)
+        manifest = good / "bench-manifest.json"
+        if result.returncode != 0 or not manifest.is_file():
+            return [f"crux_bench_manifest() failed with the first account's hash recorded: {squeeze(result.stderr)}"]
+        record = json.loads(manifest.read_text())
+        account = record.get("first_account", {})
+        declared = tree.declaration["first_account"]
+        if (account.get("file_sha256"), account.get("user"), account.get("role")) != (expected, declared["user"],
+                                                                                      declared["role"]):
+            failures.append(f"the manifest does not record the first account's file hash, name and role: {account}")
+        if account.get("plaintext_in_image") is not True:
+            failures.append("the manifest does not say that the first account's plaintext is in the image")
+        if record["test_forms"]["first_account_file"].get("set") is not True:
+            failures.append("the manifest does not show the first account form as set")
+        bare = Path(scratch) / "bare"
+        bare.mkdir()
+        result = run_manifest(tree, bare, None)
+        if result.returncode == 0 or "was not checked before the manifest" not in squeeze(result.stderr):
+            failures.append("crux_bench_manifest() was written without a checked first account password file: "
+                            f"rc={result.returncode} {squeeze(result.stderr)}")
+        else:
+            TRANSCRIPT.append(("CMake", "a manifest with no checked first account file", "was not checked before the manifest"))
     return failures
 
 
@@ -273,6 +586,16 @@ C_GUARD_MESSAGES = (
     "HTTPS listener must listen on the bench address only",
     "SSH listener must listen on the bench address only",
     "declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY",
+    "declared only with CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE",
+    "did not reach the compiler: the first account's name and role",
+    "has no RSA",
+    "takes wolfSSL's settings from the module's Kconfig options only",
+    "A mount never formats a card",
+    "has exactly one file backend",
+    "needs the RAM disk File provider and the RAM disk driver",
+    "The RAM disk image has no card",
+    "needs the microSD File provider and the SD card driver",
+    "The microSD image has no RAM disk",
 )
 
 
@@ -290,6 +613,13 @@ def good_c_definitions(tree):
         "CONFIG_CRUX_WEB_BIND_ADDRESS": f'"{net["address"]}"',
         "CONFIG_CRUX_SSH_BIND_ADDRESS": f'"{net["address"]}"',
         "CONFIG_CRUX_BENCH_TEST_HOST_KEY": "1",
+        # The file backend of the declared bench: the RAM disk (row C3, D2).
+        "CONFIG_CRUX_BENCH_FILE_RAM_DISK": "1",
+        "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": "1",
+        "CONFIG_DISK_DRIVER_RAM": "1",
+        "CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE": "1",
+        "CRUX_BENCH_FIRST_ACCOUNT_USER": f'"{tree.declaration["first_account"]["user"]}"',
+        "CRUX_BENCH_FIRST_ACCOUNT_ROLE": f'"{tree.declaration["first_account"]["role"]}"',
     }
 
 
@@ -318,11 +648,49 @@ def c_cases(tree):
          "SSH listener must listen on the bench address only"),
         ("SSH on 0.0.0.0", {"CONFIG_CRUX_SSH_BIND_ADDRESS": '"0.0.0.0"'},
          "SSH listener must listen on the bench address only"),
+        ("RSA in wolfCrypt", {"CONFIG_WOLFSSL_RSA": "1"}, "has no RSA"),
+        ("a wolfSSL settings file", {"CONFIG_WOLFSSL_HAS_SETTINGS_FILE": "1"},
+         "takes wolfSSL's settings from the module's Kconfig options only"),
+        ("mkfs on mount", {"CONFIG_FS_FATFS_MOUNT_MKFS": "1"}, "A mount never formats a card"),
+        ("both file forms", {"CONFIG_CRUX_BENCH_FILE_MICROSD": "1"}, "has exactly one file backend"),
+        ("the RAM disk form without its provider", {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": None},
+         "needs the RAM disk File provider and the RAM disk driver"),
+        ("the RAM disk form without its driver", {"CONFIG_DISK_DRIVER_RAM": None},
+         "needs the RAM disk File provider and the RAM disk driver"),
+        ("the SD card driver in the RAM disk image", {"CONFIG_DISK_DRIVER_SDMMC": "1"}, "The RAM disk image has no card"),
+        ("the USDHC host in the RAM disk image", {"CONFIG_IMX_USDHC": "1"}, "The RAM disk image has no card"),
+        ("the microSD provider in the RAM disk image", {"CONFIG_CRUX_FILE_FATFS_RT1060": "1"},
+         "The RAM disk image has no card"),
+        ("a flash disk in the RAM disk image", {"CONFIG_DISK_DRIVER_FLASH": "1"}, "The RAM disk image has no card"),
+    ] + microsd_c_cases()
+
+
+def card_definitions(good):
+    """The definitions of a build that took the microSD state of the declaration, as a later run would."""
+    card = dict(good)
+    card.update({"CONFIG_CRUX_BENCH_FILE_RAM_DISK": None, "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": None,
+                 "CONFIG_DISK_DRIVER_RAM": None, "CONFIG_CRUX_BENCH_FILE_MICROSD": "1",
+                 "CONFIG_CRUX_FILE_FATFS_RT1060": "1", "CONFIG_DISK_DRIVER_SDMMC": "1"})
+    return card
+
+
+def microsd_c_cases():
+    """Cases that break the microSD state: a change to the card definitions, and the reason."""
+    return [
+        ("the microSD form without its provider", {"CONFIG_CRUX_FILE_FATFS_RT1060": None, "__card": True},
+         "needs the microSD File provider and the SD card driver"),
+        ("the microSD form without the SD card driver", {"CONFIG_DISK_DRIVER_SDMMC": None, "__card": True},
+         "needs the microSD File provider and the SD card driver"),
+        ("the microSD form with the RAM disk provider", {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": "1", "__card": True},
+         "The microSD image has no RAM disk"),
+        ("the microSD form with the RAM disk driver", {"CONFIG_DISK_DRIVER_RAM": "1", "__card": True},
+         "The microSD image has no RAM disk"),
     ]
 
 
 def compile_c(tree, path, definitions, header_only=False):
-    command = ["cc", "-std=c17", "-fsyntax-only", "-x", "c", str(path), f"-I{tree.root / 'src'}"]
+    command = ["cc", "-std=c17", "-fsyntax-only", "-x", "c", str(path), f"-I{tree.root / 'src'}",
+               f"-I{tree.root / 'first_account'}"]
     command += [f"-D{name}={value}" for name, value in definitions.items() if value is not None]
     return subprocess.run(command, capture_output=True, text=True, check=False)
 
@@ -338,8 +706,12 @@ def check_c(tree):
     control = compile_c(tree, guard, good)
     if control.returncode != 0:
         failures.append(f"bench_guard.h refused the declared bench: {control.stderr}")
+    card = compile_c(tree, guard, card_definitions(good))
+    if card.returncode != 0:
+        failures.append(f"bench_guard.h refused the microSD state of the declaration: {card.stderr}")
     for name, change, reason in c_cases(tree):
-        definitions = dict(good)
+        change = dict(change)
+        definitions = dict(card_definitions(good) if change.pop("__card", False) else good)
         definitions.update(change)
         result = compile_c(tree, guard, definitions)
         if not refused_for(result, reason):
@@ -362,11 +734,22 @@ def check_c(tree):
         if seen:
             failures.append(f"{source.name} in the declared bench image: refused by the guard ({seen}): {allowed.stderr}")
     # The test host key form is refused without its symbol, in the one source that holds it.
-    form = tree.form("test_host_key")["symbol"]
-    without = {k: v for k, v in good.items() if k != f"CONFIG_{form}"}
-    refused = compile_c(tree, tree.root / "src" / "ssh_target.c", without)
-    if not refused_for(refused, C_GUARD_MESSAGES[-1]):
-        failures.append(f"ssh_target.c without CONFIG_{form}: not refused: {refused.stderr}")
+    for form_name, source, message in (("test_host_key", "ssh_target.c", "declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY"),
+                                       ("first_account_file", "bench_first_account.c",
+                                        "declared only with CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE")):
+        form = tree.form(form_name)["symbol"]
+        without = {k: v for k, v in good.items() if k != f"CONFIG_{form}"}
+        refused = compile_c(tree, tree.root / "src" / source, without)
+        if not refused_for(refused, message):
+            failures.append(f"{source} without CONFIG_{form}: not refused: {refused.stderr}")
+        else:
+            TRANSCRIPT.append(("C", f"{source} without its form symbol", message))
+    # The first account's name and role come from the declaration, and a source that lacks them is refused.
+    for name in ("CRUX_BENCH_FIRST_ACCOUNT_USER", "CRUX_BENCH_FIRST_ACCOUNT_ROLE"):
+        refused = compile_c(tree, tree.root / "src" / "bench_first_account.c",
+                            {k: v for k, v in good.items() if k != name})
+        if not refused_for(refused, "did not reach the compiler: the first account's name and role"):
+            failures.append(f"bench_first_account.c without {name}: not refused: {refused.stderr}")
     return failures
 
 
@@ -414,6 +797,12 @@ def check_kconfig(tree, kconfiglib):
         kconf.syms["BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI"].set_value("y")
         kconf.syms["BOARD_REVISION"].set_value(tree.board["revision"])
         kconf.syms["ENTROPY_MCUX_TRNG"].set_value("y")
+        kconf.syms["DISK_DRIVER_RAM"].set_value("y")  # the RAM disk's driver, which the declared file backend needs
+
+    def card_board(kconf):
+        good_board(kconf)
+        kconf.syms["DISK_DRIVER_RAM"].set_value("n")
+        kconf.syms["DISK_DRIVER_SDMMC"].set_value("y")
 
     kconf, directory = load()
     defined = {name for name in kconf.syms if name.startswith("CRUX_BENCH_")}
@@ -428,8 +817,11 @@ def check_kconfig(tree, kconfiglib):
     if kconf.syms["CRUX_MANAGEMENT_BENCH_IMAGE"].str_value != "y":
         failures.append("Kconfig.bench refuses the declaration on the declared board")
     for name in sorted(declared):
-        if kconf.syms[name].str_value != "y":
+        # The microSD form excludes the RAM disk form: with both set it drops, which is the rule (checked below).
+        if kconf.syms[name].str_value != "y" and name != "CRUX_BENCH_FILE_MICROSD":
             failures.append(f"Kconfig.bench refuses {name} under the declaration")
+    if kconf.syms["CRUX_BENCH_FILE_MICROSD"].str_value != "n":
+        failures.append("Kconfig.bench accepts the microSD form beside the RAM disk form")
     shutil.rmtree(directory)
 
     # Each broken condition: the declaration drops to n, and so does every test form with it.
@@ -441,6 +833,8 @@ def check_kconfig(tree, kconfiglib):
         ("fake entropy", lambda k: k.syms["FAKE_ENTROPY_NATIVE_SIM"].set_value("y")),
         ("DHCP", lambda k: k.syms["NET_DHCPV4"].set_value("y")),
         ("IPv6", lambda k: k.syms["NET_IPV6"].set_value("y")),
+        ("RSA in wolfCrypt", lambda k: k.syms["WOLFSSL_RSA"].set_value("y")),
+        ("a wolfSSL settings file", lambda k: k.syms["WOLFSSL_HAS_SETTINGS_FILE"].set_value("y")),
     ]
     for name, apply in broken:
         kconf, directory = load()
@@ -458,11 +852,39 @@ def check_kconfig(tree, kconfiglib):
     # Every test form alone, with the declaration not set on a board that would allow it.
     for form in sorted(declared):
         kconf, directory = load()
-        good_board(kconf)
+        (card_board if form == "CRUX_BENCH_FILE_MICROSD" else good_board)(kconf)
         kconf.syms[form].set_value("y")
         if kconf.syms[form].str_value != "n":
             failures.append(f"Kconfig.bench: {form} is accepted without the declaration")
         shutil.rmtree(directory)
+    # The file backend (row C3, D2). Each pair is the board and what is broken, and the form that must drop.
+    def under_declaration(board, forms, change):
+        kconf, directory = load()
+        board(kconf)
+        change(kconf)
+        kconf.syms["CRUX_MANAGEMENT_BENCH_IMAGE"].set_value("y")
+        for form in forms:
+            kconf.syms[form].set_value("y")
+        values = {name: kconf.syms[name].str_value for name in declared}
+        shutil.rmtree(directory)
+        return values
+
+    ram, card = "CRUX_BENCH_FILE_RAM_DISK", "CRUX_BENCH_FILE_MICROSD"
+    if under_declaration(card_board, [card], lambda k: None)[card] != "y":
+        failures.append("Kconfig.bench refuses the microSD form on the card's drivers: the state a later run takes")
+    for name, board, forms, change, dropped in (
+            ("the RAM disk form with the SD card driver", good_board, [ram],
+             lambda k: k.syms["DISK_DRIVER_SDMMC"].set_value("y"), ram),
+            ("the RAM disk form without the RAM disk driver", good_board, [ram],
+             lambda k: k.syms["DISK_DRIVER_RAM"].set_value("n"), ram),
+            ("the microSD form with the RAM disk driver", card_board, [card],
+             lambda k: k.syms["DISK_DRIVER_RAM"].set_value("y"), card),
+            ("the microSD form without the SD card driver", card_board, [card],
+             lambda k: k.syms["DISK_DRIVER_SDMMC"].set_value("n"), card),
+            ("the microSD form beside the RAM disk form", good_board, [ram, card], lambda k: None, card)):
+        values = under_declaration(board, forms, change)
+        if values[dropped] != "n":
+            failures.append(f"Kconfig.bench, {name}: {dropped} is not dropped")
     # A time source and the no-time-source form exclude each other.
     kconf, directory = load()
     good_board(kconf)
@@ -479,9 +901,13 @@ def check_kconfig(tree, kconfiglib):
 
 
 def copy_tree(source_root, destination):
-    for name in ("bench_declaration.json", "bench_guard.cmake", "Kconfig.bench"):
+    # ram_disk.overlay is read by crux_bench_manifest(), so a copy without it fails check_manifest() whatever the
+    # mutant is, and every CMake mutant would then be "killed" for that reason and not for its own. Found in row C6:
+    # since row C3 the CMake group of mutants was vacuous.
+    for name in ("bench_declaration.json", "bench_guard.cmake", "Kconfig.bench", "ram_disk.overlay"):
         shutil.copy(Path(source_root) / name, destination / name)
     shutil.copytree(Path(source_root) / "src", destination / "src")
+    shutil.copytree(Path(source_root) / "first_account", destination / "first_account")
 
 
 def replace_nth(text, needle, replacement, n):
@@ -490,6 +916,68 @@ def replace_nth(text, needle, replacement, n):
         return None
     at = positions[n]
     return text[:at] + replacement + text[at + len(needle):]
+
+
+# The rule of row C6 in bench_guard.cmake with one term of its arithmetic or one comparison changed. Each must be seen
+# by a case of check_cmake: the one-under cases and the controls at the need, which come from the Python rule.
+ARITHMETIC_MUTANTS = (
+    ("the receive buffers take no margin", 'math(EXPR rx_bufs "(${margin} * (', 'math(EXPR rx_bufs "(100 * ('),
+    ("the receive buffers leave out the driver's ring", "${connections} * ${held_bufs} + ${ring} * ${frame_bufs}",
+     "${connections} * ${held_bufs}"),
+    ("the receive buffers are not rounded up", "${ring} * ${frame_bufs}) + 99) / 100", "${ring} * ${frame_bufs}) + 0) / 100"),
+    ("the web backlog is left out of the connections", 'math(EXPR connections "${served} + ${CONFIG_CRUX_WEB_BACKLOG}")',
+     'math(EXPR connections "${served}")'),
+    ("a connection holds full frames only, never the typical segments", "if(typical_window_bufs GREATER held_bufs)", "if(0)"),
+    ("a connection holds as many packets as full frames only", "if(typical_segments GREATER held_pkts)", "if(0)"),
+    ("a frame is 12 buffers whatever the buffer size", 'math(EXPR frame_bufs "(${BENCH_NB_FRAME_BYTES} + ${data} - 1) / ${data}")',
+     'math(EXPR frame_bufs "12")'),
+    ("a typical segment is 5 buffers whatever the buffer size",
+     'math(EXPR typical_bufs "(${BENCH_NB_TYPICAL_SEGMENT_BYTES} + ${BENCH_NB_SEGMENT_HEADER_BYTES} + ${data} - 1) / ${data}")',
+     'math(EXPR typical_bufs "5")'),
+    ("the transmit buffers leave out the senders' segments",
+     "${senders} * (${frame_bufs} + ${BENCH_NB_HEADER_BUFFERS_PER_SENDER})) + 99) / 100", "0) + 99) / 100"),
+    ("the senders' header buffer is not counted", " + ${BENCH_NB_HEADER_BUFFERS_PER_SENDER})) + 99) / 100", ")) + 99) / 100"),
+    ("the transmit packets count one packet per sender", "${senders} * ${BENCH_NB_PACKETS_PER_SENDER} + 99) / 100",
+     "${senders} + 99) / 100"),
+    ("the transmit buffers leave out the queued windows", "(${margin} * (${served} * ${window_data_bufs} +",
+     "(${margin} * (0 +"),
+    ("the HTTP server thread is not a sender", 'math(EXPR senders "${ssh} + 1 + ${BENCH_NB_SENDER_THREADS_BEYOND_SLOTS}")',
+     'math(EXPR senders "${ssh} + ${BENCH_NB_SENDER_THREADS_BEYOND_SLOTS}")'),
+    ("the receive packets leave out the ring", "(${margin} * (${connections} * ${held_pkts} + ${ring}) + 99) / 100",
+     "(${margin} * (${connections} * ${held_pkts}) + 99) / 100"),
+    ("the transmit packets take no margin", 'math(EXPR tx_pkts "(${margin} * ${senders}', 'math(EXPR tx_pkts "(100 * ${senders}'),
+    ("the ring needs no spare frames", 'math(EXPR ring_min "${BENCH_NB_WINDOW_SEGMENTS} + ${BENCH_NB_RING_SPARE_FRAMES}")',
+     'math(EXPR ring_min "${BENCH_NB_WINDOW_SEGMENTS}")'),
+    ("the window is one segment", 'math(EXPR window "${BENCH_NB_WINDOW_SEGMENTS} * ${BENCH_NB_MSS_BYTES}")',
+     'math(EXPR window "${BENCH_NB_MSS_BYTES}")'),
+    ("an SSH connection never costs less than the floor is ignored", "if(BENCH_HEAP_SSH_CONNECTION_FLOOR_BYTES GREATER ssh_each)",
+     "if(0)"),
+    ("an SSH connection costs the floor whatever its window", 'math(EXPR ssh_each "2 * ${CONFIG_CRUX_SSH_WINDOW_BYTES} + ${BENCH_HEAP_SSH_WINDOW_EXTRA_BYTES}")',
+     'math(EXPR ssh_each "0")'),
+    ("a TLS connection holds one record buffer", 'math(EXPR tls_each "2 * (${BENCH_HEAP_TLS_RECORD_BYTES}',
+     'math(EXPR tls_each "1 * (${BENCH_HEAP_TLS_RECORD_BYTES}'),
+    ("the handshake is not counted", "${http} * ${tls_each} + ${BENCH_HEAP_TLS_HANDSHAKE_BYTES} +", "${http} * ${tls_each} +"),
+    ("the other users are not counted", "+ ${BENCH_HEAP_OTHER_USERS_BYTES}\")", '+ 0")'),
+    ("the arena is the paper peak itself",
+     'math(EXPR arena "(${paper_peak} * 100 + ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT} - 1) / ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT}")',
+     'math(EXPR arena "${paper_peak}")'),
+    ("the arena is not rounded up", "${paper_peak} * 100 + ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT} - 1)", "${paper_peak} * 100 + 0)"),
+    ("the receive buffers are refused only above their need", "if(CONFIG_NET_BUF_RX_COUNT LESS BENCH_NEED_RX_BUFS)",
+     "if(CONFIG_NET_BUF_RX_COUNT LESS_EQUAL BENCH_NEED_RX_BUFS)"),
+    ("the transmit buffers are refused only above their need", "if(CONFIG_NET_BUF_TX_COUNT LESS BENCH_NEED_TX_BUFS)",
+     "if(CONFIG_NET_BUF_TX_COUNT LESS_EQUAL BENCH_NEED_TX_BUFS)"),
+    ("the receive packets are refused only above their need", "if(CONFIG_NET_PKT_RX_COUNT LESS BENCH_NEED_RX_PKTS)",
+     "if(CONFIG_NET_PKT_RX_COUNT LESS_EQUAL BENCH_NEED_RX_PKTS)"),
+    ("the transmit packets are refused only above their need", "if(CONFIG_NET_PKT_TX_COUNT LESS BENCH_NEED_TX_PKTS)",
+     "if(CONFIG_NET_PKT_TX_COUNT LESS_EQUAL BENCH_NEED_TX_PKTS)"),
+    ("the arena is refused only above its need", "if(CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE LESS BENCH_NEED_ARENA)",
+     "if(CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE LESS_EQUAL BENCH_NEED_ARENA)"),
+    ("the ring is refused only above its need", "if(CONFIG_ETH_NXP_ENET_RX_BUFFERS LESS BENCH_NEED_RING)",
+     "if(CONFIG_ETH_NXP_ENET_RX_BUFFERS LESS_EQUAL BENCH_NEED_RING)"),
+    ("a pool over its need is refused", "if(CONFIG_NET_BUF_RX_COUNT LESS BENCH_NEED_RX_BUFS)",
+     "if(CONFIG_NET_BUF_RX_COUNT GREATER BENCH_NEED_RX_BUFS)"),
+    ("a number is accepted with letters after it", 'MATCHES "^[0-9]+$")', 'MATCHES "^[0-9]+")'),
+)
 
 
 def mutants(root):
@@ -501,6 +989,9 @@ def mutants(root):
         line = cmake[:[m.start() for m in re.finditer(re.escape("message(FATAL_ERROR"), cmake)][index]].count("\n") + 1
         yield (f"bench_guard.cmake: the refusal at line {line} only logs", "bench_guard.cmake",
                replace_nth(cmake, "message(FATAL_ERROR", "message(STATUS", index), "cmake")
+    for description, old_text, new_text in ARITHMETIC_MUTANTS:
+        mutated = cmake.replace(old_text, new_text, 1) if old_text in cmake else None
+        yield (f"bench_guard.cmake, row C6 rule: {description}", "bench_guard.cmake", mutated, "cmake")
     header = (root / "src" / "bench_guard.h").read_text()
     directives = [m.start() for m in re.finditer(r"^#error", header, re.MULTILINE)]
     for index, at in enumerate(directives):
@@ -514,10 +1005,12 @@ def mutants(root):
         text = source.read_text()
         yield (f"{source.name}: the include of bench_guard.h is removed", f"src/{source.name}",
                text.replace('#include "bench_guard.h"\n', "", 1), "c")
-    ssh = (root / "src" / "ssh_target.c").read_text()
-    at = re.search(r"^#error", ssh, re.MULTILINE).start()
-    yield ("ssh_target.c: the test host key form #error only warns", "src/ssh_target.c",
-           ssh[:at] + "#warning" + ssh[at + len("#error"):], "c")
+    for name, label in (("ssh_target.c", "the test host key form"), ("bench_first_account.c", "the first account form")):
+        text = (root / "src" / name).read_text()
+        for index, found in enumerate(re.finditer(r"^#error", text, re.MULTILINE)):
+            at = found.start()
+            yield (f"{name}: {label} #error {index + 1} only warns", f"src/{name}",
+                   text[:at] + "#warning" + text[at + len("#error"):], "c")
     kconfig = (root / "Kconfig.bench").read_text().splitlines(keepends=True)
     for number, line in enumerate(kconfig):
         if line.strip().startswith("depends on"):
@@ -534,6 +1027,17 @@ def mutants(root):
 def check_mutants(tree, kconfiglib):
     failures = []
     results = []
+    # The control of the mutation check: an unmutated copy must pass every check. Without it a copy that fails for any
+    # other reason "kills" every mutant, which is how the CMake group was vacuous from row C3 to row C6.
+    with tempfile.TemporaryDirectory() as scratch:
+        copy = Path(scratch)
+        copy_tree(tree.root, copy)
+        control = Tree(copy)
+        found = check_cmake(control) + check_c(control)
+        if kconfiglib is not None:
+            found += check_kconfig(control, kconfiglib)
+        if found:
+            return [f"the control of the mutation check failed: an unmutated copy does not pass: {found[0]}"], results
     for description, relative, text, group in mutants(tree.root):
         if text is None:
             failures.append(f"mutation not applicable: {description}")

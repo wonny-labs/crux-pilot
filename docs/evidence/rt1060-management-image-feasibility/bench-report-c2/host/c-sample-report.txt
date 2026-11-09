@@ -1,0 +1,21 @@
+BENCH-CERT v=1 sha256=00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF source=generated
+BENCH-REPORT v=1 begin seq=1 reason=boot uptime_ms=1000 bursts=0
+BENCH-STACK seq=1 thread=main size=16384 used=14394 unused=1990 state=ended
+BENCH-STACK seq=1 thread=idle size=320 used=130 unused=190 state=live
+BENCH-STACK seq=1 thread=http_server_tid size=8192 used=3594 unused=4598 state=live
+BENCH-STACK seq=1 thread=ssh_listener size=4096 used=1206 unused=2890 state=live
+BENCH-STACK seq=1 thread=ssh_worker size=16384 used=10394 unused=5990 state=live
+BENCH-STACK seq=1 thread=ssh_worker size=16384 used=11194 unused=5190 state=ended
+BENCH-STACK seq=1 thread=bench_report size=2048 used=558 unused=1490 state=live
+BENCH-HEAP seq=1 arena=524288 in_use=90000 peak=100448 free=300000
+BENCH-REPORT v=1 end seq=1 lines=8 missed=0
+BENCH-REPORT v=1 begin seq=2 reason=quiet uptime_ms=2000 bursts=1
+BENCH-STACK seq=2 thread=main size=16384 used=14404 unused=1980 state=ended
+BENCH-STACK seq=2 thread=idle size=320 used=140 unused=180 state=live
+BENCH-STACK seq=2 thread=http_server_tid size=8192 used=3604 unused=4588 state=live
+BENCH-STACK seq=2 thread=ssh_listener size=4096 used=1216 unused=2880 state=live
+BENCH-STACK seq=2 thread=ssh_worker size=16384 used=10404 unused=5980 state=live
+BENCH-STACK seq=2 thread=ssh_worker size=16384 used=11204 unused=5180 state=ended
+BENCH-STACK seq=2 thread=bench_report size=2048 used=568 unused=1480 state=live
+BENCH-HEAP seq=2 arena=524288 in_use=180000 peak=200896 free=300000
+BENCH-REPORT v=1 end seq=2 lines=8 missed=0

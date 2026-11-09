@@ -1,0 +1,9 @@
+{
+  "firmware_identity_digest": "de26ca4d9705cecfb8021e3c713aa7ee4d534cab616f13687c37c1549286af15",
+  "identity": {
+    "algorithm": "crux-firmware-identity-v1",
+    "configuration_sha256": "fd2f0bb0b3a5c6d4fb923cc90cf4c0a9ca3cc79e16f36b1d749390175d671427",
+    "image_sha256": "1ec8f217137b66a4d3641d9a7948c7145b8b11821a8a55aa5b2c01211255fcd4",
+    "target": "mimxrt1060_evk@B//qspi"
+  }
+}

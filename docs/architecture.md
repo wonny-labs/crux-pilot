@@ -87,7 +87,7 @@ for it. It is the third step of the owner's review of 8 November 2026 (Refs #243
 samples that do not are listed below for the owner to move, or to leave, one by one.
 
 A sample is a small composition that shows one capability, one framework or one scenario through Crux's public contracts. It is
-not part of the platform API, and Crux does not maintain it as a product template, with `product_template` as the one folder that is one.
+not part of the platform API, and Crux does not maintain it as a product template. The product template, formerly `product_template`, is `templates/product`, outside `samples/` since 9 November 2026, and the rows below that name `product_template` describe the state before the move.
 
 | # | Rule | Why |
 | --- | --- | --- |
@@ -123,7 +123,7 @@ How a name is chosen:
 | --- | --- | --- |
 | A framework | The framework, in a family folder when it is one of several of a kind | `samples/web/preact`, `samples/web/angular` |
 | A capability | The capability, and a variant joins a family folder | `samples/networking`, `samples/storage/sd`, `samples/storage/emmc` |
-| A purpose that is neither | A short noun for the purpose | `samples/product_template` |
+| A purpose that is neither | A short noun for the purpose | none now: the product template moved to `templates/product` |
 
 #### Existing samples that do not follow it
 

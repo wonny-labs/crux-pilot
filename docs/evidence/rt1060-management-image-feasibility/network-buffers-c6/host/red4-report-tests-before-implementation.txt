@@ -1,0 +1,218 @@
+E.............................F.FF.FFFE.F
+======================================================================
+ERROR: setUpClass (tests.build.test_management_bench_report.CCode)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_report.py", line 89, in setUpClass
+    raise AssertionError(build.stderr)
+AssertionError: <worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:52:16: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+   52 |     CHECK_LINE(bench_report_format_pool(buffer, sizeof(buffer), 3u, "rx_buf", 1024u, 12u, 212u),
+      |                ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:54:16: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+   54 |     CHECK_LINE(bench_report_format_pool(buffer, sizeof(buffer), 3u, "tx_pkt", 32u, 0u, 32u),
+      |                ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:56:16: error: call to undeclared function 'bench_report_format_net'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+   56 |     CHECK_LINE(bench_report_format_net(buffer, sizeof(buffer), 3u, 0u, 1u, 2u, 3u, 4u),
+      |                ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:56:16: note: did you mean 'bench_report_format_cert'?
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_format.h:55:8: note: 'bench_report_format_cert' declared here
+   55 | size_t bench_report_format_cert(char *out, size_t capacity, const char *fingerprint,
+      |        ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:126:11: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  126 |     CHECK(bench_report_format_pool(buffer, sizeof(buffer), 4294967295u, "tx_buf", 4294967295u, 4294967295u,
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:129:11: error: call to undeclared function 'bench_report_format_net'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  129 |     CHECK(bench_report_format_net(buffer, sizeof(buffer), 4294967295u, 4294967295u, 4294967295u, 4294967295u,
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:133:11: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  133 |     CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "rx_buf", 100u, 1u, 101u) == 0u);
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:135:11: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  135 |     CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "rx_buf", 100u, 101u, 101u) == 0u);
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:136:11: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  136 |     CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, NULL, 100u, 1u, 1u) == 0u);
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:137:11: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  137 |     CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "", 100u, 1u, 1u) == 0u);
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:138:11: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  138 |     CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "RX BUF", 100u, 1u, 1u) == 0u);
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:139:11: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  139 |     CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "rx_buf size=1", 100u, 1u, 1u) == 0u);
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:142:11: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  142 |     CHECK(bench_report_format_pool(small, sizeof(small), 1u, "rx_buf", 100u, 1u, 1u) == 0u);
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:144:11: error: call to undeclared function 'bench_report_format_net'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  144 |     CHECK(bench_report_format_net(small, sizeof(small), 1u, 0u, 0u, 0u, 0u, 0u) == 0u);
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:146:11: error: call to undeclared function 'bench_report_format_net'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  146 |     CHECK(bench_report_format_net(NULL, 100u, 1u, 0u, 0u, 0u, 0u, 0u) == 0u);
+      |           ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:361:9: error: call to undeclared function 'bench_report_format_pool'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  361 |         bench_report_format_pool(line, sizeof(line), seq, "rx_pkt", 192u, 3u, 20u * seq);
+      |         ^
+<worktree>/tests/zephyr/management_rt1060_compile/report/bench_report_host_test.c:369:9: error: call to undeclared function 'bench_report_format_net'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+  369 |         bench_report_format_net(line, sizeof(line), seq, 0u, 0u, 0u, seq - 1u, 0u);
+      |         ^
+16 errors generated.
+
+
+======================================================================
+ERROR: test_the_counters_are_cumulative_so_the_last_report_is_read (tests.build.test_management_bench_report.Pools)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_report.py", line 370, in test_the_counters_are_cumulative_so_the_last_report_is_read
+    self.assertEqual(json.loads(result.stdout)["net"]["tcp_rexmit"], 7)
+KeyError: 'net'
+
+======================================================================
+FAIL: test_a_capture_with_pools_passes_and_the_summary_has_them (tests.build.test_management_bench_report.Pools)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_report.py", line 283, in test_a_capture_with_pools_passes_and_the_summary_has_them
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: 1 != 0 : {
+  "certificate": "81:AC:D7:62:14:0F:A6:92:A1:42:82:2D:2F:BE:4D:C6:F5:4B:CA:A5:01:F6:8A:B3:7E:5A:EE:D0:BA:FE:4D:99",
+  "compared_with": null,
+  "failures": [
+    "report seq=1: end says lines=11, but 6 BENCH-STACK and BENCH-HEAP lines arrived (a line was lost or garbled)",
+    "report seq=2: end says lines=11, but 6 BENCH-STACK and BENCH-HEAP lines arrived (a line was lost or garbled)"
+  ],
+  "heap": {
+    "arena": 524288,
+    "in_use_max": 90000,
+    "limit_percent": 80,
+    "peak_max": 100000,
+    "peak_percent": 19.073486328125
+  },
+  "reasons": {
+    "boot": 1,
+    "idle": 0,
+    "quiet": 1
+  },
+  "reports": 2,
+  "threads": {
+    "bench_report": {
+      "rows": 2,
+      "size": 2048,
+      "unused_min": 1400,
+      "unused_percent_min": 68.359375,
+      "used_max": 648
+    },
+    "http_server_tid": {
+      "margin_bytes": 2048,
+      "margin_percent": 25,
+      "rows": 2,
+      "size": 8192,
+      "unused_min": 5000,
+      "unused_percent_min": 61.03515625,
+      "used_max": 3192
+    },
+    "main": {
+      "rows": 2,
+      "size": 16384,
+      "unused_min": 2000,
+      "unused_percent_min": 12.20703125,
+      "used_max": 14384
+    },
+    "ssh_listener": {
+      "rows": 2,
+      "size": 4096,
+      "unused_min": 2900,
+      "unused_percent_min": 70.80078125,
+      "used_max": 1196
+    },
+    "ssh_worker": {
+      "rows": 2,
+      "size": 16384,
+      "unused_min": 6000,
+      "unused_percent_min": 36.62109375,
+      "used_max": 10384
+    }
+  },
+  "verdict": "FAIL",
+  "warnings": [
+    "main: lowest unused stack 2000 B of 16384 B (12.2 percent) is under 25 percent"
+  ]
+}
+
+
+======================================================================
+FAIL: test_a_manifest_that_declares_pools_needs_pool_lines (tests.build.test_management_bench_report.Pools)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_report.py", line 325, in test_a_manifest_that_declares_pools_needs_pool_lines
+    self.assertEqual(result.returncode, 1, result.stdout)
+AssertionError: 0 != 1 : 3 reports (boot 1, quiet 1, idle 1)
+thread                      size  used max  unused min  unused %
+bench_report                2048       648        1400     68.4%
+http_server_tid             8192      3192        5000     61.0%
+main                       16384     14384        2000     12.2%
+ssh_listener                4096      1196        2900     70.8%
+ssh_worker                 16384     10384        6000     36.6%
+heap: peak 100000 B of 524288 B (19.1 percent, limit 80), in use at most 90000 B
+certificate: 81:AC:D7:62:14:0F:A6:92:A1:42:82:2D:2F:BE:4D:C6:F5:4B:CA:A5:01:F6:8A:B3:7E:5A:EE:D0:BA:FE:4D:99
+WARN main: lowest unused stack 2000 B of 16384 B (12.2 percent) is under 25 percent
+PASS
+
+
+======================================================================
+FAIL: test_a_pool_peak_over_the_limit_fails_and_the_limit_is_a_parameter (tests.build.test_management_bench_report.Pools)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_report.py", line 294, in test_a_pool_peak_over_the_limit_fails_and_the_limit_is_a_parameter
+    self.assertEqual(run_checker(self.reports(peaks={"rx_buf": 819})).returncode, 0)
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_all_four_pools_once_per_report (tests.build.test_management_bench_report.Pools)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_report.py", line 336, in test_all_four_pools_once_per_report
+    self.assertIn(name, result.stdout)
+AssertionError: 'rx_pkt' not found in '1 reports (boot 1, quiet 0, idle 0)\nthread                      size  used max  unused min  unused %\nbench_report                2048       648        1400     68.4%\nhttp_server_tid             8192      3192        5000     61.0%\nmain                       16384     14384        2000     12.2%\nssh_listener                4096      1196        2900     70.8%\nssh_worker                 16384     10384        6000     36.6%\nheap: peak 100000 B of 524288 B (19.1 percent, limit 80), in use at most 90000 B\ncertificate: 81:AC:D7:62:14:0F:A6:92:A1:42:82:2D:2F:BE:4D:C6:F5:4B:CA:A5:01:F6:8A:B3:7E:5A:EE:D0:BA:FE:4D:99\nWARN main: lowest unused stack 2000 B of 16384 B (12.2 percent) is under 25 percent\nFAIL report seq=1: end says lines=10, but 6 BENCH-STACK and BENCH-HEAP lines arrived (a line was lost or garbled)\nFAIL\n'
+
+======================================================================
+FAIL: test_counters_warn_and_fail_only_when_strict (tests.build.test_management_bench_report.Pools)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_report.py", line 361, in test_counters_warn_and_fail_only_when_strict
+    self.assertEqual(warned.returncode, 0, f"{counter}: {warned.stdout}")
+AssertionError: 1 != 0 : eth_rx_err: 2 reports (boot 1, quiet 1, idle 0)
+thread                      size  used max  unused min  unused %
+bench_report                2048       648        1400     68.4%
+http_server_tid             8192      3192        5000     61.0%
+main                       16384     14384        2000     12.2%
+ssh_listener                4096      1196        2900     70.8%
+ssh_worker                 16384     10384        6000     36.6%
+heap: peak 100000 B of 524288 B (19.1 percent, limit 80), in use at most 90000 B
+certificate: 81:AC:D7:62:14:0F:A6:92:A1:42:82:2D:2F:BE:4D:C6:F5:4B:CA:A5:01:F6:8A:B3:7E:5A:EE:D0:BA:FE:4D:99
+WARN main: lowest unused stack 2000 B of 16384 B (12.2 percent) is under 25 percent
+FAIL report seq=1: end says lines=11, but 6 BENCH-STACK and BENCH-HEAP lines arrived (a line was lost or garbled)
+FAIL report seq=2: end says lines=11, but 6 BENCH-STACK and BENCH-HEAP lines arrived (a line was lost or garbled)
+FAIL
+
+
+======================================================================
+FAIL: test_pool_sizes_must_match_the_manifest (tests.build.test_management_bench_report.Pools)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_report.py", line 314, in test_pool_sizes_must_match_the_manifest
+    self.assertEqual(run_checker(self.reports(), "--manifest", str(manifest)).returncode, 0)
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_the_lowest_pool_headroom_over_all_reports_counts (tests.build.test_management_bench_report.Pools)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_report.py", line 309, in test_the_lowest_pool_headroom_over_all_reports_counts
+    self.assertIn("tx_buf", failed.stdout)
+AssertionError: 'tx_buf' not found in '3 reports (boot 1, quiet 1, idle 1)\nthread                      size  used max  unused min  unused %\nbench_report                2048       648        1400     68.4%\nhttp_server_tid             8192      3192        5000     61.0%\nmain                       16384     14384        2000     12.2%\nssh_listener                4096      1196        2900     70.8%\nssh_worker                 16384     10384        6000     36.6%\nheap: peak 100000 B of 524288 B (19.1 percent, limit 80), in use at most 90000 B\ncertificate: 81:AC:D7:62:14:0F:A6:92:A1:42:82:2D:2F:BE:4D:C6:F5:4B:CA:A5:01:F6:8A:B3:7E:5A:EE:D0:BA:FE:4D:99\nWARN main: lowest unused stack 2000 B of 16384 B (12.2 percent) is under 25 percent\nFAIL report seq=1: end says lines=11, but 6 BENCH-STACK and BENCH-HEAP lines arrived (a line was lost or garbled)\nFAIL report seq=2: end says lines=11, but 6 BENCH-STACK and BENCH-HEAP lines arrived (a line was lost or garbled)\nFAIL report seq=3: end says lines=11, but 6 BENCH-STACK and BENCH-HEAP lines arrived (a line was lost or garbled)\nFAIL\n'
+
+----------------------------------------------------------------------
+Ran 40 tests in 5.471s
+
+FAILED (failures=7, errors=2)

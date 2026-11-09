@@ -27,6 +27,14 @@
     !defined(CONFIG_ENTROPY_MCUX_TRNG)
 #error "The bench image draws its random values from the PSA provider over the TRNG driver"
 #endif
+/* D11, row C9: wolfCrypt is built without RSA. The declared profile uses none, one module option
+ * drops it, and a settings file for wolfSSL would hide whether it is built. */
+#if defined(CONFIG_WOLFSSL_RSA)
+#error "The bench image has no RSA (D11): CONFIG_WOLFSSL_RSA is refused"
+#endif
+#if defined(CONFIG_WOLFSSL_HAS_SETTINGS_FILE)
+#error "The bench image takes wolfSSL's settings from the module's Kconfig options only"
+#endif
 #if !defined(CRUX_BENCH_ADDRESS) || !defined(CRUX_BENCH_NETMASK) || !defined(CRUX_BENCH_IMAGE_ID)
 #error "The bench declaration did not reach the compiler: address, netmask and image identity"
 #endif
@@ -40,6 +48,34 @@ _Static_assert(__builtin_strcmp(CONFIG_CRUX_WEB_BIND_ADDRESS, CRUX_BENCH_ADDRESS
                "The HTTPS listener must listen on the bench address only");
 _Static_assert(__builtin_strcmp(CONFIG_CRUX_SSH_BIND_ADDRESS, CRUX_BENCH_ADDRESS) == 0,
                "The SSH listener must listen on the bench address only");
+
+/* The file backend (D2, row C3): the glue and the decision of src/bench_medium*.c rely on these.
+ * Each form is checked when it is set, so a source that does not use the medium compiles without
+ * one. */
+#if defined(CONFIG_FS_FATFS_MOUNT_MKFS)
+#error "A mount never formats a card: CONFIG_FS_FATFS_MOUNT_MKFS is refused in the bench image"
+#endif
+#if defined(CONFIG_CRUX_BENCH_FILE_RAM_DISK) && defined(CONFIG_CRUX_BENCH_FILE_MICROSD)
+#error "The bench image has exactly one file backend, and both of its forms are set"
+#endif
+#if defined(CONFIG_CRUX_BENCH_FILE_RAM_DISK)
+#if !defined(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK) || !defined(CONFIG_DISK_DRIVER_RAM)
+#error "The RAM disk form needs the RAM disk File provider and the RAM disk driver"
+#endif
+#if defined(CONFIG_CRUX_FILE_FATFS_RT1060) || defined(CONFIG_DISK_DRIVER_SDMMC) ||                 \
+    defined(CONFIG_IMX_USDHC) || defined(CONFIG_DISK_DRIVER_FLASH)
+#error                                                                                             \
+    "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
+#endif
+#endif
+#if defined(CONFIG_CRUX_BENCH_FILE_MICROSD)
+#if !defined(CONFIG_CRUX_FILE_FATFS_RT1060) || !defined(CONFIG_DISK_DRIVER_SDMMC)
+#error "The microSD form needs the microSD File provider and the SD card driver"
+#endif
+#if defined(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK) || defined(CONFIG_DISK_DRIVER_RAM)
+#error "The microSD image has no RAM disk: the RAM disk provider and driver are refused"
+#endif
+#endif
 
 /* A test form's own source adds its line, as ssh_target.c does:
  *   #ifndef CONFIG_CRUX_BENCH_TEST_HOST_KEY

@@ -1,0 +1,1 @@
+status and configuration service boundaries hold

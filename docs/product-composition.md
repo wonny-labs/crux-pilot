@@ -2,7 +2,7 @@
 
 **Status: adopted practice, 2026-11-04.** The routes below are provisional until the first products have tried them. No Crux release tag exists yet: the first tag waits for that trial. A provisional schema and checker for the release bundle now exist in this repository, see [Release bundle](#release-bundle). They are not frozen, and no product release has been made with them. The baseline gate warns by default until consumers reach the baseline. This guide records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
 
-Use it with the [product template](../samples/product_template/README.md), a small directory you copy to start a product repository. For other ways to consume Crux, see the [Build and Integration Guide](build.md).
+Use it with the [product template](../templates/product/README.md), a small directory you copy to start a product repository. For other ways to consume Crux, see the [Build and Integration Guide](build.md).
 
 ## Who owns what
 
@@ -43,7 +43,7 @@ flowchart TB
 
 The product uses west's T2 topology: the product repository is the manifest repository, and Crux and Zephyr are projects in its workspace.
 
-The active part of the [template manifest](../samples/product_template/west.yml), with the comments of its `crux-pilot` entry:
+The active part of the [template manifest](../templates/product/west.yml), with the comments of its `crux-pilot` entry:
 
 ```yaml
 manifest:

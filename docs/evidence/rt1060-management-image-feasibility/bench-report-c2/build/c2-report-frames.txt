@@ -1,0 +1,4 @@
+Frames (bytes) of the first two functions of the report thread's chain, from the ELF, by commands/callgraph.py of the stage 0 record.
+The chain beyond bench_report_core_snapshot in post.sh's output follows a different function that is also called emit; only these two frames are used.
+report_loop 40
+bench_report_core_snapshot 72

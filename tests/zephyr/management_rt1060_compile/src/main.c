@@ -11,8 +11,10 @@
  */
 #include "bench_first_account.h"
 #include "bench_guard.h"
+#include "bench_report.h"
 #include "crux_native_management.h"
 #include "crux_native_management_services.h"
+#include "entropy_boot.h"
 #include "ssh_target.h"
 
 #include <errno.h>
@@ -83,11 +85,18 @@ static void banner(void)
            IS_ENABLED(CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE));
 }
 
-int main(void)
+static int bench_main(void)
 {
     banner();
     if (run_refused) {
         printk("BENCH refusing to start: this image is not approved to run\n");
+        return 1;
+    }
+    /* The first random read, before anything makes a key: it prints one CRUX-ENTROPY line that says
+     * which device answered, and a failed read stops the image here, with no key, certificate or
+     * listener made. tests/zephyr/entropy_boot, docs/rt1060-wolf-entropy.md. */
+    if (!crux_entropy_boot_check()) {
+        printk("BENCH refusing to start: the first random read failed, no key or listener made\n");
         return 1;
     }
     if (!static_address_up() || !only_bench_address()) {
@@ -108,10 +117,30 @@ int main(void)
         printk("BENCH services failed\n");
         return 1;
     }
+    /* D4: the fingerprint of the certificate the listener serves, once it exists. */
+    if (!crux_bench_report_certificate(crux_native_management_services_certificate_generated())) {
+        printk("BENCH certificate fingerprint failed\n");
+        return 1;
+    }
     if (!crux_mgmt_rt1060_ssh_start()) {
         printk("BENCH ssh failed\n");
         return 1;
     }
+    /* C2: the stack and heap lines at boot, after each client and at idle. */
+    if (!crux_bench_report_start()) {
+        printk("BENCH report failed\n");
+        return 1;
+    }
     printk("BENCH ready\n");
     return 0;
+}
+
+/* The main thread ends when main() returns, and the kernel's thread list then no longer shows it,
+ * so its stack figure is taken here, on every way out. */
+int main(void)
+{
+    int result = bench_main();
+
+    crux_bench_report_main_exit();
+    return result;
 }

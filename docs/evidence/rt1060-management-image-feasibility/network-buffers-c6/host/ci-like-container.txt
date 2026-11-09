@@ -1,0 +1,16 @@
+cmake version 3.28.4
+Python 3.12.3
+clang-format version 18.1.8
+== check-format
+FORMAT-OK
+== unittest
+............................................................
+----------------------------------------------------------------------
+Ran 60 tests in 1437.320s
+
+OK
+== docs
+Document link check setup failed: Pinned lychee is missing or mismatched. Run --install first.
+Markdown selection: 116 maintained, 138 archived
+docs rc=1
+(The docs step did not run: check_docs.py needs its pinned lychee, a download that was not approved. The relative links and anchors of the changed documents were checked by a small script instead: host/linkcheck.txt.)

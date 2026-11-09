@@ -224,7 +224,7 @@ not been exercised.
 
 ## Product template
 
-`tests/build/test_product_template.py` checks `samples/product_template`: its C file and CMake
+`tests/build/test_product_template.py` checks `templates/product`: its C file and CMake
 use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
@@ -787,6 +787,8 @@ runs `scripts/check-access-boundary.py`. That check configures and builds `tests
 a project cannot reach the adapter header, and a service that links the adapter target privately is still accepted.
 No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
 [Access contract](../docs/access-contract.md).
+
+The first account of the RT1060-EVKB bench image (row C4, [document](../docs/rt1060-bench-first-account.md)) has its own Host suite, `tests/bench_first_account`, as `BenchFirstAccount.provision` in CTest, on the same fake ports. Its password file rules, the scan for the password in build outputs and the CMake level are Python tests in `tests/build/test_bench_first_account_file.py` and `test_bench_first_account_build.py`, and every password in them is made at run time. Nothing there runs on a board.
 
 ## Portable command line
 
