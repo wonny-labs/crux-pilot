@@ -287,8 +287,7 @@ so the existing `unittest discover` step runs its tests, and a 12-line step in `
   so listing it once costs little, and every source inside it is then analysed with no further list.
 - **Exceptions file.** One line per source: `source ; check[,check] ; reference`, comments with `#`.
   The listed checks are switched off for that source only (`--checks=-check`; clang-tidy appends the
-  command-line list to the configuration, and the prototype test below shows another check still
-  failing in a listed source); the pseudo check `@skip` marks a probe that must fail to compile.
+  command-line list to the configuration, and a direct clang-tidy run below shows another check still reported); the pseudo check `@skip` marks a probe that must fail to compile.
 - **It can only shrink.** The tool fails when a listed check no longer fires for its source or when the
   source is no longer compiled, so a fixed source forces its entry out. A `host.yml` step on pull
   requests compares the file with the base branch version and fails when a source-and-check pair was
@@ -355,7 +354,7 @@ Other limits of the gate, stated plainly:
 | Option | What it does | Cost | Verdict |
 |---|---|---|---|
 | **A. Fix first** | fix all 63 real findings, then switch on the generated list | one change touching 26 sources (2 production, 1 sample, 23 tests and fixtures); `__wrap_`/`__real_` names are the linker `--wrap` convention and cannot be renamed, so these need a `NOLINT` with a reason or a check option | right end state, wrong first step: it delays coverage of the 163 clean sources |
-| **B. Baseline per source and check** (proposed) | the exceptions file above, 25 entries, shrinking | one new file under a protected path; each entry is a visible debt; a new finding in a listed source still fails | recommended first step |
+| **B. Baseline per source and check** (proposed) | the exceptions file above, 25 entries, shrinking | one new file under a protected path; each entry is a visible debt; a new finding of another check in a listed source still fails; a new finding of an already listed check passes | recommended first step |
 | **C. Switch a check off for everybody** | e.g. `-bugprone-easily-swappable-parameters` or `-bugprone-reserved-identifier` | edits `.clang-tidy` (protected), hides future true findings | not recommended for these checks; `bugprone-reserved-identifier` could take `AllowedIdentifiers` for the `--wrap` names as a reviewed follow-up |
 | **D. Exclude directories** | skip `tests/` | removes 120 of the 150 `host-debug` sources and 60 of the 63 findings | not recommended: tests are where the gap is |
 
@@ -397,7 +396,7 @@ with one diagnostic type (`BRACES`), reuses a pinned upstream tool, and states i
    works here: the exceptions are per check, so a check can be enforced everywhere the day its last
    entry is removed.
 3. **Write the limitation next to the gate.** The generated list covers only what the job's builds
-   compile; the sections below say what it misses.
+   compile; the sections that follow it say what it misses.
 
 ### CI shape and required checks
 
