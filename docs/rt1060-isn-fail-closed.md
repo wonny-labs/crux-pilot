@@ -168,7 +168,7 @@ Two builds of the bench image for `mimxrt1060_evk@B//qspi` from clean detached c
 | The guards in the configure | passed | passed, including the new ones; the manifest records `patched_zephyr.isn_fail_closed` and `CONFIG_NET_TCP_ISN_RFC6528=y` |
 | Flash (`text` + `data`) | 562,212 B (557,864 + 4,348) | **562,296 B** (557,948 + 4,348): **+84 B** |
 | RAM (`data` + `bss`, all SDRAM) | 2,171,998 B (4,348 + 2,167,650) | 2,171,998 B: **unchanged** |
-| `zephyr.bin` SHA-256 | `e9af5b81…` | `5aa5fa23…` (one run of each; the hashes differ from run to run of this evidence only through the throwaway password embedded in the image) |
+| `zephyr.bin` SHA-256 | `e9af5b81…` | `5aa5fa23…` (one run of each; each build embeds its own throwaway password, so these hashes are not comparable with another build's) |
 | Warnings | 4 (wolfSSH `wolfsftp.c`, wolfPSA `psa_key_storage.c`) | the same 4, none in `tcp.c` |
 | C4's scan for the throwaway password | clean | clean |
 | Negative control: the real configure of the after tree on the copy with the TLS patch only | | **refused**: `.crux-isn-fail-closed is missing` ([log](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/copy/control-tls-only-configure.log)) |
