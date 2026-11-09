@@ -31,7 +31,7 @@ python="${CRUX_PYTHON:-python3}"
 # manifest. Build only: no debugger, serial transport, programming or reset.
 export ZEPHYR_BASE="$workspace/zephyr"
 (cd "$workspace" && west build -p always -b "$board" -d "$build" \
-    "$repo/samples/product_template/app" -- -DZEPHYR_EXTRA_MODULES="$repo")
+    "$repo/templates/product/app" -- -DZEPHYR_EXTRA_MODULES="$repo")
 for output in zephyr.bin zephyr.meta; do
     if [[ ! -f "$build/zephyr/$output" ]]; then
         printf 'The product template build did not produce %s.\n' "$output" >&2

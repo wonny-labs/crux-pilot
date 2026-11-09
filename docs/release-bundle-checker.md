@@ -146,7 +146,7 @@ Not ported: the assembler (`assemble_bundle.py`, which imports a budget collecto
 | --- | --- |
 | Whether and how to split the guide's bundle table into public product repositories (hashes only) and private products, see [open question 1](#open-owner-questions) | Owner decision |
 | An assembler that writes this manifest, with no budget import and a required `--target`, adapted from the controller's | Approval |
-| `west crux-pins` output and the build record as bundle items, and a bundle step in `samples/product_template`. The pin report stays an optional item: the checker never requires it, and a product without west leaves it out | Approval |
+| `west crux-pins` output and the build record as bundle items, and a bundle step in `templates/product`. The pin report stays an optional item: the checker never requires it, and a product without west leaves it out | Approval |
 | The controller calls this script by a pinned commit once it is merged, and moves its product fields under `extensions` | The controller's owner. Nothing was posted or changed there |
 | An "included" mode for a private product, if one needs the image inside its bundle | A private product and its own review |
 | Recompute `firmware_identity` from a build directory (the controller's `rebuild_compare.py` is the model) | Approval |

@@ -1,5 +1,7 @@
 # Product template
 
+This template moved from `samples/product_template` to `templates/product` on 9 November 2026. Update a copy or a link that names the old path.
+
 A starting point for a product repository built on Crux. The repository is its own west manifest repository. Crux and Zephyr are projects in its workspace.
 
 No Crux release tag exists yet. The [Product Composition Guide](https://github.com/wonny-labs/crux-pilot/blob/main/docs/product-composition.md) (`docs/product-composition.md` in `crux-pilot`) explains the choices.
@@ -17,7 +19,7 @@ Copy this directory into an empty workspace directory, rename `product-x` in `we
 
 ~~~sh
 mkdir acme-workspace
-cp -R crux-pilot/samples/product_template acme-workspace/product-x
+cp -R crux-pilot/templates/product acme-workspace/product-x
 cd acme-workspace
 git -C product-x init
 git -C product-x add .
