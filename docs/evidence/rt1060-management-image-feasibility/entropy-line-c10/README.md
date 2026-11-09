@@ -6,7 +6,7 @@
 
 | Item | Result |
 | --- | --- |
-| Source of the build | commit `d051ccf564b2` (code identical to the head of the PR: the later commits only rebase onto newer `main` and add this folder), clean, `source_tree_modified: false`, `run_refused: true` in the manifest |
+| Source of the build | commit `d051ccf564b2` (code identical to the head of the PR: the later commits only rebase onto newer `main` and add this folder), clean, `source_tree_modified: false`, `run_refused: true` in the manifest. The head of the PR differs from it in `main.c` by a clang-format 18 reflow of one comment (CI's `host` job flagged the long lines): no code changed, so the build is not repeated |
 | Flash / RAM (`size`) | text 557,864 + data 4,348 B; bss 2,167,650 B. Zephyr's regions: **FLASH 562,232 B (6.70 %)**, **RAM 2,172,076 B (6.47 %)**. `zephyr.bin` 562,232 B |
 | Against row C8's build | **Identical** `size` line to the byte (the move changes call order, not code size): `docs/evidence/rt1060-management-image-feasibility/image-plan-c8/build/size.txt` |
 | Reproducible | **One build is kept** (`build/sha256.txt`; the hashes depend on the throwaway password file, which is deleted). A first build of the same tree, made before the call-order listing was added to `build.sh`, gave a `sha256.txt` that `cmp` found byte-identical; its copy was not kept, so this rests on the author's run and not on a file here |
