@@ -61,8 +61,8 @@ The steps in order, with the one command that each is known by. Tick each step w
 1. [ ] Pin a Crux tag or commit SHA in `west.yml`, and record it below as the Crux revision.
 2. [ ] Run `west crux-pins`, so that a failure does not burn a tag.
 3. [ ] Freeze the manifest with `west manifest --freeze --active-only`, commit the lock on a release branch and tag it.
-4. [ ] In a fresh workspace, initialise from the tagged frozen manifest, run `west update` and run `west crux-pins` again.
-5. [ ] With mirror rewrites off, capture the build inputs with `crux-pilot/scripts/record-build-provenance.py --capture-inputs` and run `west spdx --init`, both before the build.
+4. [ ] In a fresh workspace, initialise from the tagged frozen manifest, run `west update` and run `west crux-pins` again. That first extension command adds `zephyr.base` to `.west/config`, which the build record hashes, so it must come before the capture in step 5. `west config zephyr.base zephyr` writes the same line.
+5. [ ] With mirror rewrites off, capture the build inputs with `crux-pilot/scripts/record-build-provenance.py --capture-inputs` and run `west spdx --init`, both before the build. Leave `.west/config` as it is until step 7.
 6. [ ] Build with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, or record here why another Zephyr release is used on purpose.
 7. [ ] Write the build record with `crux-pilot/scripts/record-build-provenance.py`, using the captured inputs.
 8. [ ] Write the SBOM with `west spdx`, and reduce it before it goes outward.

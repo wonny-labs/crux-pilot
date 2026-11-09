@@ -1,4 +1,5 @@
 """Check the product template: what it declares, then real west on throwaway repositories."""
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from test_crux_pins import git
 
@@ -314,6 +316,16 @@ class GuideTest(unittest.TestCase):
         self.assertIn("west build -b <board> -d product-x/build/app product-x/app -- "
                       "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON\n", GUIDE.read_text())
 
+    def test_release_flow_settles_the_west_configuration_before_the_capture(self):
+        block = guide_commands("--capture-inputs")
+        self.assertLess(block.index("west crux-pins"), block.index("--capture-inputs"))
+        bullet = next((line for line in guide_section("## Release").splitlines()
+                       if line.startswith("- **West configuration.**")), "")
+        for words in (".west/config", "`zephyr.base`", "extension", "before the capture",
+                      "west config zephyr.base zephyr"):
+            with self.subTest(words=words):
+                self.assertIn(words, bullet)
+
 
 def release_text():
     return RELEASE.read_text()
@@ -477,6 +489,17 @@ class ReleaseTemplateTest(unittest.TestCase):
             positions.append(steps.find(marker))
         self.assertEqual(sorted(positions), positions)
         self.assertRegex(steps, r"(?i)mirror rewrites off")
+
+    def test_release_steps_settle_the_west_configuration_before_the_capture(self):
+        steps = release_section("Release steps")
+        order = ["`west crux-pins` again", "`zephyr.base`", "west config zephyr.base zephyr", "--capture-inputs"]
+        positions = []
+        for marker in order:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, steps)
+            positions.append(steps.find(marker))
+        self.assertEqual(sorted(positions), positions)
+        self.assertIn(".west/config", steps)
 
     def test_the_bundle_may_hold_hashes_only_and_a_public_repository_must(self):
         section = release_section("Bundle contents")
@@ -856,6 +879,59 @@ class TemplateWorkspaceTest(unittest.TestCase):
         self.assertFalse(captured["source"]["dirty"], captured["source"]["git_status_counts"])
         commits = {entry["name"]: entry["git_commit"] for entry in captured["west_projects"]}
         self.assertEqual(self.zephyr, commits["zephyr"])
+
+    @staticmethod
+    def recorder():
+        spec = importlib.util.spec_from_file_location(
+            "record_build_provenance", REPO / "scripts/record-build-provenance.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def inputs(self, fresh):
+        """Return the inputs that the build record captures, as its own code computes them."""
+        with mock.patch.dict(os.environ, self.env, clear=True):
+            return self.recorder().workspace_inputs(fresh / "product-x", fresh)
+
+    def accepts(self, captured, fresh):
+        """Run the check that the build record makes between the capture and the record."""
+        with mock.patch.dict(os.environ, self.env, clear=True):
+            self.recorder().require_matching_inputs(captured, self.inputs(fresh))
+
+    def test_west_writes_zephyr_base_at_the_first_extension_command_and_not_before(self):
+        fresh = self.released(self.workspace())
+        config = fresh / ".west/config"
+        self.assertNotIn("[zephyr]", config.read_text())
+        self.west("list", cwd=fresh, check=True)
+        self.assertNotIn("[zephyr]", config.read_text(), "a built-in command must not write it")
+        self.west("crux-pins", cwd=fresh, check=True)
+        self.assertIn("[zephyr]\nbase = zephyr\n", config.read_text())
+
+    def test_a_capture_before_the_first_extension_command_is_refused_at_record_time(self):
+        fresh = self.released(self.workspace())
+        captured = self.inputs(fresh)
+        self.west("crux-pins", cwd=fresh, check=True)
+        with self.assertRaisesRegex(ValueError, "inputs changed during verification"):
+            self.accepts(captured, fresh)
+        changed = self.inputs(fresh)
+        self.assertEqual(["west_workspace_config_sha256"], [key for key in captured if captured[key] != changed[key]])
+
+    def test_a_capture_after_crux_pins_is_accepted_after_a_later_extension_command(self):
+        fresh = self.released(self.workspace())
+        self.west("crux-pins", cwd=fresh, check=True)
+        captured = self.inputs(fresh)
+        self.west("crux-pins", cwd=fresh, check=True)
+        self.accepts(captured, fresh)
+
+    def test_west_config_writes_the_file_that_the_extension_command_writes(self):
+        by_command = self.released(self.workspace())
+        self.west("crux-pins", cwd=by_command, check=True)
+        by_config = self.released(self.workspace())
+        self.west("config", "zephyr.base", "zephyr", cwd=by_config, check=True)
+        captured = self.inputs(by_config)
+        self.west("crux-pins", cwd=by_config, check=True)
+        self.accepts(captured, by_config)
+        self.assertEqual((by_command / ".west/config").read_bytes(), (by_config / ".west/config").read_bytes())
 
     def internal(self, entries, crux_import="      import: true\n", header=""):
         """Return the template manifest with an internal remote and more project entries."""
