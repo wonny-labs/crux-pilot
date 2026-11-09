@@ -155,7 +155,7 @@ Choices for the owner:
 
 #### Applications (proposed)
 
-**Status.** The owner decided the folder `applications/` and the names `io_controller` and `managed_controller` on 9 November 2026. The names and the folder are decided. The definition, the admission conditions and the limit below are proposed text, and like the rest of this section they bind only once adopted. The folder does not exist yet. **The move of `samples/controller` into `applications/io_controller` is not scheduled**, for the reasons in [the status of the move](#status-of-the-move).
+**Status.** The owner decided the folder `applications/` and the names `io_controller` and `managed_controller` on 9 November 2026. The definition, the admission conditions and the limit below are proposed text, and like the rest of this section they bind only once adopted. The folder does not exist yet. **The move of `samples/controller` into `applications/io_controller` is not scheduled**, for the reasons in [the status of the move](#status-of-the-move).
 
 An application is a maintained, integrated image of Crux. A sample shows one capability, one framework or one scenario and makes none of the promises below.
 
