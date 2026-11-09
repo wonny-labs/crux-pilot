@@ -42,6 +42,6 @@ CMake Warning at /ws/zephyr-wolf/CMakeLists.txt:688 (message):
 -- Found gen_kobject_list: /ws/zephyr-wolf/scripts/build/gen_kobject_list.py
 -- Found Python3: /opt/crux-cache/venv/bin/python3 (found version "3.12.3") found components: Interpreter 
 -- Bench manifest: /build/bench_c5/bench-manifest.json (15 sources)
--- Configuring done (64.9s)
--- Generating done (0.7s)
+-- Configuring done (65.1s)
+-- Generating done (0.6s)
 -- Build files have been written to: /build/bench_c5

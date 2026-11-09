@@ -127,7 +127,7 @@
     "CONFIG_NET_MAX_ROUTERS" : "1",
     "CONFIG_NET_SOCKETS_TLS_MAX_CONTEXTS" : "6"
   },
-  "source_commit" : "a47c1590a25253731e6b3d829cc7f372f1e97fec",
+  "source_commit" : "ce2fbaad676490de2372b8e2f923b50d9bb649f1",
   "source_tree_modified" : "true",
   "sources" : 
   [

@@ -47,8 +47,12 @@ The wolfCrypt Hash-DRBG is seeded again each time a generator is made. wolfPSA m
 | wolfPSA `psa_random.c` | A new `wc_InitRng_ex` per call, and any wolfCrypt error becomes a PSA error. `RNG_FAILURE_E` is `PSA_ERROR_INSUFFICIENT_ENTROPY`. | Run: status `-148` on every failed line. |
 | Crux callers (`credential_psa.c`, `tls_certificate_psa.c`, `access_psa.c`, `web_session_psa.c`) | Success only on `PSA_SUCCESS` | Run: all five consumers, and both key types, fail and leave their buffers zero. |
 | `CONFIG_TEST_RANDOM_GENERATOR`, `CONFIG_FAKE_ENTROPY_NATIVE_SIM` | Not present in the bench image. C1's CMake refuses both, and `entropy_boot.c` refuses the first. | Resolved bench configuration: [`entropy-config.txt`](evidence/rt1060-wolf-entropy-c5/bench/entropy-config.txt). |
-| `CONFIG_XOSHIRO_RANDOM_GENERATOR` with `ENTROPY_NEEDS_PRNG` | Zephyr's `sys_rand_get()`. **If the entropy read fails at its seeding it seeds from `k_cycle_get_32()`** (`random_xoshiro128.c`). It does **not** feed wolfCrypt: in the linked bench image its only callers are `tcp_init_isn`, `tcp_derive_rto`, `find_available_port` and `eth_nxp_enet_init`, and `sys_csrand_get` has none. | **Zephyr's own users are weak if the TRNG fails. Not changed here** (Zephyr's code, not a key). The boot refusal stops the image before any connection, but the network stack has already been initialised by then. |
+| `CONFIG_XOSHIRO_RANDOM_GENERATOR` with `ENTROPY_NEEDS_PRNG` (`sys_rand_get`) | Zephyr's general-purpose generator. **If the entropy read fails at its seeding it seeds from `k_cycle_get_32()`** (`random_xoshiro128.c`). It does **not** feed wolfCrypt: in the linked bench image the functions that branch to `z_impl_sys_rand_get` are `eth_nxp_enet_init`, `find_available_port`, `tcp_derive_rto` and `tcp_init_isn` ([call sites](evidence/rt1060-wolf-entropy-c5/bench/call-sites.txt)). | **Zephyr's own users are weak if the TRNG fails. Not changed here** (Zephyr's code, not a key). The boot refusal stops the image before any connection, but the network stack has already been initialised by then. |
+| `sys_csrand_get`, the CSPRNG choice | In the bench's Zephyr copy (v4.4.2 plus the wolfSSL/osp socket patch, which also changes `subsys/random`: `PSA_CSPRNG_GENERATOR` is the default with wolfPSA) the resolved configuration is `CONFIG_PSA_CSPRNG_GENERATOR=y`. `z_impl_sys_csrand_get` (`random_psa.c`) branches to `psa_generate_random`, so it is wolfPSA, then `wc_GenerateSeed`: **it fails closed and returns `-EIO`**. | Fails closed. Its one caller in the image is `tcp_init_isn` (`tcp.c:2390` and `:2425`, `NET_TCP_ISN_RFC6528=y`), which **ignores the return value** and sets its `once` flag: **after a failed read the TCP initial sequence number key stays all zero for the rest of the boot**, so ISNs are predictable. Zephyr's code, not a Crux key, not changed here: see [follow-up](#follow-up). |
 | DTLS Connection ID in `sockets_tls.c` | `sys_csrand_get` or `sys_rand_get` | Not in the image: `CONFIG_NET_SOCKETS_ENABLE_DTLS` is off. |
+
+The call-site scan lists every instruction that branches to a random function, tail calls included (a branch inside the function itself shows as a branch to its own `+offset` and is not a call). It cannot show the read of the entropy driver, which is an indirect call through the driver's function table: that is the `blx r3` in `wc_GenerateSeed`.
+The native_sim test runs on the unpatched pinned Zephyr tree, because it needs no TLS socket backend. The bench image is built on the patched copy, and the patched `subsys/random` is the reason for the `sys_csrand_get` row.
 
 ## The boot line
 
@@ -103,7 +107,7 @@ No guard of C1 was weakened: the CMake, C and Kconfig guards, their mutation scr
 | 7 | Control: no entropy driver, a test generator: **the consumers succeed** (the fallback exists) | Wolf | `native_sim` | Pass, as a control |
 | 8 | Control: the boot check in that composition does not compile, for its reason | Wolf | `native_sim` | Build refused, as designed |
 | 9 | The bench image links with the check wired in, the same three wolfSSH warnings as C1 | Wolf, TRNG driver | `mimxrt1060_evk@B//qspi`, **compile only** | Flash 601,464 B (C1: 601,004 B), RAM 837,932 B |
-| 10 | In the linked bench image `wc_GenerateSeed` calls no `sys_rand_get`, and `sys_rand_get` has four Zephyr network callers | Wolf, TRNG driver | Disassembly of the ELF | [`call-sites.txt`](evidence/rt1060-wolf-entropy-c5/bench/call-sites.txt) |
+| 10 | In the linked bench image `wc_GenerateSeed` makes one call (`device_is_ready`) and one indirect call through the driver's function table (`blx r3`), and no call to `sys_rand_get`. Every branch to `z_impl_sys_rand_get` and `z_impl_sys_csrand_get` is listed. | Wolf, TRNG driver | Disassembly of the ELF | [`call-sites.txt`](evidence/rt1060-wolf-entropy-c5/bench/call-sites.txt), [`wc_GenerateSeed.disasm.txt`](evidence/rt1060-wolf-entropy-c5/bench/wc_GenerateSeed.disasm.txt) |
 | 11 | The order in `main()`, and the check's own rules (no side door, the format, the build refusals) | | Host | 6 tests pass |
 | 12 | C1's guards: 37 of 37 mutants killed, 14 tests | | Host | Pass, unchanged |
 
@@ -135,6 +139,12 @@ It uses the real `access_psa.c`, `credential_psa.c`, `tls_certificate_psa.c` and
 | A TLS handshake or an SSH key exchange with a failing device | See [reseed](#reseed) |
 | Zephyr's own random users on a failed TRNG | See [the table](#every-place-that-could-fall-back): weak, and not changed |
 | That no key is made if `main()` is changed | The order is pinned by a test, which a reviewed change can edit |
+
+## Follow-up
+
+| Item | Why it is not in C5 |
+| --- | --- |
+| `tcp_init_isn` ignores a failed `sys_csrand_get` and keeps a zero key. After a read that fails **after** the boot check passed, TCP initial sequence numbers of the bench image would be predictable. A Zephyr change or a check in the composition would close it. | It is Zephyr's code, and it is not a Crux key. It needs an owner decision on whether to patch the Zephyr copy (a build-local copy as for the TLS patch), and a board run is the only way to see whether a TRNG read fails after a successful start. |
 
 ## Decisions for review
 

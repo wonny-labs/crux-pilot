@@ -32,6 +32,6 @@ CMake Warning at /ws/zephyr/CMakeLists.txt:1081 (message):
   Excluding target from build.
 
 
--- Configuring done (158.8s)
--- Generating done (0.7s)
+-- Configuring done (56.2s)
+-- Generating done (0.1s)
 -- Build files have been written to: /build/wolf-entropy/runtime

@@ -4,9 +4,10 @@ Record of [`docs/rt1060-wolf-entropy.md`](../../rt1060-wolf-entropy.md). `native
 
 | Folder | What it holds |
 | --- | --- |
-| `red/` | The `runtime` image **with the stub boot check** (the test-first step): 3 consumer cases pass (the Wolf profile already fails closed), the 2 boot-check cases fail. Console, resolved entropy configuration, configure and build logs. |
+| `red/` | The `runtime` image **with the stub boot check** (`entropy_boot.stub.c`, the test-first step), run on the **final** test file at the head named in `tested-tree.txt`: 3 consumer cases pass (the Wolf profile already fails closed), the 2 boot-check cases fail. Console, resolved entropy configuration, configure and build logs. `first-red-run/` is the same step on the earlier text of the test, before the control cases were renamed and a comment was rewrapped: its two failing assertions are the same two. |
 | `green/` | The same images with the real boot check: `runtime` (5 of 5), `init-fails` (2 of 2), `fallback` (control, 1 of 1), `guard` (control, build refused). `first-attempt-all-variants-console.txt` is the first run of all four variants, in which the `fallback` control did not configure (see below). |
-| `bench/` | The compile of the bench image for `mimxrt1060_evk@B//qspi` with the check wired in: size, the resolved entropy configuration, the manifest, the entropy symbols, and the call sites in the linked ELF. |
+| `bench/` | The compile of the bench image for `mimxrt1060_evk@B//qspi` with the check wired in: size, the resolved entropy and CSPRNG configuration, the manifest, the call sites in the linked ELF (every branch to a random function, and the calls out of `wc_GenerateSeed` with its disassembly). |
+| `host/` | The Host checks at the tested head: the unit tests (20 pass, including the 37-mutant guard check), the boundary scripts and clang-format. |
 | `commands/` | The container and build commands that ran, with the workspace path replaced. |
 
 ## Attempts that did not count
