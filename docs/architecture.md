@@ -131,7 +131,7 @@ Nothing is moved by this proposal. A rule number refers to the table above.
 
 | Sample | What differs | Rule |
 | --- | --- | --- |
-| `controller` | Follows it: a README, `core/`, `host/` and `zephyr/`. It is the proposed application `io_controller` (see [Applications](#applications-proposed)) and stays here until a move that is not scheduled. | |
+| `controller` | Follows it: a README, `core/`, `host/` and `zephyr/`. It is the application `io_controller` that the owner decided on 9 November 2026 (see [Applications](#applications-proposed)), and it stays here until a move that is not scheduled. | |
 | `web/angular` | Follows it: a README, named by its framework, with the tools it shares in `web/` | |
 | `web/preact` | No README of its own. Its commands and flows are in the [web guide](../web/README.md). | 3 |
 | `networking` | No README. `host/` and `zephyr/` are separate, but both build `client.c` from the sample's root, outside `core/`, and it includes the sockets headers of the qualified profile. | 3, 5 |
@@ -223,7 +223,7 @@ The folder and the names are decided. The move is not, and nothing is moved by t
 | --- | --- | --- |
 | 1 | It waits for the first board run of the S2 image (see the [board image profiles](board-image-profiles.md)) | That run |
 | 2 | Eight files under `scripts/` and `.github/workflows/host.yml` name `samples/controller`, and all of them are protected paths | The owner's explicit approval of those changes. Among them, `scripts/check-native-interfaces.py` already treats `applications` as a portable root, so the Host and Zephyr compositions of a moved application need a deliberate classification, as `samples/controller/host` and `samples/controller/zephyr` have today |
-| 3 | Under `docs/evidence/`, 99 files in 36 folders cite `samples/controller`, as of this revision | They stay unchanged, as retained evidence |
+| 3 | Under `docs/evidence/`, 99 files cite `samples/controller`, as of this revision | They stay unchanged, as retained evidence |
 | 4 | `samples/controller` is the source of the accepted normal board image (the restore image): `scripts/test-controller-integration.sh` builds it from `samples/controller/zephyr`, and the [stage 1 evidence](evidence/networking-physical-stage1/README.md) records it as the normal image for entry and recovery | Proposed: until the move it stays where it is, and its contents are frozen except for fixes. The freeze is part of this proposal, not an owner decision |
 
 ### Current capability integration
