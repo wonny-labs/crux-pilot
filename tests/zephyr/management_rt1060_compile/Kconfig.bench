@@ -35,10 +35,21 @@ config CRUX_BENCH_NO_TIME_SOURCE
 	  Zephyr's realtime clock, which nothing sets. Certificates and events carry boot-relative times.
 
 config CRUX_BENCH_FILE_RAM_DISK
-	bool "RAM disk as the file backend (D2). Reserved for row C3: nothing implements it yet"
+	bool "RAM disk as the file backend (D2)"
+	depends on DISK_DRIVER_RAM && !DISK_DRIVER_SDMMC
 	help
-	  Nothing persists, and no card is touched. Row C3 adds the backend and a mount rule that never
-	  formats a card, and changes this symbol's state in bench_declaration.json to selected.
+	  The file service, the credential store and the events' files live on a RAM disk in SDRAM. Nothing
+	  persists across a reset, and no card is touched: the SD card driver is not in the image. The
+	  composition formats the RAM disk when it mounts blank, and never formats anything else
+	  (src/bench_medium.c).
+
+config CRUX_BENCH_FILE_MICROSD
+	bool "microSD card as the file backend (D2). Reserved for a later run: not selected in this image"
+	depends on DISK_DRIVER_SDMMC && !DISK_DRIVER_RAM
+	help
+	  The existing microSD provider. A later run selects it by changing the state of this form in
+	  bench_declaration.json to selected, with the owner's approval of a card run and the M4 microSD
+	  tools. Even then a mount that fails is reported and the card is never formatted by this image.
 
 config CRUX_BENCH_FIRST_ACCOUNT_FILE
 	bool "First account from a password in a file outside the repository (D3)"

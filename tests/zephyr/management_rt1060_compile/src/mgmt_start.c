@@ -1,12 +1,15 @@
 /* RT1060-EVKB bench image: a copy of
- * tests/native/management_composition/composition/crux_native_management.c with two differences.
+ * tests/native/management_composition/composition/crux_native_management.c with three differences.
  * The TLS credentials: the native file includes the declared test certificate, whose header refuses
  * any build that is not native_sim, so this copy hands the generated certificate and the store's
  * key to the TLS credentials, as docs/tls-certificate.md step 6 says. And the first account: the
  * native file's step uses a password that is public in this repository, so this copy has no such
- * step, and the bench image's first account is bench_first_account.h (D3). Nothing else is
+ * step, and the bench image's first account is bench_first_account.h (D3). And the medium: the
+ * native file formats the disk when the first mount fails, which would format a card, so this copy
+ * mounts through bench_medium.h (D2), which formats a RAM disk and never a card. Nothing else is
  * changed. */
 #include "bench_guard.h"
+#include "bench_medium.h"
 #include "crux_native_management.h"
 #include <crux_tls_certificate_adapter.h>
 
@@ -31,8 +34,7 @@
 #include <zephyr/sys/util.h>
 
 enum { ROOT_SLOT_A = 1, ROOT_SLOT_B = 2, ROOT_FILES = 3 };
-#define MOUNT_POINT "/SD:"
-#define DISK_NAME "SD:"
+#define MOUNT_POINT BENCH_MEDIUM_MOUNT_POINT
 #define PATH_SLOT_A MOUNT_POINT "/secure-a"
 #define PATH_SLOT_B MOUNT_POINT "/secure-b"
 #define PATH_FILES MOUNT_POINT "/files"
@@ -110,13 +112,6 @@ static crux_config_service_entry_t
 /* The image's profile, or NULL for the reference one. Set once, before anything starts. */
 static const crux_native_management_profile_t *profile_in_use;
 
-static FATFS fat;
-static struct fs_mount_t mount = {
-    .type = FS_FATFS,
-    .mnt_point = MOUNT_POINT,
-    .fs_data = &fat,
-    .flags = FS_MOUNT_FLAG_NO_FORMAT,
-};
 static crux_credential_state_t state_at_start = CRUX_CREDENTIAL_STATE_UNUSABLE;
 
 static bool directory_ready(const char *path)
@@ -129,10 +124,8 @@ static bool directory_ready(const char *path)
  * so the store reads UNUSABLE: it still starts, as the contract says. */
 static bool medium_ready(void)
 {
-    if (fs_mount(&mount) != 0) {
-        if (fs_mkfs(FS_FATFS, (uintptr_t)DISK_NAME, NULL, 0) != 0 || fs_mount(&mount) != 0) {
-            return false;
-        }
+    if (!bench_medium_mount()) {
+        return false;
     }
     return directory_ready(PATH_SLOT_A) && directory_ready(PATH_SLOT_B) &&
            crux_file_zephyr_bind_root(ROOT_SLOT_A, PATH_SLOT_A) == CRUX_FILE_OK &&
