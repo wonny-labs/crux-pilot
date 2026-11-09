@@ -32,14 +32,30 @@ def stack(seq, name, size, unused, state="live"):
     return f"BENCH-STACK seq={seq} thread={name} size={size} used={size - unused} unused={unused} state={state}"
 
 
-def report(seq, reason="quiet", http_unused=5000, worker_unused=6000, heap_peak=100000, missed=0, extra=()):
-    rows = [stack(seq, "main", 16384, 2000, "ended"), stack(seq, "http_server_tid", 8192, http_unused),
+POOL_SIZES = {"rx_pkt": 192, "tx_pkt": 32, "rx_buf": 1024, "tx_buf": 768}
+
+
+def pool_rows(seq, peaks=None, sizes=None, omit=(), net="ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=0 tcp_conndrop=0"):
+    """The BENCH-POOL lines (row C6) and the BENCH-NET line of a report, as the image prints them after BENCH-HEAP."""
+    sizes = {**POOL_SIZES, **(sizes or {})}
+    peaks = {"rx_pkt": 20, "tx_pkt": 6, "rx_buf": 150, "tx_buf": 90, **(peaks or {})}
+    rows = [f"BENCH-POOL seq={seq} pool={name} size={sizes[name]} used={min(3, peaks[name])} peak={peaks[name]}"
+            for name in POOL_SIZES if name not in omit]
+    if net is not None:
+        rows.append(f"BENCH-NET seq={seq} {net}")
+    return rows
+
+
+def report(seq, reason="quiet", http_unused=5000, worker_unused=6000, heap_peak=100000, missed=0, extra=(),
+           pools=None, main_unused=2000):
+    rows = [stack(seq, "main", 16384, main_unused, "ended"), stack(seq, "http_server_tid", 8192, http_unused),
             stack(seq, "ssh_listener", 4096, 2900), stack(seq, "ssh_worker", 16384, worker_unused),
             stack(seq, "bench_report", 2048, 1400), *extra]
     heap = f"BENCH-HEAP seq={seq} arena=524288 in_use=90000 peak={heap_peak} free=300000"
-    lines = len(rows) + 1
+    pool = pool_rows(seq, **pools) if pools is not None else []
+    lines = len(rows) + 1 + len(pool)
     return "\n".join([f"BENCH-REPORT v=1 begin seq={seq} reason={reason} uptime_ms={seq * 1000} bursts={seq - 1}",
-                      *rows, heap, f"BENCH-REPORT v=1 end seq={seq} lines={lines} missed={missed}"]) + "\n"
+                      *rows, heap, *pool, f"BENCH-REPORT v=1 end seq={seq} lines={lines} missed={missed}"]) + "\n"
 
 
 def capture(*, cert=FINGERPRINT, reports=None):
@@ -89,6 +105,10 @@ class CCode(unittest.TestCase):
         self.assertIn("2 reports", result.stdout)
         # The sample has 4608 of 8192 B unused at the lowest (4598 after the 10 B step), about 56 percent.
         self.assertIn("http_server_tid", result.stdout)
+        # Row C6: the sample holds the pool and counter lines that the image prints, and the checker judged them.
+        self.assertIn("BENCH-POOL seq=1 pool=rx_buf", sample.stdout)
+        self.assertIn("BENCH-NET seq=2", sample.stdout)
+        self.assertIn("rx_buf", result.stdout)
 
 
 class Grammar(unittest.TestCase):
@@ -238,6 +258,150 @@ class Grammar(unittest.TestCase):
         self.assertEqual((http["size"], http["unused_min"], http["used_max"]), (8192, 5000, 3192))
         self.assertEqual(summary["heap"]["peak_max"], 100000)
         self.assertEqual(summary["certificate"], FINGERPRINT)
+
+
+def manifest_with(folder, **settings):
+    path = Path(folder) / "bench-manifest.json"
+    path.write_text(json.dumps({"settings": {"CONFIG_HTTP_SERVER_STACK_SIZE": "8192",
+                                              "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE": "524288", **settings}}))
+    return path
+
+
+MANIFEST_POOLS = {"CONFIG_NET_PKT_RX_COUNT": "192", "CONFIG_NET_PKT_TX_COUNT": "32", "CONFIG_NET_BUF_RX_COUNT": "1024",
+                  "CONFIG_NET_BUF_TX_COUNT": "768"}
+
+
+class Pools(unittest.TestCase):
+    """Row C6: the network buffer pools' high-water marks and the TCP counters, which a board run reads to confirm or
+    change the sizes of docs/rt1060-bench-network-buffers.md. The numbers here are made up to exercise the rules."""
+
+    def reports(self, **pools):
+        return capture(reports=[report(1, "boot", pools=pools), report(2, "quiet", pools=pools)])
+
+    def test_a_capture_with_pools_passes_and_the_summary_has_them(self):
+        result = run_checker(self.reports(), "--json")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary["pools"]["rx_buf"], {"size": 1024, "peak_max": 150, "peak_percent": 150 / 1024 * 100,
+                                                      "limit_percent": 80})
+        self.assertEqual(set(summary["pools"]), set(POOL_SIZES))
+        self.assertEqual(summary["net"]["tcp_rexmit"], 0)
+        human = run_checker(self.reports())
+        self.assertIn("rx_buf", human.stdout)
+
+    def test_a_pool_peak_over_the_limit_fails_and_the_limit_is_a_parameter(self):
+        # 80 percent of 1024 is 819.2: 819 passes and 820 fails.
+        self.assertEqual(run_checker(self.reports(peaks={"rx_buf": 819})).returncode, 0)
+        over = run_checker(self.reports(peaks={"rx_buf": 820}))
+        self.assertEqual(over.returncode, 1, over.stdout)
+        self.assertIn("rx_buf", over.stdout)
+        self.assertEqual(run_checker(self.reports(peaks={"rx_buf": 820}), "--pool-peak-limit-percent", "90").returncode, 0)
+        for name in POOL_SIZES:
+            full = run_checker(self.reports(peaks={name: POOL_SIZES[name]}))
+            self.assertEqual(full.returncode, 1, f"{name}: {full.stdout}")
+            self.assertIn(name, full.stdout)
+
+    def test_the_pool_limit_is_exact_where_it_is_a_whole_number(self):
+        # 50 percent of 1024 is 512: at the limit passes, one over fails (80 percent of these sizes is never whole).
+        self.assertEqual(run_checker(self.reports(peaks={"rx_buf": 512}), "--pool-peak-limit-percent", "50").returncode, 0)
+        self.assertEqual(run_checker(self.reports(peaks={"rx_buf": 513}), "--pool-peak-limit-percent", "50").returncode, 1)
+
+    def test_a_pool_that_changes_size_between_reports_fails(self):
+        text = capture(reports=[report(1, "boot", pools={}), report(2, "quiet", pools={"sizes": {"rx_buf": 2048}})])
+        result = run_checker(text)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("different sizes", result.stdout)
+
+    def test_two_net_lines_in_a_report_fail(self):
+        doubled = report(1, "boot", pools={}).replace(
+            "BENCH-REPORT v=1 end", "BENCH-NET seq=1 ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=0 tcp_conndrop=0\n"
+            "BENCH-REPORT v=1 end").replace("lines=11", "lines=12")
+        self.assertIn("lines=12", doubled)
+        result = run_checker(capture(reports=[doubled]), "--min-client-reports", "0")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("at most 1", result.stdout)
+
+    def test_the_lowest_pool_headroom_over_all_reports_counts(self):
+        text = capture(reports=[report(1, "boot", pools={}), report(2, "quiet", pools={"peaks": {"tx_buf": 700}}),
+                                report(3, "idle", pools={})])
+        failed = run_checker(text)
+        self.assertEqual(failed.returncode, 1)
+        self.assertIn("tx_buf", failed.stdout)
+
+    def test_pool_sizes_must_match_the_manifest(self):
+        with tempfile.TemporaryDirectory() as folder:
+            manifest = manifest_with(folder, **MANIFEST_POOLS)
+            self.assertEqual(run_checker(self.reports(), "--manifest", str(manifest)).returncode, 0)
+            for symbol in MANIFEST_POOLS:
+                stale = manifest_with(folder, **{**MANIFEST_POOLS, symbol: str(int(MANIFEST_POOLS[symbol]) + 1)})
+                result = run_checker(self.reports(), "--manifest", str(stale))
+                self.assertEqual(result.returncode, 1, f"{symbol}: {result.stdout}")
+                self.assertIn("declares", result.stdout)
+
+    def test_a_manifest_that_declares_pools_needs_pool_lines(self):
+        with tempfile.TemporaryDirectory() as folder:
+            manifest = manifest_with(folder, **MANIFEST_POOLS)
+            result = run_checker(capture(), "--manifest", str(manifest))
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn("BENCH-POOL", result.stdout)
+        # Without a manifest and without the flag, a capture of the image before row C6 is still judged as before.
+        self.assertEqual(run_checker(capture()).returncode, 0)
+        self.assertEqual(run_checker(capture(), "--require-pools").returncode, 1)
+
+    def test_all_four_pools_once_per_report(self):
+        for name in POOL_SIZES:
+            short = capture(reports=[report(1, "boot", pools={"omit": (name,)})])
+            result = run_checker(short, "--min-client-reports", "0")
+            self.assertEqual(result.returncode, 1, f"{name}: {result.stdout}")
+            self.assertIn(name, result.stdout)
+        twice = report(1, "boot", pools={}).replace("BENCH-NET", "BENCH-POOL seq=1 pool=rx_pkt size=192 used=1 peak=2\nBENCH-NET")
+        # The end line is made to count the repeat, so only the rule against a second row can refuse the report.
+        twice = twice.replace("lines=11", "lines=12")
+        self.assertIn("lines=12", twice)
+        result = run_checker(capture(reports=[twice]), "--min-client-reports", "0")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("second row for pool rx_pkt", result.stdout)
+
+    def test_a_pool_row_that_does_not_add_up_fails(self):
+        # A use over the size with a peak that is fine, and a peak over the size: neither may pass on the other's rule.
+        for bad in ("size=192 used=193 peak=20", "size=192 used=1 peak=193", "size=192 used=193 peak=193"):
+            text = capture(reports=[report(1, "boot", pools={})]).replace("size=192 used=3 peak=20", bad, 1)
+            self.assertNotEqual(text, capture(reports=[report(1, "boot", pools={})]))
+            result = run_checker(text, "--min-client-reports", "0")
+            self.assertEqual(result.returncode, 1, f"{bad}: {result.stdout}")
+
+    def test_the_end_line_counts_pool_and_net_lines(self):
+        lines = report(2, "quiet", pools={}).splitlines()
+        del lines[-3]  # one pool line is lost
+        result = run_checker(capture(reports=[report(1, "boot", pools={}), "\n".join(lines) + "\n"]))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("lines", result.stdout)
+
+    def test_counters_warn_and_fail_only_when_strict(self):
+        # main has room here, so --strict has nothing to fail on but the counter.
+        clean = capture(reports=[report(1, "boot", pools={}, main_unused=9000),
+                                 report(2, "quiet", pools={}, main_unused=9000)])
+        self.assertEqual(run_checker(clean, "--strict").returncode, 0)
+        for counter in ("ip_drop", "tcp_drop", "tcp_seg_drop", "tcp_rexmit", "tcp_conndrop"):
+            net = " ".join(f"{name}={3 if name == counter else 0}"
+                           for name in ("ip_drop", "tcp_drop", "tcp_seg_drop", "tcp_rexmit", "tcp_conndrop"))
+            text = capture(reports=[report(1, "boot", pools={}, main_unused=9000),
+                                    report(2, "quiet", pools={"net": net}, main_unused=9000)])
+            warned = run_checker(text)
+            self.assertEqual(warned.returncode, 0, f"{counter}: {warned.stdout}")
+            self.assertIn(f"WARN {counter}", warned.stdout)
+            self.assertEqual(run_checker(text, "--strict").returncode, 1, counter)
+
+    def test_the_counters_are_cumulative_so_the_last_report_is_read(self):
+        text = capture(reports=[report(1, "boot", pools={"net": "ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=0 tcp_conndrop=0"}),
+                                report(2, "quiet", pools={"net": "ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=7 tcp_conndrop=0"}),
+                                report(3, "idle", pools={"net": "ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=7 tcp_conndrop=0"})])
+        result = run_checker(text, "--json")
+        self.assertEqual(json.loads(result.stdout)["net"]["tcp_rexmit"], 7)
+
+    def test_a_malformed_net_line_fails(self):
+        text = capture(reports=[report(1, "boot", pools={})]).replace("tcp_rexmit=0", "tcp_rexmit=x", 1)
+        self.assertEqual(run_checker(text, "--min-client-reports", "0").returncode, 1)
 
 
 class NativeTestcase(unittest.TestCase):

@@ -48,6 +48,13 @@ static void test_lines(void)
         "BENCH-HEAP seq=3 arena=524288 in_use=90000 peak=100448 free=400000");
     CHECK_LINE(bench_report_format_end(buffer, sizeof(buffer), 3u, 17u, 0u),
                "BENCH-REPORT v=1 end seq=3 lines=17 missed=0");
+    /* Row C6: the pools' marks and the TCP counters. */
+    CHECK_LINE(bench_report_format_pool(buffer, sizeof(buffer), 3u, "rx_buf", 1024u, 12u, 212u),
+               "BENCH-POOL seq=3 pool=rx_buf size=1024 used=12 peak=212");
+    CHECK_LINE(bench_report_format_pool(buffer, sizeof(buffer), 3u, "tx_pkt", 32u, 0u, 32u),
+               "BENCH-POOL seq=3 pool=tx_pkt size=32 used=0 peak=32");
+    CHECK_LINE(bench_report_format_net(buffer, sizeof(buffer), 3u, 0u, 1u, 2u, 3u, 4u),
+               "BENCH-NET seq=3 ip_drop=0 tcp_drop=1 tcp_seg_drop=2 tcp_rexmit=3 tcp_conndrop=4");
     CHECK_LINE(bench_report_format_cert(buffer, sizeof(buffer), fingerprint, true),
                "BENCH-CERT v=1 sha256=00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:"
                "00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF source=generated");
@@ -108,6 +115,48 @@ static void test_bounds(void)
     CHECK(bench_report_format_stack(buffer, sizeof(buffer), 1u, "", 100u, 1u, false) == 0u);
     CHECK(bench_report_format_begin(buffer, sizeof(buffer), 1u, (bench_report_reason_t)99, 1u,
                                     1u) == 0u);
+}
+
+static void test_pool_and_net_lines(void)
+{
+    char buffer[BENCH_REPORT_LINE_MAX];
+    char small[16];
+
+    /* The longest line of either kind fits, with the largest numbers. */
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 4294967295u, "tx_buf", 4294967295u,
+                                   4294967295u, 4294967295u) != 0u);
+    CHECK(strlen(buffer) < BENCH_REPORT_LINE_MAX);
+    CHECK(bench_report_format_net(buffer, sizeof(buffer), 4294967295u, 4294967295u, 4294967295u,
+                                  4294967295u, 4294967295u, 4294967295u) != 0u);
+    CHECK(strlen(buffer) < BENCH_REPORT_LINE_MAX);
+    /* A row that does not add up, or a name that is not a pool name, is refused whole. */
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "rx_buf", 100u, 1u, 101u) == 0u);
+    CHECK(buffer[0] == '\0');
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "rx_buf", 100u, 101u, 101u) == 0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "rx_buf", 100u, 101u, 50u) == 0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, NULL, 100u, 1u, 1u) == 0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "", 100u, 1u, 1u) == 0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "RX BUF", 100u, 1u, 1u) == 0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "rx_buf size=1", 100u, 1u, 1u) ==
+          0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "RX_BUF", 100u, 1u, 1u) == 0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "rx-buf", 100u, 1u, 1u) == 0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "rx0buf", 100u, 1u, 1u) == 0u);
+    /* A name of 15 characters is the longest. */
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "abcdefghijklmno", 100u, 1u, 1u) !=
+          0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "abcdefghijklmnop", 100u, 1u, 1u) ==
+          0u);
+    /* At the size is whole, and a pool of size 0 holds nothing. */
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "tx_pkt", 32u, 32u, 32u) != 0u);
+    CHECK(bench_report_format_pool(buffer, sizeof(buffer), 1u, "tx_pkt", 0u, 0u, 0u) != 0u);
+    /* A buffer that is too small gives 0 and an empty string. */
+    memset(small, 'x', sizeof(small));
+    CHECK(bench_report_format_pool(small, sizeof(small), 1u, "rx_buf", 100u, 1u, 1u) == 0u);
+    CHECK(small[0] == '\0');
+    CHECK(bench_report_format_net(small, sizeof(small), 1u, 0u, 0u, 0u, 0u, 0u) == 0u);
+    CHECK(small[0] == '\0');
+    CHECK(bench_report_format_net(NULL, 100u, 1u, 0u, 0u, 0u, 0u, 0u) == 0u);
 }
 
 static void test_certificate_text(void)
@@ -322,6 +371,17 @@ static void print_sample(void)
                                  300000u);
         puts(line);
         lines++;
+        bench_report_format_pool(line, sizeof(line), seq, "rx_pkt", 192u, 3u, 20u * seq);
+        puts(line);
+        bench_report_format_pool(line, sizeof(line), seq, "tx_pkt", 32u, 0u, 6u * seq);
+        puts(line);
+        bench_report_format_pool(line, sizeof(line), seq, "rx_buf", 1024u, 12u, 150u * seq);
+        puts(line);
+        bench_report_format_pool(line, sizeof(line), seq, "tx_buf", 768u, 0u, 90u * seq);
+        puts(line);
+        bench_report_format_net(line, sizeof(line), seq, 0u, 0u, 0u, seq - 1u, 0u);
+        puts(line);
+        lines += 5u;
         bench_report_format_end(line, sizeof(line), seq, lines, 0u);
         puts(line);
     }
@@ -336,6 +396,7 @@ int main(int argc, char **argv)
     test_lines();
     test_longest_line_fits();
     test_bounds();
+    test_pool_and_net_lines();
     test_certificate_text();
     test_names();
     test_policy();

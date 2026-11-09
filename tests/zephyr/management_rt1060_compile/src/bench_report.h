@@ -18,8 +18,8 @@
  */
 bool crux_bench_report_certificate(bool generated);
 
-/** Starts the thread that prints the stack and heap lines at boot, after each client and at idle.
- */
+/** Starts the thread that prints the stack, heap, network pool and counter lines at boot, after
+ * each client and at idle. */
 bool crux_bench_report_start(void);
 
 /**

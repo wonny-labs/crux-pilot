@@ -99,7 +99,7 @@ class Tree:
 # ---- CMake level -----------------------------------------------------------------------------------------------
 
 
-def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=None, states=None):
+def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=None, states=None, edits=None):
     """A stand-in for the build-local Zephyr copy, and a declaration copy that names its hash."""
     patch = tree.declaration["patched_zephyr"]
     base = Path(directory) / "zephyr"
@@ -110,6 +110,8 @@ def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=N
     if marker is not False:
         (base / patch["marker_file"]).write_text(marker or f"{pin} {patch['patch_sha256']}\n")
     declaration = declared_with(tree, states)
+    for (section, key), value in (edits or {}).items():
+        declaration[section][key] = value
     declaration["patched_zephyr"]["patched_file_sha256"] = hashlib.sha256(patched_text.encode()).hexdigest()
     declared = Path(directory) / "declaration.json"
     declared.write_text(json.dumps(declaration))
@@ -130,6 +132,64 @@ def backend_settings(declaration):
     if forms["microsd_card"]["state"] == "selected":
         return {"CONFIG_CRUX_FILE_FATFS_RT1060": "y", "CONFIG_DISK_DRIVER_SDMMC": "y"}
     return {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": "y", "CONFIG_DISK_DRIVER_RAM": "y"}
+
+
+# The settings that the buffer and heap rule of row C6 reads (bench_guard.cmake, step 10). They come from the real
+# target.conf, so that the control also shows that the image's own configuration meets the rule.
+BUFFER_SETTINGS = ("NET_BUF_DATA_SIZE", "NET_BUF_RX_COUNT", "NET_BUF_TX_COUNT", "NET_PKT_RX_COUNT",
+                   "NET_PKT_TX_COUNT", "NET_TCP_MAX_RECV_WINDOW_SIZE", "NET_TCP_MAX_SEND_WINDOW_SIZE",
+                   "ETH_NXP_ENET_RX_BUFFERS", "CRUX_SSH_MAX_CONNECTIONS", "HTTP_SERVER_MAX_CLIENTS",
+                   "CRUX_SSH_WINDOW_BYTES", "COMMON_LIBC_MALLOC_ARENA_SIZE")
+
+
+def target_conf_values():
+    """CONFIG_ settings of target.conf, by name without the prefix. The mutants change the guards and not this file."""
+    values = {}
+    for line in (HERE / "target.conf").read_text().splitlines():
+        match = re.match(r"^CONFIG_([A-Z0-9_]+)=(.*)$", line)
+        if match:
+            values[match.group(1)] = match.group(2).strip('"')
+    return values
+
+
+def ceil_div(numerator, denominator):
+    return -(-numerator // denominator)
+
+
+def buffer_needs(declaration, values):
+    """What the declared load needs, with the rule of row C6 written again here, apart from bench_guard.cmake.
+
+    Network: a connection holds at most one window of received data that its application has not read, each segment
+    in its own packet, and the driver's ring may hold frames beside. Every pool is the load plus a margin."""
+    b = declaration["network_buffers"]
+    h = declaration["heap"]
+    data = int(values["NET_BUF_DATA_SIZE"])
+    ssh = int(values["CRUX_SSH_MAX_CONNECTIONS"])
+    http = int(values["HTTP_SERVER_MAX_CLIENTS"])
+    ring = int(values["ETH_NXP_ENET_RX_BUFFERS"])
+    window = b["window_segments"] * b["mss_bytes"]
+    frame_bufs = ceil_div(b["frame_bytes"], data)
+    served = ssh + http
+    connections = served + b["backlog_connections"]
+    typical_segments = ceil_div(window, b["typical_segment_bytes"])
+    typical_bufs = ceil_div(b["typical_segment_bytes"] + b["segment_header_bytes"], data)
+    held_bufs = max(b["window_segments"] * frame_bufs, typical_segments * typical_bufs)
+    held_pkts = max(b["window_segments"], typical_segments)
+    senders = ssh + 1 + b["sender_threads_beyond_slots"]
+    margin = b["margin_percent"]
+    ssh_each = max(h["ssh_connection_floor_bytes"], 2 * int(values["CRUX_SSH_WINDOW_BYTES"]) + h["ssh_window_extra_bytes"])
+    tls_each = 2 * (h["tls_record_bytes"] + h["tls_record_overhead_bytes"]) + h["tls_connection_object_bytes"]
+    paper_peak = ssh * ssh_each + http * tls_each + h["tls_handshake_bytes"] + h["other_users_bytes"]
+    return {
+        "window": window,
+        "ring_min": b["window_segments"] + b["ring_spare_frames"],
+        "rx_bufs": ceil_div(margin * (connections * held_bufs + ring * frame_bufs), 100),
+        "tx_bufs": ceil_div(margin * (served * ceil_div(window, data) + senders * b["copies_per_sender"] * frame_bufs), 100),
+        "rx_pkts": ceil_div(margin * (connections * held_pkts + ring), 100),
+        "tx_pkts": ceil_div(margin * senders * b["copies_per_sender"], 100),
+        "paper_peak": paper_peak,
+        "arena": ceil_div(paper_peak * 100, h["paper_peak_limit_percent"]),
+    }
 
 
 def good_cmake_settings(tree, declaration=None):
@@ -158,6 +218,9 @@ def good_cmake_settings(tree, declaration=None):
         if form["state"] == "selected":
             settings[f"CONFIG_{form['symbol']}"] = "y"
     settings.update(backend_settings(declaration))
+    values = target_conf_values()
+    for name in BUFFER_SETTINGS:
+        settings[f"CONFIG_{name}"] = values.get(name, "")
     return settings
 
 
@@ -237,6 +300,7 @@ def cmake_cases(tree):
          {"DECLARATION_STATES": {"ram_disk": "reserved", "microsd_card": "selected"},
           "CONFIG_DISK_DRIVER_RAM": "y"}, "has no RAM disk"),
     ]
+    cases.extend(buffer_cases(tree))
     for name, form in tree.declaration["test_forms"].items():
         symbol = f"CONFIG_{form['symbol']}"
         if form["state"] == "selected":
@@ -250,6 +314,113 @@ def cmake_cases(tree):
         ("a Zephyr copy with another patch", {"ZEPHYR_BASE_BROKEN": "file"}, "is not the build-local Zephyr copy"),
     ])
     return cases
+
+
+def buffer_cases(tree):
+    """Row C6: the buffers, the windows and the arena must meet the declared load. A pool one below its need is
+    refused and the need itself is accepted, so that a changed formula is seen on both sides of the line."""
+    values = target_conf_values()
+    needs = buffer_needs(tree.declaration, values)
+    cases = []
+    for name in BUFFER_SETTINGS:
+        cases.append((f"{name} not set", {f"CONFIG_{name}": None}, "is not set to a number"))
+        cases.append((f"{name} not a number", {f"CONFIG_{name}": "auto"}, "is not set to a number"))
+    cases += [
+        ("the receive window left to Zephyr (0)", {"CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE": "0"},
+         "receive window must be the declared"),
+        ("a receive window one byte over the declared", {"CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE": str(needs["window"] + 1)},
+         "receive window must be the declared"),
+        ("a receive window one byte under the declared", {"CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE": str(needs["window"] - 1)},
+         "receive window must be the declared"),
+        ("the send window left to Zephyr (0)", {"CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE": "0"},
+         "send window must be the declared"),
+        ("a send window of 8 segments", {"CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE": str(8 * 1460)},
+         "send window must be the declared"),
+        ("a driver ring one frame short of the window and its spare frames",
+         {"CONFIG_ETH_NXP_ENET_RX_BUFFERS": str(needs["ring_min"] - 1)}, "receive ring"),
+    ]
+    # Pools: at the need accepted (the good settings below are the real ones, which are above), one under refused.
+    for label, symbol, need, reason in (
+            ("the receive data buffers", "NET_BUF_RX_COUNT", needs["rx_bufs"], "NET_BUF_RX_COUNT"),
+            ("the transmit data buffers", "NET_BUF_TX_COUNT", needs["tx_bufs"], "NET_BUF_TX_COUNT"),
+            ("the receive packets", "NET_PKT_RX_COUNT", needs["rx_pkts"], "NET_PKT_RX_COUNT"),
+            ("the transmit packets", "NET_PKT_TX_COUNT", needs["tx_pkts"], "NET_PKT_TX_COUNT"),
+            ("the arena", "COMMON_LIBC_MALLOC_ARENA_SIZE", needs["arena"], "COMMON_LIBC_MALLOC_ARENA_SIZE")):
+        cases.append((f"{label} one under the need ({need - 1})", {f"CONFIG_{symbol}": str(need - 1)},
+                      f"CONFIG_{reason} {need - 1} is under the {need}"))
+    edited = copy_declaration_edit(tree, {("network_buffers", "margin_percent"): 130,
+                                          ("heap", "paper_peak_limit_percent"): 60})
+    rounded = buffer_needs(edited, values)
+    for symbol, key in (("NET_BUF_RX_COUNT", "rx_bufs"), ("NET_BUF_TX_COUNT", "tx_bufs"),
+                        ("NET_PKT_RX_COUNT", "rx_pkts"), ("NET_PKT_TX_COUNT", "tx_pkts"),
+                        ("COMMON_LIBC_MALLOC_ARENA_SIZE", "arena")):
+        cases.append((f"a 130 percent margin and a 60 percent paper peak, {symbol} one under its need",
+                      {f"CONFIG_{symbol}": str(rounded[key] - 1), "DECLARATION_EDITS": {
+                          ("network_buffers", "margin_percent"): 130, ("heap", "paper_peak_limit_percent"): 60}},
+                      f"CONFIG_{symbol} {rounded[key] - 1} is under the {rounded[key]}"))
+    cases.append(("a count with letters after its digits", {"CONFIG_NET_BUF_RX_COUNT": "1024k"}, "is not set to a number"))
+    # The load is read from the session sizes of D9: more connections or a bigger SSH window raise every need. The
+    # pools have headroom over the need of the declared sizes, so the raise that trips them is larger than one.
+    cases += [
+        ("eight SSH connections, the pools as they are", {"CONFIG_CRUX_SSH_MAX_CONNECTIONS": "8"},
+         "CONFIG_NET_BUF_RX_COUNT"),
+        ("eight HTTPS clients, the pools as they are", {"CONFIG_HTTP_SERVER_MAX_CLIENTS": "8"},
+         "CONFIG_NET_BUF_RX_COUNT"),
+        ("a 128 KiB SSH window, the arena as it is", {"CONFIG_CRUX_SSH_WINDOW_BYTES": "131072"},
+         "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE"),
+        ("a data buffer of 64 B, the counts as they are", {"CONFIG_NET_BUF_DATA_SIZE": "64"}, "is under the"),
+    ]
+    return cases
+
+
+def copy_declaration_edit(tree, edits):
+    declaration = json.loads(json.dumps(tree.declaration))
+    for (section, key), value in edits.items():
+        declaration[section][key] = value
+    return declaration
+
+
+def buffer_controls(tree):
+    """Row C6, the other side of the line: each pool and the arena exactly at its need is accepted, and so is a
+    configuration with 256 B data buffers whose counts are exactly the (smaller) need of that size. A guard that
+    refused the need itself, or that ignored the size of a buffer, fails here."""
+    values = target_conf_values()
+    needs = buffer_needs(tree.declaration, values)
+    controls = [
+        ("every pool and the arena exactly at its need", {
+            "CONFIG_NET_BUF_RX_COUNT": str(needs["rx_bufs"]), "CONFIG_NET_BUF_TX_COUNT": str(needs["tx_bufs"]),
+            "CONFIG_NET_PKT_RX_COUNT": str(needs["rx_pkts"]), "CONFIG_NET_PKT_TX_COUNT": str(needs["tx_pkts"]),
+            "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE": str(needs["arena"]),
+            "CONFIG_ETH_NXP_ENET_RX_BUFFERS": str(needs["ring_min"])}),
+    ]
+    for data in ("256", "64"):
+        sized = dict(values, NET_BUF_DATA_SIZE=data)
+        small = buffer_needs(tree.declaration, sized)
+        controls.append((f"{data} B data buffers with the counts exactly at their need for that size", {
+            "CONFIG_NET_BUF_DATA_SIZE": data, "CONFIG_NET_BUF_RX_COUNT": str(small["rx_bufs"]),
+            "CONFIG_NET_BUF_TX_COUNT": str(small["tx_bufs"]), "CONFIG_NET_PKT_RX_COUNT": str(small["rx_pkts"]),
+            "CONFIG_NET_PKT_TX_COUNT": str(small["tx_pkts"])}))
+    # A declaration with another margin and another paper-peak share, so that the needs have fractions and the rounding
+    # up is seen: the declared 125 and 50 percent give whole numbers at every size above.
+    edited = copy_declaration_edit(tree, {("network_buffers", "margin_percent"): 130,
+                                          ("heap", "paper_peak_limit_percent"): 60})
+    rounded = buffer_needs(edited, values)
+    controls.append(("a declaration of a 130 percent margin and a 60 percent paper peak, exactly at its needs", {
+        "CONFIG_NET_BUF_RX_COUNT": str(rounded["rx_bufs"]), "CONFIG_NET_BUF_TX_COUNT": str(rounded["tx_bufs"]),
+        "CONFIG_NET_PKT_RX_COUNT": str(rounded["rx_pkts"]), "CONFIG_NET_PKT_TX_COUNT": str(rounded["tx_pkts"]),
+        "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE": str(rounded["arena"]),
+        "DECLARATION_EDITS": {("network_buffers", "margin_percent"): 130, ("heap", "paper_peak_limit_percent"): 60}}))
+    # Bigger windows of SSH and bigger sessions: the needs are those of the raised sizes, and exactly them is accepted.
+    for ssh, http, window in (("6", "5", "32768"), ("2", "1", "8192")):
+        sized = dict(values, CRUX_SSH_MAX_CONNECTIONS=ssh, HTTP_SERVER_MAX_CLIENTS=http, CRUX_SSH_WINDOW_BYTES=window)
+        more = buffer_needs(tree.declaration, sized)
+        controls.append((f"{ssh} SSH connections, {http} HTTPS clients and an SSH window of {window} B, exactly at their need", {
+            "CONFIG_CRUX_SSH_MAX_CONNECTIONS": ssh, "CONFIG_HTTP_SERVER_MAX_CLIENTS": http,
+            "CONFIG_CRUX_SSH_WINDOW_BYTES": window, "CONFIG_NET_BUF_RX_COUNT": str(more["rx_bufs"]),
+            "CONFIG_NET_BUF_TX_COUNT": str(more["tx_bufs"]), "CONFIG_NET_PKT_RX_COUNT": str(more["rx_pkts"]),
+            "CONFIG_NET_PKT_TX_COUNT": str(more["tx_pkts"]),
+            "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE": str(more["arena"])}))
+    return controls
 
 
 def run_cmake(tree, settings, zephyr_base, declaration):
@@ -294,6 +465,18 @@ def check_cmake(tree):
         if under_card.returncode == 0 or "is declared selected" not in squeeze(under_card.stderr):
             failures.append("bench_guard.cmake accepted the RAM disk settings under the microSD state: "
                             f"{squeeze(under_card.stderr)}")
+        for index, (name, change) in enumerate(buffer_controls(tree)):
+            control_dir = Path(scratch) / f"buffer-control{index}"
+            control_dir.mkdir()
+            edits = change.get("DECLARATION_EDITS")
+            zephyr, declaration = make_zephyr_base(tree, control_dir, edits=edits)
+            result = run_cmake(tree, dict(good_cmake_settings(tree),
+                                          **{k: v for k, v in change.items() if k != "DECLARATION_EDITS"}),
+                               zephyr, declaration)
+            if result.returncode != 0 or "bench guard passed" not in result.stderr + result.stdout:
+                failures.append(f"bench_guard.cmake refused {name}: {squeeze(result.stderr)}")
+            else:
+                TRANSCRIPT.append(("CMake", f"control: {name}", "accepted"))
         for index, (name, change, reason) in enumerate(cmake_cases(tree)):
             states = change.get("DECLARATION_STATES")
             settings = good_cmake_settings(tree, declared_with(tree, states))
@@ -311,9 +494,10 @@ def check_cmake(tree):
                 zephyr, declaration = make_zephyr_base(tree, case_dir)
                 (zephyr / tree.declaration["patched_zephyr"]["patched_file"]).write_text("another file")
             else:
-                zephyr, declaration = make_zephyr_base(tree, case_dir, states=states)
+                zephyr, declaration = make_zephyr_base(tree, case_dir, states=states,
+                                                       edits=change.get("DECLARATION_EDITS"))
             for key, value in change.items():
-                if key in ("ZEPHYR_BASE_BROKEN", "DECLARATION_STATES"):
+                if key in ("ZEPHYR_BASE_BROKEN", "DECLARATION_STATES", "DECLARATION_EDITS"):
                     continue
                 if value is None:
                     settings.pop(key, None)
@@ -699,7 +883,10 @@ def check_kconfig(tree, kconfiglib):
 
 
 def copy_tree(source_root, destination):
-    for name in ("bench_declaration.json", "bench_guard.cmake", "Kconfig.bench"):
+    # ram_disk.overlay is read by crux_bench_manifest(), so a copy without it fails check_manifest() whatever the
+    # mutant is, and every CMake mutant would then be "killed" for that reason and not for its own. Found in row C6:
+    # since row C3 the CMake group of mutants was vacuous.
+    for name in ("bench_declaration.json", "bench_guard.cmake", "Kconfig.bench", "ram_disk.overlay"):
         shutil.copy(Path(source_root) / name, destination / name)
     shutil.copytree(Path(source_root) / "src", destination / "src")
     shutil.copytree(Path(source_root) / "first_account", destination / "first_account")
@@ -713,6 +900,65 @@ def replace_nth(text, needle, replacement, n):
     return text[:at] + replacement + text[at + len(needle):]
 
 
+# The rule of row C6 in bench_guard.cmake with one term of its arithmetic or one comparison changed. Each must be seen
+# by a case of check_cmake: the one-under cases and the controls at the need, which come from the Python rule.
+ARITHMETIC_MUTANTS = (
+    ("the receive buffers take no margin", 'math(EXPR rx_bufs "(${margin} * (', 'math(EXPR rx_bufs "(100 * ('),
+    ("the receive buffers leave out the driver's ring", "${connections} * ${held_bufs} + ${ring} * ${frame_bufs}",
+     "${connections} * ${held_bufs}"),
+    ("the receive buffers are not rounded up", "${ring} * ${frame_bufs}) + 99) / 100", "${ring} * ${frame_bufs}) + 0) / 100"),
+    ("the backlog is left out of the connections", 'math(EXPR connections "${served} + ${BENCH_NB_BACKLOG_CONNECTIONS}")',
+     'math(EXPR connections "${served}")'),
+    ("a connection holds full frames only, never the typical segments", "if(typical_window_bufs GREATER held_bufs)", "if(0)"),
+    ("a connection holds as many packets as full frames only", "if(typical_segments GREATER held_pkts)", "if(0)"),
+    ("a frame is 12 buffers whatever the buffer size", 'math(EXPR frame_bufs "(${BENCH_NB_FRAME_BYTES} + ${data} - 1) / ${data}")',
+     'math(EXPR frame_bufs "12")'),
+    ("a typical segment is 5 buffers whatever the buffer size",
+     'math(EXPR typical_bufs "(${BENCH_NB_TYPICAL_SEGMENT_BYTES} + ${BENCH_NB_SEGMENT_HEADER_BYTES} + ${data} - 1) / ${data}")',
+     'math(EXPR typical_bufs "5")'),
+    ("the transmit buffers leave out the senders' copies",
+     "${senders} * ${BENCH_NB_COPIES_PER_SENDER} * ${frame_bufs}) + 99) / 100", "0) + 99) / 100"),
+    ("the transmit buffers leave out the queued windows", "(${margin} * (${served} * ${window_data_bufs} +",
+     "(${margin} * (0 +"),
+    ("the HTTP server thread is not a sender", 'math(EXPR senders "${ssh} + 1 + ${BENCH_NB_SENDER_THREADS_BEYOND_SLOTS}")',
+     'math(EXPR senders "${ssh} + ${BENCH_NB_SENDER_THREADS_BEYOND_SLOTS}")'),
+    ("the receive packets leave out the ring", "(${margin} * (${connections} * ${held_pkts} + ${ring}) + 99) / 100",
+     "(${margin} * (${connections} * ${held_pkts}) + 99) / 100"),
+    ("the transmit packets take no margin", 'math(EXPR tx_pkts "(${margin} * ${senders}', 'math(EXPR tx_pkts "(100 * ${senders}'),
+    ("the ring needs no spare frames", 'math(EXPR ring_min "${BENCH_NB_WINDOW_SEGMENTS} + ${BENCH_NB_RING_SPARE_FRAMES}")',
+     'math(EXPR ring_min "${BENCH_NB_WINDOW_SEGMENTS}")'),
+    ("the window is one segment", 'math(EXPR window "${BENCH_NB_WINDOW_SEGMENTS} * ${BENCH_NB_MSS_BYTES}")',
+     'math(EXPR window "${BENCH_NB_MSS_BYTES}")'),
+    ("an SSH connection never costs less than the floor is ignored", "if(BENCH_HEAP_SSH_CONNECTION_FLOOR_BYTES GREATER ssh_each)",
+     "if(0)"),
+    ("an SSH connection costs the floor whatever its window", 'math(EXPR ssh_each "2 * ${CONFIG_CRUX_SSH_WINDOW_BYTES} + ${BENCH_HEAP_SSH_WINDOW_EXTRA_BYTES}")',
+     'math(EXPR ssh_each "0")'),
+    ("a TLS connection holds one record buffer", 'math(EXPR tls_each "2 * (${BENCH_HEAP_TLS_RECORD_BYTES}',
+     'math(EXPR tls_each "1 * (${BENCH_HEAP_TLS_RECORD_BYTES}'),
+    ("the handshake is not counted", "${http} * ${tls_each} + ${BENCH_HEAP_TLS_HANDSHAKE_BYTES} +", "${http} * ${tls_each} +"),
+    ("the other users are not counted", "+ ${BENCH_HEAP_OTHER_USERS_BYTES}\")", '+ 0")'),
+    ("the arena is the paper peak itself",
+     'math(EXPR arena "(${paper_peak} * 100 + ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT} - 1) / ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT}")',
+     'math(EXPR arena "${paper_peak}")'),
+    ("the arena is not rounded up", "${paper_peak} * 100 + ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT} - 1)", "${paper_peak} * 100 + 0)"),
+    ("the receive buffers are refused only above their need", "if(CONFIG_NET_BUF_RX_COUNT LESS BENCH_NEED_RX_BUFS)",
+     "if(CONFIG_NET_BUF_RX_COUNT LESS_EQUAL BENCH_NEED_RX_BUFS)"),
+    ("the transmit buffers are refused only above their need", "if(CONFIG_NET_BUF_TX_COUNT LESS BENCH_NEED_TX_BUFS)",
+     "if(CONFIG_NET_BUF_TX_COUNT LESS_EQUAL BENCH_NEED_TX_BUFS)"),
+    ("the receive packets are refused only above their need", "if(CONFIG_NET_PKT_RX_COUNT LESS BENCH_NEED_RX_PKTS)",
+     "if(CONFIG_NET_PKT_RX_COUNT LESS_EQUAL BENCH_NEED_RX_PKTS)"),
+    ("the transmit packets are refused only above their need", "if(CONFIG_NET_PKT_TX_COUNT LESS BENCH_NEED_TX_PKTS)",
+     "if(CONFIG_NET_PKT_TX_COUNT LESS_EQUAL BENCH_NEED_TX_PKTS)"),
+    ("the arena is refused only above its need", "if(CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE LESS BENCH_NEED_ARENA)",
+     "if(CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE LESS_EQUAL BENCH_NEED_ARENA)"),
+    ("the ring is refused only above its need", "if(CONFIG_ETH_NXP_ENET_RX_BUFFERS LESS BENCH_NEED_RING)",
+     "if(CONFIG_ETH_NXP_ENET_RX_BUFFERS LESS_EQUAL BENCH_NEED_RING)"),
+    ("a pool over its need is refused", "if(CONFIG_NET_BUF_RX_COUNT LESS BENCH_NEED_RX_BUFS)",
+     "if(CONFIG_NET_BUF_RX_COUNT GREATER BENCH_NEED_RX_BUFS)"),
+    ("a number is accepted with letters after it", 'MATCHES "^[0-9]+$")', 'MATCHES "^[0-9]+")'),
+)
+
+
 def mutants(root):
     """Yield (description, relative file, mutated text, group). Each weakens one guard."""
     root = Path(root)
@@ -722,6 +968,9 @@ def mutants(root):
         line = cmake[:[m.start() for m in re.finditer(re.escape("message(FATAL_ERROR"), cmake)][index]].count("\n") + 1
         yield (f"bench_guard.cmake: the refusal at line {line} only logs", "bench_guard.cmake",
                replace_nth(cmake, "message(FATAL_ERROR", "message(STATUS", index), "cmake")
+    for description, old_text, new_text in ARITHMETIC_MUTANTS:
+        mutated = cmake.replace(old_text, new_text, 1) if old_text in cmake else None
+        yield (f"bench_guard.cmake, row C6 rule: {description}", "bench_guard.cmake", mutated, "cmake")
     header = (root / "src" / "bench_guard.h").read_text()
     directives = [m.start() for m in re.finditer(r"^#error", header, re.MULTILINE)]
     for index, at in enumerate(directives):
