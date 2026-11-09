@@ -79,7 +79,7 @@ The chosen counts are the next round number above the need (1,024 and 768 are po
 | 1,460 B | 48 | 600 | yes | 50 | yes |
 | 1,024 B | 54 | 666 | yes | 72 | yes |
 | 512 B (the rule) | 60 | 732 | yes, 25 % over it at 915 | 138 | yes, 25 % over it at 173 |
-| 365 B | 60 | 732 | yes | 182 | yes (the limit) |
+| 365 B | 64 | 776 | yes | 182 | yes (the limit) |
 | 256 B | 69 | 831 | yes | 259 | **no** |
 | 192 B | 62 | 754 | yes | 347 | **no** |
 | 128 B | 92 | 1,084 | **no, 6 % short** | 512 | **no** |
