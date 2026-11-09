@@ -1,0 +1,17 @@
+mainmenu "Wolf profile entropy failure test"
+
+source "Kconfig.zephyr"
+
+config CRUX_TEST_ENTROPY
+	bool "Entropy device for tests, whose reads can be made to fail"
+	default y
+	depends on DT_HAS_CRUX_TEST_ENTROPY_ENABLED
+	select ENTROPY_HAS_DRIVER
+	# As the RT1060 TRNG driver does, so that Zephyr's own generator is seeded from this device too.
+	select ENTROPY_NEEDS_PRNG
+	help
+	  A test-only driver. It is not a source of entropy.
+
+config CRUX_TEST_ENTROPY_INIT_FAILS
+	bool "The device fails to initialise, so it is not ready (as a TRNG that does not start)"
+	depends on CRUX_TEST_ENTROPY

@@ -1,0 +1,15 @@
+== caller of wc_InitRsaKey and wc_MakeRsaKey, flags: []
+exit 0
+== caller of wc_InitRsaKey and wc_MakeRsaKey, flags: [-DNO_RSA]
+exit 1
+call_rsa.c:6:5: error: use of undeclared identifier 'RsaKey'
+call_rsa.c:8:11: error: call to undeclared function 'wc_InitRsaKey'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+call_rsa.c:8:26: error: use of undeclared identifier 'key'
+== defined symbols of rsa.c, flags: []
+73 defined symbols
+  e.g. CalcDX
+  e.g. ConstantCompare
+  e.g. ForceZero
+== defined symbols of rsa.c, flags: [-DNO_RSA]
+1 defined symbols
+  e.g. ltmp0

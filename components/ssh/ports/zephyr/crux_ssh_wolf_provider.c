@@ -218,6 +218,55 @@ __attribute__((noinline)) static size_t stack_probe_used(const uint8_t *base)
 #define STACK_PROBE_RECORD(peak)
 #endif
 
+#if defined(CONFIG_CRUX_SSH_STACK_REPORT)
+/*
+ * The lowest unused stack of the workers that have ended, kept as unused + 1 so that 0 means none.
+ * A worker's stack is painted again when its slot starts the next connection, so a live read after
+ * the fact would show the newest session and not the deepest. The scan is one pass over the stack.
+ */
+static atomic_t worker_unused_min_plus_one;
+static atomic_t worker_stack_size;
+
+static void record_worker_stack(void)
+{
+    size_t unused = 0;
+    struct k_thread *self = k_current_get();
+
+    if (k_thread_stack_space_get(self, &unused) != 0) {
+        return;
+    }
+    atomic_val_t candidate = (atomic_val_t)unused + 1;
+    for (;;) {
+        atomic_val_t seen = atomic_get(&worker_unused_min_plus_one);
+
+        if (seen != 0 && seen <= candidate) {
+            break;
+        }
+        if (atomic_cas(&worker_unused_min_plus_one, seen, candidate)) {
+            atomic_set(&worker_stack_size, (atomic_val_t)self->stack_info.size);
+            break;
+        }
+    }
+}
+
+bool crux_ssh_wolf_worker_stack_ended(size_t *size, size_t *unused_min)
+{
+    atomic_val_t seen = atomic_get(&worker_unused_min_plus_one);
+
+    if (seen == 0 || size == NULL || unused_min == NULL) {
+        return false;
+    }
+    *size = (size_t)atomic_get(&worker_stack_size);
+    *unused_min = (size_t)(seen - 1);
+    return true;
+}
+#define STACK_REPORT_RECORD() record_worker_stack()
+#define STACK_REPORT_NAME(thread, name) ((void)k_thread_name_set((thread), (name)))
+#else
+#define STACK_REPORT_RECORD()
+#define STACK_REPORT_NAME(thread, name)
+#endif
+
 /* ---- Socket callbacks. Non-blocking, so that wolfSSH hands back to the worker. ---- */
 
 static int io_result(void)
@@ -833,6 +882,7 @@ static void connection_thread(void *first, void *second, void *third)
     wolfSSH_free(connection->ssh);
     connection->ssh = NULL;
     STACK_PROBE_RECORD(server.worker_stack_used);
+    STACK_REPORT_RECORD();
     /* The slot is free before the client can see the close, so it can connect again at once. */
     atomic_set(&connection->state, SLOT_FINISHED);
     (void)zsock_close(connection->socket);
@@ -954,6 +1004,7 @@ static void start_connection(int socket, const struct net_sockaddr_storage *addr
     (void)k_thread_create(&connection->thread, worker_stacks[index],
                           K_THREAD_STACK_SIZEOF(worker_stacks[index]), connection_thread,
                           connection, NULL, NULL, CRUX_SSH_WOLF_THREAD_PRIORITY, 0, K_NO_WAIT);
+    STACK_REPORT_NAME(&connection->thread, "ssh_worker");
 }
 
 static void listener_thread(void *first, void *second, void *third)
@@ -1107,7 +1158,7 @@ static bool create_context(const crux_ssh_config_t *config)
            load_host_key(config);
 }
 
-static bool open_listener(uint16_t port)
+static bool open_listener(uint16_t port, const char *bind_address)
 {
     static const int enable = 1;
     struct net_sockaddr_in address = {
@@ -1116,6 +1167,11 @@ static bool open_listener(uint16_t port)
         .sin_addr = NET_INADDR_ANY_INIT,
     };
 
+    /* A mistyped address must not widen the listener to every address. */
+    if (bind_address != NULL &&
+        zsock_inet_pton(NET_AF_INET, bind_address, &address.sin_addr) != 1) {
+        return false;
+    }
     server.listener_socket = zsock_socket(NET_AF_INET, NET_SOCK_STREAM, NET_IPPROTO_TCP);
     if (server.listener_socket < 0) {
         return false;
@@ -1171,7 +1227,7 @@ static crux_status_t provider_start(const crux_ssh_config_t *config,
         status = CRUX_ERR_INVALID_STATE;
     } else if (wolfSSH_Init() != WS_SUCCESS) {
         status = CRUX_ERR_IO;
-    } else if (!create_context(config) || !open_listener(config->port)) {
+    } else if (!create_context(config) || !open_listener(config->port, config->bind_address)) {
         free_context();
         status = CRUX_ERR_IO;
     } else {
@@ -1187,6 +1243,7 @@ static crux_status_t provider_start(const crux_ssh_config_t *config,
         (void)k_thread_create(&server.listener, listener_stack,
                               K_THREAD_STACK_SIZEOF(listener_stack), listener_thread, NULL, NULL,
                               NULL, CRUX_SSH_WOLF_THREAD_PRIORITY, 0, K_NO_WAIT);
+        STACK_REPORT_NAME(&server.listener, "ssh_listener");
         server.started = true;
     }
     (void)k_mutex_unlock(&server_lock);

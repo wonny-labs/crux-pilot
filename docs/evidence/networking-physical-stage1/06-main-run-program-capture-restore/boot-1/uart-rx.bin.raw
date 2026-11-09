@@ -1,0 +1,11 @@
+*** Booting Zephyr OS build v4.4.2 ***
+M5_BOOT source=3ef758d710d4
+M5 ARM token=527584622 at=1797
+M5 READY token=527584622 seq=1 ticket=3116041037 at=1800
+M5 LINK token=527584622 seq=0 at=1810 link=1 admin=1 address=1 ipv4=3232255234
+M5 LINK token=527584622 seq=1 at=3821 link=2 admin=1 address=1 ipv4=3232255234
+M5 IDLE token=527584622 seq=1 checkpoint=0 at=3038 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=3328 observer_free=1784
+M5 IDLE token=527584622 seq=1 checkpoint=0 at=4040 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=3312 observer_free=1784
+M5 IDLE token=527584622 seq=1 checkpoint=0 at=5040 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=3312 observer_free=1784
+M5 DONE token=527584622 seq=1 at=5075
+M5 READY token=527584622 seq=2 ticket=4230674951 at=5079

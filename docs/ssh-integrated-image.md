@@ -165,6 +165,10 @@ the form in any other build, at three levels:
 The guards were each broken on purpose: turning the C `#error` into a warning, and removing the CMake test-image check, failed
 `check_ssh_guard.py` with "not refused", and the restored files pass. The script needs only `cmake` and `cc`, so it runs on any host.
 
+**This declaration is for `native_sim` only and was not changed for a board.** A second, distinct declaration, `CRUX_MANAGEMENT_BENCH_IMAGE`, covers the integrated image on the
+RT1060-EVKB rev B bench, with its own guards at the same three levels and its own host script, and no native image can set it. It lives in
+`tests/zephyr/management_rt1060_compile` and is described in the [RT1060 report](rt1060-management-image-feasibility.md#stage-2-row-c1-the-bench-composition).
+
 ## What the tests run
 
 `scripts/test-ssh-integrated.sh` builds the image on a patched copy of Zephyr (`prepare-wolf-tls-zephyr.sh`) and `driver.py` runs it. The
@@ -341,7 +345,7 @@ The driver's `case_sessions_across_channels` shows the account cap across channe
 | --- | --- |
 | `composition.cmake` builds `app` with `-Werror`, and the wolfSSH module adds its sources to `app` | The first build stopped on wolfSSH's own unused parameters. `crux_ssh_wolf_settings()` gives those files `-Wno-error` under `CONFIG_CRUX_SSH`: [decision 3](#decisions-for-review) |
 | An unsatisfied Kconfig dependency only warns | `CONFIG_CRUX_SSH=y` fell to `n` on `NET_TCP` and the build went on with no SSH, until the composition's check stopped it: [decision 2](#decisions-for-review) |
-| The SSH listener binds every IPv4 address, and the HTTPS listener the IPv6 any address, which is dual-stack, so that IPv4 reaches it too (read from `/proc/net/tcp` and `tcp6`) | On a device both would answer on every interface. Which interface a management listener may use is a product choice that no setting here makes. The "only the declared listeners" check of #197 needs a device and its addresses. |
+| The SSH listener binds every IPv4 address, and the HTTPS listener the IPv6 any address, which is dual-stack, so that IPv4 reaches it too (read from `/proc/net/tcp` and `tcp6`) | On a device both would answer on every interface. Which interface a management listener may use is a product choice that no setting here makes. The "only the declared listeners" check of #197 needs a device and its addresses. Since the RT1060 bench image (row C1) the composition can ask for one address: `CONFIG_CRUX_SSH_BIND_ADDRESS` and `CONFIG_CRUX_WEB_BIND_ADDRESS`, both empty here, so this image is unchanged. |
 | With `CONFIG_MBEDTLS=y`, the `mbedtls` module's own CMake fails first when `tf-psa-crypto` is not on the module path | The Mbed control then stops for the module's reason and not ours, so the script puts both in the module list, as a west workspace with the group does |
 | With one `-seed`, every blank disk generates the same host key | Known from [#192](ssh-wolf-provider.md#findings). The demonstration uses one seed. |
 | An abandoned web session holds a shared slot until its idle limit | [Session limits](#session-limits-when-both-listeners-are-busy) |

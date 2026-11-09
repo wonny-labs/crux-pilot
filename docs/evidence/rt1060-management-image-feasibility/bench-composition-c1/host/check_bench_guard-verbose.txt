@@ -1,0 +1,97 @@
+  refused  CMake no declaration: This build is not a declared RT1060-EVKB bench image: set CRUX_MANAGEMENT_BENCH_IMAGE only in the bench image, tests/zephyr/management_rt1060_compile
+  refused  CMake a native test image's declaration only: This build is not a declared RT1060-EVKB bench image: set CRUX_MANAGEMENT_BENCH_IMAGE only in the bench image, tests/zephyr/management_rt1060_compile
+  refused  CMake native_sim: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
+  refused  CMake another board: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
+  refused  CMake another target of this board: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
+  refused  CMake revision A: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
+  refused  CMake no Kconfig declaration: The Kconfig declaration CONFIG_CRUX_MANAGEMENT_BENCH_IMAGE is not set
+  refused  CMake a test random generator: The bench image draws its random values from the PSA provider over the TRNG driver: CONFIG_ENTROPY_MCUX_TRNG is required, and a test random generator and fake entropy are refused
+  refused  CMake fake entropy: The bench image draws its random values from the PSA provider over the TRNG driver: CONFIG_ENTROPY_MCUX_TRNG is required, and a test random generator and fake entropy are refused
+  refused  CMake no TRNG driver: The bench image draws its random values from the PSA provider over the TRNG driver: CONFIG_ENTROPY_MCUX_TRNG is required, and a test random generator and fake entropy are refused
+  refused  CMake no wolfPSA: The bench image needs the Wolf profile: CONFIG_WOLFPSA, and no Mbed TLS
+  refused  CMake the Mbed profile: The bench image needs the Wolf profile: CONFIG_WOLFPSA, and no Mbed TLS
+  refused  CMake the Mbed PSA provider: The bench image needs the Wolf profile: CONFIG_WOLFPSA, and no Mbed TLS
+  refused  CMake no SSH: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake no command line: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake no SFTP: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake no web: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake plain HTTP: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake no Crux Logging: The security events write to Crux Logging: CONFIG_CRUX_LOGGING is required
+  refused  CMake DHCP: The bench image has the static bench address 192.168.77.2 only: DHCP, IPv6 and automatic address configuration are refused
+  refused  CMake IPv6: The bench image has the static bench address 192.168.77.2 only: DHCP, IPv6 and automatic address configuration are refused
+  refused  CMake automatic address configuration: The bench image has the static bench address 192.168.77.2 only: DHCP, IPv6 and automatic address configuration are refused
+  refused  CMake HTTPS on every address: The HTTPS listener must listen on the bench address only: CONFIG_CRUX_WEB_BIND_ADDRESS="192.168.77.2"
+  refused  CMake HTTPS on 0.0.0.0: The HTTPS listener must listen on the bench address only: CONFIG_CRUX_WEB_BIND_ADDRESS="192.168.77.2"
+  refused  CMake HTTPS on another address: The HTTPS listener must listen on the bench address only: CONFIG_CRUX_WEB_BIND_ADDRESS="192.168.77.2"
+  refused  CMake SSH on every address: The SSH listener must listen on the bench address only: CONFIG_CRUX_SSH_BIND_ADDRESS="192.168.77.2"
+  refused  CMake SSH on 0.0.0.0: The SSH listener must listen on the bench address only: CONFIG_CRUX_SSH_BIND_ADDRESS="192.168.77.2"
+  refused  CMake SSH on the peer's address: The SSH listener must listen on the bench address only: CONFIG_CRUX_SSH_BIND_ADDRESS="192.168.77.2"
+  refused  CMake another HTTPS port: The listener ports are the declared ones: HTTPS 443, SSH 22
+  refused  CMake another SSH port: The listener ports are the declared ones: HTTPS 443, SSH 22
+  refused  CMake a time source: The bench image has no time source (D7): CONFIG_RTC is refused
+  refused  CMake mkfs on mount: A mount never formats a card: CONFIG_FS_FATFS_MOUNT_MKFS is refused
+  refused  CMake an unknown bench test form: CONFIG_CRUX_BENCH_INVENTED_FORM is a bench test form that bench_declaration.json does not list
+  refused  CMake the test form test_host_key not set: The test form test_host_key (D5) is declared selected, and CONFIG_CRUX_BENCH_TEST_HOST_KEY is not set
+  refused  CMake the test form no_time_source not set: The test form no_time_source (D7) is declared selected, and CONFIG_CRUX_BENCH_NO_TIME_SOURCE is not set
+  refused  CMake the reserved test form ram_disk set: The test form ram_disk (D2) is reserved and nothing implements it: CONFIG_CRUX_BENCH_FILE_RAM_DISK is refused until its row changes the declaration
+  refused  CMake the reserved test form first_account_file set: The test form first_account_file (D3) is reserved and nothing implements it: CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE is refused until its row changes the declaration
+  refused  CMake no build-local Zephyr copy: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch (scripts/prepare-wolf-tls-zephyr.sh): .crux-wolf-tls is missing
+  refused  CMake a marker without the patched file: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch (scripts/prepare-wolf-tls-zephyr.sh): .crux-wolf-tls is missing
+  refused  CMake a Zephyr copy on another pin: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch that the declaration names (zephyr-tls-4.4.1.patch on dccb09599635bdff17633fa7e9dab014b91dce90)
+  refused  CMake a Zephyr copy with another patch: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch that the declaration names (zephyr-tls-4.4.1.patch on dccb09599635bdff17633fa7e9dab014b91dce90)
+  refused  C     no CMake declaration: "A bench test form reaches a build that CMake did not declare as the RT1060-EVKB bench image"
+  refused  C     no Kconfig declaration: "A bench test form reaches a build whose Kconfig does not declare the RT1060-EVKB bench image"
+  refused  C     native_sim: "The bench image is restricted to RT1060-EVKB revision B, QSPI"
+  refused  C     another board: "The bench image is restricted to RT1060-EVKB revision B, QSPI"
+  refused  C     another revision: "The bench image is restricted to RT1060-EVKB revision B, QSPI"
+  refused  C     a test random generator: "The bench image draws its random values from the PSA provider over the TRNG driver"
+  refused  C     fake entropy: "The bench image draws its random values from the PSA provider over the TRNG driver"
+  refused  C     no TRNG driver: "The bench image draws its random values from the PSA provider over the TRNG driver"
+  refused  C     no bench address: "The bench declaration did not reach the compiler: address, netmask and image identity"
+  refused  C     no bench netmask: "The bench declaration did not reach the compiler: address, netmask and image identity"
+  refused  C     no image identity: "The bench declaration did not reach the compiler: address, netmask and image identity"
+  refused  C     no HTTPS bind address: "The bench image sets both listener bind addresses"
+  refused  C     no SSH bind address: "The bench image sets both listener bind addresses"
+  refused  C     HTTPS on every address: static assertion failed due to requirement '__builtin_strcmp("", "192.168.77.2") == 0': The HTTPS listener must listen on the bench address only
+  refused  C     HTTPS on another address: static assertion failed due to requirement '__builtin_strcmp("192.168.77.3", "192.168.77.2") == 0': The HTTPS listener must listen on the bench address only
+  refused  C     SSH on every address: static assertion failed due to requirement '__builtin_strcmp("", "192.168.77.2") == 0': The SSH listener must listen on the bench address only
+  refused  C     SSH on 0.0.0.0: static assertion failed due to requirement '__builtin_strcmp("0.0.0.0", "192.168.77.2") == 0': The SSH listener must listen on the bench address only
+  killed   bench_guard.cmake: the refusal at line 60 only logs
+  killed   bench_guard.cmake: the refusal at line 68 only logs
+  killed   bench_guard.cmake: the refusal at line 73 only logs
+  killed   bench_guard.cmake: the refusal at line 77 only logs
+  killed   bench_guard.cmake: the refusal at line 83 only logs
+  killed   bench_guard.cmake: the refusal at line 87 only logs
+  killed   bench_guard.cmake: the refusal at line 90 only logs
+  killed   bench_guard.cmake: the refusal at line 94 only logs
+  killed   bench_guard.cmake: the refusal at line 98 only logs
+  killed   bench_guard.cmake: the refusal at line 102 only logs
+  killed   bench_guard.cmake: the refusal at line 107 only logs
+  killed   bench_guard.cmake: the refusal at line 112 only logs
+  killed   bench_guard.cmake: the refusal at line 115 only logs
+  killed   bench_guard.cmake: the refusal at line 127 only logs
+  killed   bench_guard.cmake: the refusal at line 131 only logs
+  killed   bench_guard.cmake: the refusal at line 139 only logs
+  killed   bench_guard.cmake: the refusal at line 146 only logs
+  killed   bench_guard.cmake: the refusal at line 154 only logs
+  killed   bench_guard.h: the #error at line 16 only warns
+  killed   bench_guard.h: the #error at line 19 only warns
+  killed   bench_guard.h: the #error at line 24 only warns
+  killed   bench_guard.h: the #error at line 28 only warns
+  killed   bench_guard.h: the #error at line 31 only warns
+  killed   bench_guard.h: the #error at line 37 only warns
+  killed   bench_guard.h: static assertion 1 always holds
+  killed   bench_guard.h: static assertion 2 always holds
+  killed   bench_first_account.c: the include of bench_guard.h is removed
+  killed   main.c: the include of bench_guard.h is removed
+  killed   mgmt_services.c: the include of bench_guard.h is removed
+  killed   mgmt_start.c: the include of bench_guard.h is removed
+  killed   ssh_target.c: the include of bench_guard.h is removed
+  killed   ssh_target.c: the test host key form #error only warns
+  killed   Kconfig.bench: line 10 (depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION = "B") is removed
+  killed   Kconfig.bench: line 11 (depends on ENTROPY_MCUX_TRNG && !TEST_RANDOM_GENERATOR && !FAKE_ENTROPY_NATIVE_SIM) is removed
+  killed   Kconfig.bench: line 12 (depends on !NET_DHCPV4 && !NET_IPV6) is removed
+  killed   Kconfig.bench: line 33 (depends on !RTC) is removed
+  killed   Kconfig.bench: the block that puts the test forms under the declaration is removed
+CMake: ok; C: ok; Kconfig: ok; mutants: 37 of 37 killed
+control ok: the bench image refuses every build that is not the declared RT1060-EVKB bench, in CMake, in C and in Kconfig

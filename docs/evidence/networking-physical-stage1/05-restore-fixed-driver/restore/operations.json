@@ -1,0 +1,46 @@
+[
+  {
+    "step": "01-identity-only",
+    "commands": "q\n",
+    "state": "checks",
+    "monotonic": 130121.518632
+  },
+  {
+    "step": "01-identity-only",
+    "state": "done",
+    "monotonic": 130122.964224
+  },
+  {
+    "step": "02-load-normal",
+    "commands": "loadfile \"<artifacts>/normal-ec94fbe/build/zephyr/zephyr.bin\", 0x60000000\nverifybin \"<artifacts>/normal-ec94fbe/build/zephyr/zephyr.bin\", 0x60000000\nq\n",
+    "state": "checks",
+    "monotonic": 130122.964441
+  },
+  {
+    "step": "02-load-normal",
+    "state": "done",
+    "monotonic": 130129.709182
+  },
+  {
+    "step": "03-verify-normal",
+    "commands": "verifybin \"<artifacts>/normal-ec94fbe/build/zephyr/zephyr.bin\", 0x60000000\nq\n",
+    "state": "checks",
+    "monotonic": 130129.710137
+  },
+  {
+    "step": "03-verify-normal",
+    "state": "done",
+    "monotonic": 130134.759156
+  },
+  {
+    "step": "04-start-normal",
+    "commands": "r\ng\nq\n",
+    "state": "checks",
+    "monotonic": 130134.876937
+  },
+  {
+    "step": "04-start-normal",
+    "state": "done",
+    "monotonic": 130136.496405
+  }
+]

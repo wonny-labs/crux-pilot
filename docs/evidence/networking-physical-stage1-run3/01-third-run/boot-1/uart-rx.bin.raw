@@ -1,0 +1,161 @@
+*** Booting Zephyr OS build v4.4.2 ***
+M5_BOOT source=94a4a7da879f
+M5 ARM token=671604249 at=1783
+M5 READY token=671604249 seq=1 ticket=511197147 at=1786
+M5 LINK token=671604249 seq=0 at=1810 link=1 admin=1 address=1 ipv4=3232255234
+M5 LINK token=671604249 seq=1 at=3821 link=2 admin=1 address=1 ipv4=3232255234
+M5 IDLE token=671604249 seq=1 checkpoint=0 at=3023 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=3328 observer_free=1784
+M5 IDLE token=671604249 seq=1 checkpoint=0 at=4023 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=3320 observer_free=1784
+M5 IDLE token=671604249 seq=1 checkpoint=0 at=5023 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=3312 observer_free=1784
+M5 DONE token=671604249 seq=1 at=5058
+M5 READY token=671604249 seq=2 ticket=1318255939 at=5062
+M5 BEGIN token=671604249 seq=2 round=0 udp=0 at=6927
+M5 END token=671604249 seq=2 round=0 udp=0 at=6937 result=0 entered=6932 functional=6937 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=0 at=6947 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=0 at=7947 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=0 at=8947 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=0 udp=1 at=8983
+M5 END token=671604249 seq=2 round=0 udp=1 at=8989 result=0 entered=8987 functional=8989 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=1 at=8999 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=1 at=9999 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=1 at=10999 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=1 udp=0 at=11035
+M5 END token=671604249 seq=2 round=1 udp=0 at=11044 result=0 entered=11039 functional=11044 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=2 at=11055 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=2 at=12055 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=2 at=13055 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=1 udp=1 at=13086
+M5 END token=671604249 seq=2 round=1 udp=1 at=13093 result=0 entered=13091 functional=13093 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=3 at=13103 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=3 at=14103 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=3 at=15103 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=2 udp=0 at=15139
+M5 END token=671604249 seq=2 round=2 udp=0 at=15152 result=0 entered=15144 functional=15152 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=4 at=15163 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=4 at=16163 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=4 at=17163 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=2 udp=1 at=17199
+M5 END token=671604249 seq=2 round=2 udp=1 at=17205 result=0 entered=17203 functional=17205 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=5 at=17216 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=5 at=18216 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=5 at=19216 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=3 udp=0 at=19247
+M5 END token=671604249 seq=2 round=3 udp=0 at=19257 result=0 entered=19252 functional=19257 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=6 at=19268 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=6 at=20268 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=6 at=21268 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=3 udp=1 at=21304
+M5 END token=671604249 seq=2 round=3 udp=1 at=21310 result=0 entered=21309 functional=21310 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=7 at=21321 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=7 at=22321 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=7 at=23321 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=4 udp=0 at=23330
+M5 END token=671604249 seq=2 round=4 udp=0 at=23339 result=0 entered=23335 functional=23339 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=8 at=23350 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=8 at=24350 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=8 at=25350 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=4 udp=1 at=25386
+M5 END token=671604249 seq=2 round=4 udp=1 at=25393 result=0 entered=25390 functional=25393 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=9 at=25403 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=9 at=26403 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=9 at=27403 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=5 udp=0 at=27435
+M5 END token=671604249 seq=2 round=5 udp=0 at=27444 result=0 entered=27439 functional=27444 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=10 at=27455 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=10 at=28455 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=10 at=29465 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=5 udp=1 at=29501
+M5 END token=671604249 seq=2 round=5 udp=1 at=29508 result=0 entered=29505 functional=29508 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=11 at=29518 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=11 at=30518 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=11 at=31518 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=6 udp=0 at=31554
+M5 END token=671604249 seq=2 round=6 udp=0 at=31564 result=0 entered=31559 functional=31564 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=12 at=31575 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=12 at=32575 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=12 at=33575 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=6 udp=1 at=33606
+M5 END token=671604249 seq=2 round=6 udp=1 at=33618 result=0 entered=33611 functional=33618 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=13 at=33628 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=13 at=34628 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=13 at=35628 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=7 udp=0 at=35664
+M5 END token=671604249 seq=2 round=7 udp=0 at=35686 result=0 entered=35669 functional=35686 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=14 at=35696 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=14 at=36696 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=14 at=37696 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=7 udp=1 at=37732
+M5 END token=671604249 seq=2 round=7 udp=1 at=37739 result=0 entered=37737 functional=37739 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=15 at=37749 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=15 at=38749 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=15 at=39749 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=8 udp=0 at=39785
+M5 END token=671604249 seq=2 round=8 udp=0 at=39795 result=0 entered=39790 functional=39795 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=16 at=39805 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=16 at=40805 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=16 at=41805 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=8 udp=1 at=41837
+M5 END token=671604249 seq=2 round=8 udp=1 at=41844 result=0 entered=41842 functional=41844 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=17 at=41855 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=17 at=42855 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=17 at=43855 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=9 udp=0 at=43891
+M5 END token=671604249 seq=2 round=9 udp=0 at=43901 result=0 entered=43896 functional=43901 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=18 at=43912 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=18 at=44912 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=18 at=45912 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=2 round=9 udp=1 at=45943
+M5 END token=671604249 seq=2 round=9 udp=1 at=45951 result=0 entered=45948 functional=45951 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=2 checkpoint=19 at=45961 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=19 at=46961 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=2 checkpoint=19 at=47961 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 DONE token=671604249 seq=2 at=47997
+M5 READY token=671604249 seq=3 ticket=3693782408 at=48001
+M5 BEGIN token=671604249 seq=3 round=0 udp=0 at=49524
+M5 END token=671604249 seq=3 round=0 udp=0 at=51529 result=-116 entered=49529 functional=51529 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=3 checkpoint=0 at=53045 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=3 checkpoint=0 at=54045 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=3 checkpoint=0 at=55045 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=3 round=0 udp=1 at=55075
+M5 END token=671604249 seq=3 round=0 udp=1 at=57080 result=-116 entered=55080 functional=57080 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=3 checkpoint=1 at=57087 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=3 checkpoint=1 at=58087 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=3 checkpoint=1 at=59087 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 DONE token=671604249 seq=3 at=59119
+M5 READY token=671604249 seq=4 ticket=1935615288 at=59122
+M5 BEGIN token=671604249 seq=4 round=0 udp=0 at=60520
+M5 END token=671604249 seq=4 round=0 udp=0 at=60529 result=0 entered=60525 functional=60529 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=4 checkpoint=0 at=60540 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=4 checkpoint=0 at=61540 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=4 checkpoint=0 at=62540 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=4 round=0 udp=1 at=62571
+M5 END token=671604249 seq=4 round=0 udp=1 at=62578 result=0 entered=62576 functional=62578 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=4 checkpoint=1 at=62589 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=4 checkpoint=1 at=63589 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=4 checkpoint=1 at=64589 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 DONE token=671604249 seq=4 at=64625
+M5 READY token=671604249 seq=5 ticket=523383631 at=64628
+M5 BEGIN token=671604249 seq=5 round=0 udp=0 at=65917
+M5 END token=671604249 seq=5 round=0 udp=0 at=65926 result=-104 entered=65921 functional=65926 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=5 checkpoint=0 at=65936 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=5 checkpoint=0 at=66936 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=5 checkpoint=0 at=67936 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=5 round=0 udp=1 at=67967
+M5 END token=671604249 seq=5 round=0 udp=1 at=67978 result=0 entered=67972 functional=67978 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=5 checkpoint=1 at=67989 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=5 checkpoint=1 at=68989 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=5 checkpoint=1 at=69989 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 DONE token=671604249 seq=5 at=70025
+M5 READY token=671604249 seq=6 ticket=1478225767 at=70028
+M5 BEGIN token=671604249 seq=6 round=0 udp=0 at=71335
+M5 END token=671604249 seq=6 round=0 udp=0 at=71346 result=0 entered=71340 functional=71345 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=6 checkpoint=0 at=71356 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=6 checkpoint=0 at=72356 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=6 checkpoint=0 at=73356 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 BEGIN token=671604249 seq=6 round=0 udp=1 at=73381
+M5 END token=671604249 seq=6 round=0 udp=1 at=73387 result=0 entered=73385 functional=73387 close_error=0 peak=1 owned=0
+M5 IDLE token=671604249 seq=6 checkpoint=1 at=73398 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=6 checkpoint=1 at=74398 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 IDLE token=671604249 seq=6 checkpoint=1 at=75398 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=2752 observer_free=1784
+M5 DONE token=671604249 seq=6 at=75429
+M5 READY token=671604249 seq=7 ticket=43448067 at=75432

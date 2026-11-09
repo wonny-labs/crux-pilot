@@ -1,0 +1,1 @@
+-rwxr-xr-x 1 root root 562232 Nov  9 05:49 /build/after/zephyr/zephyr.bin

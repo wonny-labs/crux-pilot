@@ -1,0 +1,64 @@
+{
+  "status": "Measured in a local build of the crux-controller S2 image. Nothing here ran on a board.",
+  "image": {
+    "bytes": 103180,
+    "sha256": "e7c588c79c31d113ef3b0464731f17dfb4cc453874831b8bc20f9dd7da55b56c",
+    "firmware_identity": "8493243091295c6d9ec305b6e5b097df738ee226550394a5ab0fdac388f73164",
+    "firmware_identity_algorithm": "crux-firmware-identity-v1",
+    "firmware_identity_target": "mimxrt1060_evk@B//qspi",
+    "commit_tag_in_binary": false
+  },
+  "config": {
+    "file": "s2.config",
+    "form": "normalised the way scripts/record-build-provenance.py normalises a .config: comments (they name build workspace paths) and blank lines dropped, 'is not set' lines kept",
+    "normalised_sha256": "a29370d40ecaee1d62a31efef11f16740137cf685e734793221944a2a0f11aed",
+    "resolved_config_sha256": "2674df3f0e3b5a5b53083fe5665bef6e9cf144734906733c9ecab257298aa43b"
+  },
+  "source": {
+    "repository": "crux-controller",
+    "image_source_commit": "5250b07bf418c6f44bc417fa2addd4a96ea2e6e8",
+    "main_at_measurement": "f03dc79"
+  },
+  "west": {
+    "manifest_path": "crux-controller",
+    "pins": {
+      "zephyr": ["zephyr", "dccb09599635bdff17633fa7e9dab014b91dce90"],
+      "cmsis": ["modules/hal/cmsis", "512cc7e895e8491696b61f7ba8066b4a182569b8"],
+      "cmsis_6": ["modules/hal/cmsis_6", "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74"],
+      "hal_nxp": ["modules/hal/nxp", "7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0"]
+    },
+    "build_modules": {
+      "crux-pilot": ["crux-pilot", "db5adca28bd313caaf3899e959920fac4d508699"],
+      "picolibc": ["modules/lib/picolibc", "01254932e8e81085817ed61fd858648584ffe37c"],
+      "fatfs": ["modules/fs/fatfs", "f4ead3bf4a6dab3a07d7b5f5315795c073db568d"],
+      "littlefs": ["modules/fs/littlefs", "8f5ca347843363882619d8f96c00d8dbd88a8e79"]
+    },
+    "pin_updates": {
+      "crux-pilot": {
+        "from": "db5adca28bd313caaf3899e959920fac4d508699",
+        "to": "37c92b18b44b7dfb95c2109f036f23d00f05cb4c",
+        "product_commit": "c36f00c1ca6da08ac8559b7a1260f0d133b141d4",
+        "manifest_diff_between_the_two_pins": "empty",
+        "unchanged_pins": "zephyr, cmsis, cmsis_6, hal_nxp, fatfs, littlefs; picolibc is pinned at 01254932e8e81085817ed61fd858648584ffe37c by the product manifest, as before",
+        "image_identity": "reported unchanged by the product session; not recomputed here",
+        "note": "build_modules above records the measured build of image_source_commit and is kept as history. The S2 profile expects the 'to' pin."
+      }
+    },
+    "module_selection": "west module discovery; the build lists these seven projects (and not a -DZEPHYR_MODULES list) as its modules"
+  },
+  "measured_symbols_bytes": {
+    "note": "Read from the ELF by the crux-controller session. The ELF is internal; this repository has not seen it.",
+    "z_main_stack": 4160,
+    "worker_stacks": 33024,
+    "m5_observer": null
+  },
+  "network": {
+    "ipv4": "192.168.77.2/24",
+    "peer": "192.168.77.1:42420",
+    "gateway": null,
+    "dhcp": false,
+    "mdio_correction": false,
+    "ethernet_link": "unknown; may not come up"
+  },
+  "uart_output": "unverified: no capture of this image exists"
+}

@@ -70,6 +70,15 @@ build, clean command or native test run fails. Run
 `python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
 No additional test framework is required.
 
+`tests/build/test_compat_table.py` holds the checks of `scripts/gen-compat-table.py`, the provisional
+compatibility table generator, see [the compatibility table](../docs/compatibility-table.md). The cases
+that parse a manifest need PyYAML and skip without it.
+
+`tests/build/test_release_bundle.py` holds the checks of the provisional release bundle checker,
+`scripts/check-release-bundle.py`, and of its schema. They write small bundles by hand and need no
+west workspace or Zephyr build. See [the release bundle checker](../docs/release-bundle-checker.md) for
+what the checker covers and what it does not.
+
 ## Physical UART: `target/`
 
 This pytest suite runs on macOS against the already flashed EVKB QSPI sample. It uses
@@ -778,6 +787,8 @@ runs `scripts/check-access-boundary.py`. That check configures and builds `tests
 a project cannot reach the adapter header, and a service that links the adapter target privately is still accepted.
 No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
 [Access contract](../docs/access-contract.md).
+
+The first account of the RT1060-EVKB bench image (row C4, [document](../docs/rt1060-bench-first-account.md)) has its own Host suite, `tests/bench_first_account`, as `BenchFirstAccount.provision` in CTest, on the same fake ports. Its password file rules, the scan for the password in build outputs and the CMake level are Python tests in `tests/build/test_bench_first_account_file.py` and `test_bench_first_account_build.py`, and every password in them is made at run time. Nothing there runs on a board.
 
 ## Portable command line
 

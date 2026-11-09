@@ -5,6 +5,6 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_file_sd_probe C)
 target_sources(app PRIVATE main.c ${CRUX_ROOT}/samples/storage_sd/sd_storage.c
   ${CRUX_ROOT}/samples/storage_sd/sd_file_check.c ${CRUX_ROOT}/samples/storage_sd_probe/sd_probe.c)
-target_link_libraries(app PRIVATE crux::file)
+target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
 target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_sd
   ${CRUX_ROOT}/samples/storage_sd_probe ${CRUX_ROOT}/components/file/ports/zephyr)

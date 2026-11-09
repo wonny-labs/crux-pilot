@@ -1,0 +1,4 @@
+274c274
+< CONFIG_WOLFSSL_RSA=y
+---
+> # CONFIG_WOLFSSL_RSA is not set

@@ -236,7 +236,9 @@ class Supervisor:
         if event=='LINK':
             m5_series.validate_primary(row);self.last_link=row['link']
             if row['link']==2:self.up=(row,now)
-            if self.state=='running':self.rows.append(row)
+            # Link rows are recorded only while a command runs and only when they belong to this phase, as the raw replay
+            # (m5_series.validate_series) selects them; a late row of an earlier phase is validated above and kept in the raw bytes.
+            if self.state=='running' and row.get('seq')==self.sequence:self.rows.append(row)
             return
         if self.state=='arm':
             oracle.require(event=='ARM','Expected ARM');self.state='ready';return
@@ -251,8 +253,11 @@ class Supervisor:
                 result=oracle.validate_command(self.rows,self.nonce,sequence,count,mode,self.abi)
                 oracle.require(result['status']=='PASS','Observed latency requires independent review')
             else:
-                oracle.require([r['event'] for r in self.rows if r['event']!='LINK']==['IDLE','IDLE','IDLE','DONE'],'Incomplete idle phase')
-                oracle.validate_idle(self.rows,self.nonce,sequence,0,self.rows[0]['at'])
+                # The board prints its link rows at once and its idle samples as a burst at the end of the phase, so a link row can
+                # carry a later board time than the first sample: the idle window starts at the first sample, as in the raw replay.
+                main=[r for r in self.rows if r['event']!='LINK']
+                oracle.require([r['event'] for r in main]==['IDLE','IDLE','IDLE','DONE'],'Incomplete idle phase')
+                oracle.validate_idle(main,self.nonce,sequence,0,main[0]['at'])
             self.sequence+=1;self.state='ready';self.watch=None;self.peer=None;self.wait=min(self.deadline,now+90)
 
     @supervised

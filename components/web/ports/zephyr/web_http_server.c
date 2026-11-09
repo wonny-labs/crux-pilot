@@ -81,6 +81,16 @@ HTTP_SERVER_REGISTER_HEADER_CAPTURE(crux_web_capture_length, "Content-Length");
 
 static uint16_t crux_web_port = CONFIG_CRUX_WEB_PORT;
 
+/* The one address to listen on, or NULL for the server's default of every address. The server falls
+ * back to that default for a host text that is not an address, so a composition that sets
+ * CONFIG_CRUX_WEB_BIND_ADDRESS checks the text itself. The plain HTTP test build never sets it. */
+#if defined(CONFIG_CRUX_WEB_BIND_ADDRESS) && !defined(CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS)
+#define CRUX_WEB_HOST                                                                              \
+    (sizeof(CONFIG_CRUX_WEB_BIND_ADDRESS) > 1u ? CONFIG_CRUX_WEB_BIND_ADDRESS : NULL)
+#else
+#define CRUX_WEB_HOST NULL
+#endif
+
 /* The service has no fallback resource: the server does not release a fallback's holder when a
  * client disconnects. A path with no resource therefore gets the server's plain 404. */
 #if defined(CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS)
@@ -117,9 +127,9 @@ static int crux_web_tls_socket(const struct http_service_desc *service, int fami
 static const struct http_service_config crux_web_tls_config = {.socket_create =
                                                                    crux_web_tls_socket};
 
-HTTPS_SERVICE_DEFINE(crux_web_service, NULL, &crux_web_port, CONFIG_HTTP_SERVER_MAX_CLIENTS,
-                     CONFIG_CRUX_WEB_BACKLOG, NULL, NULL, &crux_web_tls_config, crux_web_sec_tags,
-                     sizeof(crux_web_sec_tags));
+HTTPS_SERVICE_DEFINE(crux_web_service, CRUX_WEB_HOST, &crux_web_port,
+                     CONFIG_HTTP_SERVER_MAX_CLIENTS, CONFIG_CRUX_WEB_BACKLOG, NULL, NULL,
+                     &crux_web_tls_config, crux_web_sec_tags, sizeof(crux_web_sec_tags));
 #endif
 
 static struct {

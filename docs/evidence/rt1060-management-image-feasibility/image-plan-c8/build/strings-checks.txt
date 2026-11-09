@@ -1,0 +1,6 @@
+public test password in zephyr.elf: 0
+public test password in zephyr.bin: 0
+commit prefix 9882ebdfe2f3 in zephyr.bin: 0
+commit prefix 9882ebdfe2f3 in zephyr.elf: 0
+BENCH image banner string in zephyr.bin: 1
+image id in zephyr.bin: 1

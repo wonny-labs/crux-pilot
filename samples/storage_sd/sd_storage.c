@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "sd_storage.h"
-#include "file_native.h"
 #include <crux/file.h>
+#include <crux/file_zephyr.h>
 #include <errno.h>
 #include <ff.h>
 #include <zephyr/fs/fs.h>

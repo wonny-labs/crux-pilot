@@ -1,0 +1,48 @@
+== configure-only run with nofile
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found version "3.12.3") found components: Interpreter 
+CMake Error at bench_first_account.cmake:63 (message):
+  The bench image's first account (D3) comes from a password file outside the
+  repository: set CRUX_BENCH_PASSWORD_FILE to its path.  Make one with:
+  python3
+  <repository>/tests/zephyr/management_rt1060_compile/bench_first_account_file.py
+  generate --file <path outside any repository>
+Call Stack (most recent call first):
+  bench_first_account.cmake:83 (crux_bench_first_account_check)
+  CMakeLists.txt:52 (crux_bench_first_account_prepare)
+
+== configure-only run with empty
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found version "3.12.3") found components: Interpreter 
+CMake Error at bench_first_account.cmake:73 (message):
+  The bench image's first account: the password file is refused.  refused:
+  the password file is empty
+Call Stack (most recent call first):
+  bench_first_account.cmake:83 (crux_bench_first_account_check)
+  CMakeLists.txt:52 (crux_bench_first_account_prepare)
+
+
+-- Configuring incomplete, errors occurred!
+
+== configure-only run with short
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found version "3.12.3") found components: Interpreter 
+CMake Error at bench_first_account.cmake:73 (message):
+  The bench image's first account: the password file is refused.  refused:
+  the password is too short: at least 16 characters
+Call Stack (most recent call first):
+  bench_first_account.cmake:83 (crux_bench_first_account_check)
+  CMakeLists.txt:52 (crux_bench_first_account_prepare)
+
+
+-- Configuring incomplete, errors occurred!
+
+== configure-only run with missing
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found version "3.12.3") found components: Interpreter 
+CMake Error at bench_first_account.cmake:73 (message):
+  The bench image's first account: the password file is refused.  refused:
+  the password file does not exist
+Call Stack (most recent call first):
+  bench_first_account.cmake:83 (crux_bench_first_account_check)
+  CMakeLists.txt:52 (crux_bench_first_account_prepare)
+
+
+-- Configuring incomplete, errors occurred!
+

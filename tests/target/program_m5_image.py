@@ -36,11 +36,13 @@ import capture_m5_network as runner
 import m3_clock
 from capture_m3 import HardwareStop
 from m5_bench import BENCH, only_process_owns
+from uart_raw_capture import CaptureSpec
 
 BASE = 0x60000000
 MODES = ('identify', 'program', 'restore')
 OBSERVE_SECONDS = 15
 RESERVE_BEFORE, RESERVE_AFTER = 120, 45        # the accepted wrappers' whole-series reserves before and after the guard
+COMMAND_SECONDS = 30                           # the limit of one Commander run in capture_m3
 
 
 def require(condition, message):
@@ -76,13 +78,14 @@ class Driver:
     """One mode of one run. ``acquire`` returns the owned UART port; ``preconditions`` is the per-command check."""
 
     def __init__(self, plan, approval, mode, directory, *, probe, preconditions, acquire=None, images=None, reverify=None,
-                 clock=m3_clock.monotonic, series_seconds=900):
+                 clock=m3_clock.monotonic, series_seconds=900, capture=None):
         require(mode in MODES, 'Unknown mode')
+        require(capture is None or mode == 'program', 'A capture is allowed only for the program mode')
         runner.validate_approval(approval, plan)       # also requires every plan operation to be approved
         self.mode, self.directory, self.clock = mode, Path(directory), clock
         self.probe_command, self.preconditions, self.acquire = probe, preconditions, acquire
         self.pinned = dict(images or {})
-        self.reverify = reverify
+        self.reverify, self.capture = reverify, capture
         self.end = clock() + series_seconds
         self.step, self.log, self.port = 0, [], None
         self.directory.mkdir(parents=True, exist_ok=False)
@@ -123,7 +126,7 @@ class Driver:
         self.safe(path)
         return 'verifybin "%s", 0x%X\n%sq\n' % (path, BASE, 'IsHalted\n' if halted else '')
 
-    def run(self, label, commands, *, images=()):
+    def run(self, label, commands, *, images=(), before=None):
         """One guarded probe command. Anything unexpected raises HardwareStop and nothing else runs."""
         self.step += 1
         label = '%02d-%s' % (self.step, label)
@@ -135,6 +138,8 @@ class Driver:
             require(path in self.pinned and sha(path) == self.pinned[path], 'Image changed since approval: ' + str(path))
         if images and self.reverify:
             self.reverify()
+        if before:                                     # only after every check above; the very next thing is the probe command
+            before()
         output = self.directory / (label + '.log')
         text = self.probe_command(commands, output)
         check_identity(text)
@@ -161,9 +166,50 @@ class Driver:
         self.run('identity-only', 'q\n')
         entry = self.run('entry-image', self.verify_command(entry_binary, True), images=[entry_binary])
         require('Verify successful' in entry, 'Current firmware differs from the identified entry image; stop before changes')
-        text = self.run('program-m5', m3net.image_commands(m5_binary, True), images=[m5_binary])
+        commands = m3net.image_commands(m5_binary, True)
+        if self.capture is not None:
+            return self.program_captured(m5_binary, commands)
+        text = self.run('program-m5', commands, images=[m5_binary])
         require('Verify successful' in text, 'Complete M5 image verification absent')
         return dict(status='M5_PROGRAMMED_VERIFIED_STARTED', entry_image_verified=True)
+
+    def program_captured(self, binary, commands):
+        """The same load step, with the profile's passive raw capture opened after its checks and before its one command.
+
+        The capture only reads. It never changes what runs: the command is the one above, started once, and nothing here
+        starts it again, whatever happens to the capture. A failed command aborts the capture at once (no window wait).
+        """
+        spec, opened = self.capture, []
+
+        def open_capture():
+            label = '%02d-program-m5' % self.step
+            require(self.port is not None, 'UART port not owned; no capture and no probe command')
+            require(self.clock() + COMMAND_SECONDS + spec.seconds < self.end, 'Capture window does not fit the series budget')
+            try:
+                opened.append(spec.open(self.port, self.directory / 'capture'))
+            except Exception as error:
+                raise HardwareStop('UART capture could not be opened; no probe command runs') from error
+            self.note(step=label, state='capture-open')
+
+        def abort(error, reason):
+            if opened:
+                try:
+                    opened[0].abort(reason)
+                except BaseException as secondary:
+                    error.capture_failure = repr(secondary)
+
+        try:
+            text = self.run('program-m5', commands, images=[binary], before=open_capture)
+        except BaseException as error:
+            abort(error, 'start command failed')
+            raise
+        if 'Verify successful' not in text:
+            error = HardwareStop('Complete M5 image verification absent')
+            abort(error, 'complete image verification absent')
+            raise error
+        opened[0].window()                             # the step's done marker is already written; a failure here is a stop
+        self.note(step='%02d-program-m5' % self.step, state='capture-closed')
+        return dict(status='M5_PROGRAMMED_VERIFIED_STARTED', entry_image_verified=True, capture=opened[0].summary())
 
     def restore(self, normal_binary, observe):
         self.safe(normal_binary)
@@ -344,16 +390,38 @@ def real_parts(args, guard_session):
     return preconditions, probe, acquire
 
 
-def main(argv=None):
+def build_parser():
+    from prepare_m5_network import M5_NAME, PROFILES
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('mode', choices=MODES)
     parser.add_argument('--execute-hardware', action='store_true', required=True)
     for name in ('plan', 'approval', 'manifest', 'entry-manifest', 'recovery-manifest', 'guard-session', 'evidence'):
         parser.add_argument('--' + name, required=True, type=Path)
     parser.add_argument('--candidate', action='append', default=[], type=Path, help='identify: manifest of an image to compare, repeatable')
-    args = parser.parse_args(argv)
-    from prepare_m5_network import verify
-    plan, approval, m5, entry, normal = load_inputs(args, verify_m5=verify, verify_m3=capture_m3.verify_manifest,
+    parser.add_argument('--profile', choices=sorted(PROFILES), default=M5_NAME,
+                        help='image profile of --manifest (image facts only; the safety gates are the same for every profile)')
+    return parser
+
+
+def bind_profile(name):
+    """The selected profile and the one manifest verification of it that the driver uses everywhere."""
+    from prepare_m5_network import profile_named, verify
+    profile = profile_named(name)
+    return profile, lambda manifest, digest: verify(manifest, digest, profile)
+
+
+def capture_spec(profile, mode):
+    """The profile's capture for this mode: only ``program`` records, and only when the profile asks for it."""
+    if mode != 'program' or profile.capture == 'none':
+        return None
+    return CaptureSpec(profile.capture_seconds)
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    profile, verify_profile = bind_profile(args.profile)
+    plan, approval, m5, entry, normal = load_inputs(args, verify_m5=verify_profile,
+                                                    verify_m3=capture_m3.verify_manifest,
                                                     verify_tools=capture_m3.verify_jlink_tools)
     candidates = [(m['profile'], m['binary']) for m in (capture_m3.verify_manifest(path) for path in args.candidate)]
     images = {Path(m5['files']['binary']).as_posix(): sha(m5['files']['binary']), Path(entry['binary']).as_posix(): sha(entry['binary']),
@@ -364,7 +432,7 @@ def main(argv=None):
     preconditions, probe, acquire = real_parts(args, guard_session)
 
     def reverify():
-        verify(args.manifest, plan['manifest_sha256'])
+        verify_profile(args.manifest, plan['manifest_sha256'])
         capture_m3.verify_manifest(args.entry_manifest)
         capture_m3.verify_manifest(args.recovery_manifest)
         require(runner.sha(args.entry_manifest) == plan['entry_manifest_sha256'] and
@@ -372,7 +440,7 @@ def main(argv=None):
     require_clean_tree(repo)
     consume(Path(args.evidence).parent, args.mode)
     driver = Driver(plan, approval, args.mode, args.evidence, probe=probe, preconditions=preconditions, acquire=acquire,
-                    images=images, reverify=reverify)
+                    images=images, reverify=reverify, capture=capture_spec(profile, args.mode))
     write_inputs(repo, args.evidence, args, plan)
     with driver:
         if args.mode == 'identify':

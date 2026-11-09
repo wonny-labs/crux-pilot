@@ -1,0 +1,48 @@
+{
+  "adapter_sha256": "e8c446b4404b7fff0a0d139c4f18a4f8942fe200a347f8205944e8fd3595d809",
+  "authorization": "APPROVED_FOR_PHYSICAL_EXECUTION",
+  "entry_manifest_sha256": "07fce1eaa92d279b82857b1109ec0a0b09629fcb361580dc4267cdfe1ff7290c",
+  "manifest_sha256": "c8171c1fcd4b69692a1316296b73b4e4eda0315ac00984cf07f4eb064b8bfed0",
+  "nic": {
+    "host": "192.168.77.1",
+    "interface": "en13",
+    "mac": "00:24:9b:6e:f7:7f",
+    "model": "AX88179",
+    "prefix": 24,
+    "service": "AX88179 3",
+    "target": "192.168.77.2"
+  },
+  "nonces": [
+    671604249
+  ],
+  "operations": {
+    "acquire_exclusive_probe_uart_and_nic": true,
+    "establish_usb_mount_guard": true,
+    "normal_acceptance_capture": true,
+    "program_and_start": true,
+    "qualification_preflight_1": true,
+    "qualification_reset_1": true,
+    "restore_identified_normal_image": true,
+    "verify_entry_image": true,
+    "verify_normal_image": true
+  },
+  "plan_sha256": "d9d69b37c4840e48ce504143539918c40eda65695e6b00fedce80778efe0418a",
+  "probe_serial": "602003106",
+  "recovery_manifest_sha256": "07fce1eaa92d279b82857b1109ec0a0b09629fcb361580dc4267cdfe1ff7290c",
+  "reduced": {
+    "boots": 1,
+    "cable_operations": false,
+    "excluded_phases": [
+      7,
+      8,
+      9
+    ],
+    "qualifying": false,
+    "satisfies_m5_series": false,
+    "through_phase": 6
+  },
+  "runner_sha256": "27f426ae21d543ee15e341e09572501c357a41a9f9661a3eb9820be28251f8f9",
+  "schema": 1,
+  "uart_device": "/dev/cu.usbmodem11402",
+  "uart_usb_serial": "02290000325182c300000000000000000000000097969905"
+}

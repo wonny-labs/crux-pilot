@@ -1,0 +1,6 @@
+LEAK raw /build/out/c8/app/libapp.a
+LEAK raw /build/out/c8/CMakeFiles/app.dir/bench_first_account_password.S.obj
+LEAK raw /build/out/c8/zephyr/zephyr.bin
+LEAK raw /build/out/c8/zephyr/zephyr_pre0.elf
+LEAK raw /build/out/c8/zephyr/zephyr.elf
+exit 1

@@ -1,0 +1,15 @@
+cmake version 3.28.4
+Python 3.12.3
+bench_guard.cmake, an unknown bench test form: not refused for its reason (does not list): rc=1 CMake Warning (dev) at tests/zephyr/management_rt1060_compile/bench_guard.cmake:135 (if): Policy CMP0057 is not set: Support new IN_LIST if() operator. Run "cmake --help-policy CMP0057" for policy details
+bench_guard.cmake, no build-local Zephyr copy: not refused for its reason (is not the build-local Zephyr copy): rc=1 CMake Warning (dev) at tests/zephyr/management_rt1060_compile/bench_guard.cmake:135 (if): Policy CMP0057 is not set: Support new IN_LIST if() operator. Run "cmake --help-policy CMP005
+bench_guard.cmake, a marker without the patched file: not refused for its reason (is not the build-local Zephyr copy): rc=1 CMake Warning (dev) at tests/zephyr/management_rt1060_compile/bench_guard.cmake:135 (if): Policy CMP0057 is not set: Support new IN_LIST if() operator. Run "cmake --help-policy
+bench_guard.cmake, a Zephyr copy on another pin: not refused for its reason (is not the build-local Zephyr copy): rc=1 CMake Warning (dev) at tests/zephyr/management_rt1060_compile/bench_guard.cmake:135 (if): Policy CMP0057 is not set: Support new IN_LIST if() operator. Run "cmake --help-policy CMP0
+bench_guard.cmake, a Zephyr copy with another patch: not refused for its reason (is not the build-local Zephyr copy): rc=1 CMake Warning (dev) at tests/zephyr/management_rt1060_compile/bench_guard.cmake:135 (if): Policy CMP0057 is not set: Support new IN_LIST if() operator. Run "cmake --help-policy 
+CMake: FAILED; C: ok; Kconfig: SKIPPED (no Kconfiglib; --skip-kconfig); mutants: 32 of 37 killed
+rc=1
+----------------------------------------------------------------------
+Ran 14 tests in 152.297s
+
+FAILED (failures=1)
+
+[exited with code 0]

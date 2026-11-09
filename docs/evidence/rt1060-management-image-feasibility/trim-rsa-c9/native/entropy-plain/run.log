@@ -1,0 +1,72 @@
+built: /build/wolf-entropy-entropy-plain/runtime/zephyr/zephyr.exe
+===================================================================
+START - test_consumers_fail_when_a_read_fails_after_a_successful_start
+ PASS - test_consumers_fail_when_a_read_fails_after_a_successful_start in 0.000 seconds
+===================================================================
+START - test_consumers_produce_nothing_when_every_read_fails
+ PASS - test_consumers_produce_nothing_when_every_read_fails in 0.000 seconds
+===================================================================
+START - test_consumers_work_with_a_healthy_device
+ PASS - test_consumers_work_with_a_healthy_device in 0.000 seconds
+===================================================================
+TESTSUITE wolf_entropy succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [wolf_entropy]: pass = 5, fail = 0, skip = 0, total = 5 duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_boot_check_healthy_prints_the_ok_line] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_boot_check_refuses_when_the_first_read_fails] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_consumers_fail_when_a_read_fails_after_a_successful_start] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_consumers_produce_nothing_when_every_read_fails] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_consumers_work_with_a_healthy_device] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+run ok: runtime (2 CRUX-ENTROPY lines)
+built: /build/wolf-entropy-entropy-plain/init-fails/zephyr/zephyr.exe
+*** Booting Zephyr OS build v4.4.2 ***
+Running TESTSUITE wolf_entropy
+===================================================================
+START - test_boot_check_refuses_when_the_device_is_not_ready
+CRUX-ENTROPY first-read=failed source=crux-test-entropy compatible=crux,test-entropy bytes=32 status=-148 device-ready=0
+ PASS - test_boot_check_refuses_when_the_device_is_not_ready in 0.000 seconds
+===================================================================
+START - test_consumers_produce_nothing_when_the_device_is_not_ready
+ PASS - test_consumers_produce_nothing_when_the_device_is_not_ready in 0.000 seconds
+===================================================================
+TESTSUITE wolf_entropy succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [wolf_entropy]: pass = 2, fail = 0, skip = 0, total = 2 duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_boot_check_refuses_when_the_device_is_not_ready] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_consumers_produce_nothing_when_the_device_is_not_ready] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+run ok: init-fails (1 CRUX-ENTROPY lines)
+built: /build/wolf-entropy-entropy-plain/fallback/zephyr/zephyr.exe
+*** Booting Zephyr OS build v4.4.2 ***
+Running TESTSUITE wolf_entropy
+===================================================================
+START - test_without_an_entropy_driver_wolfcrypt_falls_back_to_sys_rand_get
+ PASS - test_without_an_entropy_driver_wolfcrypt_falls_back_to_sys_rand_get in 0.000 seconds
+===================================================================
+TESTSUITE wolf_entropy succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [wolf_entropy]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_without_an_entropy_driver_wolfcrypt_falls_back_to_sys_rand_get] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+run ok: fallback (0 CRUX-ENTROPY lines)
+control ok: guard: the boot check refuses to compile without a chosen entropy device
+Wolf entropy test (all: runtime init-fails fallback guard): native_sim only. No board was operated.

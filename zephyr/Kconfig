@@ -204,6 +204,23 @@ config CRUX_FILE_FATFS_RT1060
       formats nothing by itself; the project composition owns mount order and recovery.
       No physical-board result exists for this selection.
 
+config CRUX_FILE_FATFS_RT1060_RAM_DISK
+    bool "Crux File FatFs provider on a RAM disk of the RT1060-EVKB"
+    depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
+    depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION_B
+    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
+    depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    help
+      Link the File provider into an RT1060-EVKB image whose only disk is a RAM disk, so that no
+      card can be reached by it and nothing persists across a reset. Off by default. It needs the
+      SD card driver to be absent: a build that has both is refused here and by the provider's
+      CMake. It mounts and formats nothing by itself; the composition owns the mount, and may
+      format a RAM disk because it is memory. Used by the bench image of the integrated
+      management composition (tests/zephyr/management_rt1060_compile, which declares it).
+      No physical-board result exists for this selection.
+
 config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
     bool "Compile-only Crux File FatFs RT1060 SDHC check"
     depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
@@ -222,6 +239,7 @@ config CRUX_FILE_RELIANCE_EDGE
     depends on CRUX_PILOT_MODULE && CRUX_FS_RELIANCE_EDGE
     depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
     depends on !CRUX_FILE_FATFS_RT1060 && !CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+    depends on !CRUX_FILE_FATFS_RT1060_RAM_DISK
     help
       Link the File provider over the Reliance Edge file system of the Zephyr VFS. It
       works on any board that has the file system, and names are stored as they are, with no
@@ -230,8 +248,9 @@ config CRUX_FILE_RELIANCE_EDGE
       distributed. No physical-board result exists for this selection.
 
 # The USDHC HAL invalidates a read target by whole D-cache lines when a transfer completes, so the
-# RT1060 selections and Reliance Edge take line-aligned targets only. file_native.c and the
-# adapter refuse a smaller SDHC value.
+# RT1060 selections and Reliance Edge take line-aligned targets only. With an SD host and a data
+# cache, file_native.c refuses a value below the cache line size. With an SD host, the Reliance Edge
+# adapter refuses a REDCONF_BUFFER_ALIGNMENT below this value.
 configdefault SDHC_BUFFER_ALIGNMENT
     default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK || \
                   CRUX_FILE_RELIANCE_EDGE
@@ -284,6 +303,18 @@ config CRUX_WEB_PORT
     int "Port of the web service, or 0 for an ephemeral one"
     default 443
     range 0 65535
+
+config CRUX_WEB_BIND_ADDRESS
+    string "The one IPv4 address the web service listens on, or empty for every address"
+    default ""
+    depends on !CRUX_WEB_PLAIN_HTTP_FOR_TESTS
+    help
+      Dotted IPv4 text of a local address, which must already be on an interface when the service
+      starts. Empty keeps the Zephyr server's default: every address, and IPv6 as well when it is
+      enabled. The RT1060-EVKB bench image sets the bench address (D10 of
+      docs/rt1060-management-image-feasibility.md). A text that is not an IPv4 address makes the
+      Zephyr server fall back to every address, so a composition that sets this checks the text
+      itself, as the bench image's guards do.
 
 config CRUX_WEB_BACKLOG
     int "Connections the listening socket queues"
@@ -373,6 +404,17 @@ config CRUX_SSH_PORT
       Like the four symbols below it, this is read by the composition's own start code, which fills
       crux_ssh_config_t. The module's CMake does not apply it.
 
+config CRUX_SSH_BIND_ADDRESS
+    string "The one IPv4 address the SSH service listens on, or empty for every address"
+    default ""
+    help
+      Dotted IPv4 text of a local address, which must already be on an interface when the service
+      starts. Empty means every IPv4 address. Read by the composition's own start code, which
+      passes it as crux_ssh_config_t.bind_address, NULL for an empty setting: the provider itself
+      refuses an empty text, and any other text that is not an IPv4 address, so that a mistyped
+      address never widens the listener. The RT1060-EVKB bench image sets the bench address (D10 of
+      docs/rt1060-management-image-feasibility.md).
+
 config CRUX_SSH_MAX_CONNECTIONS
     int "Connections at once, authenticated or not"
     default 4
@@ -407,6 +449,16 @@ config CRUX_SSH_LISTENER_STACK_BYTES
     int "Stack of the listener thread"
     default 4096
     range 2048 32768
+
+config CRUX_SSH_STACK_REPORT
+    bool "Name the SSH threads and keep the lowest unused stack of the workers that ended"
+    depends on THREAD_NAME && THREAD_STACK_INFO && INIT_STACKS
+    help
+      A measurement aid for an image that reads stack use on a target: the listener and each worker
+      get a name ("ssh_listener", "ssh_worker"), and a worker that ends records how much of its
+      stack it never touched, so that crux_ssh_wolf_worker_stack_ended() still has the figure after
+      the thread is gone and its slot is used again. Costs a few dozen bytes and one stack scan when
+      a worker ends. Off by default, and every other image is unchanged.
 
 config CRUX_SSH_WINDOW_BYTES
     int "Channel window, which decides the heap of a logged-in session"
