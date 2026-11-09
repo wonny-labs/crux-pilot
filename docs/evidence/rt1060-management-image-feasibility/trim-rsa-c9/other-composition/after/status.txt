@@ -1,0 +1,2 @@
+configure exit 0
+ninja exit 0

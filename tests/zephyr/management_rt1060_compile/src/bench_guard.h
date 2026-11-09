@@ -27,6 +27,14 @@
     !defined(CONFIG_ENTROPY_MCUX_TRNG)
 #error "The bench image draws its random values from the PSA provider over the TRNG driver"
 #endif
+/* D11, row C9: wolfCrypt is built without RSA. The declared profile uses none, one module option
+ * drops it, and a settings file for wolfSSL would hide whether it is built. */
+#if defined(CONFIG_WOLFSSL_RSA)
+#error "The bench image has no RSA (D11): CONFIG_WOLFSSL_RSA is refused"
+#endif
+#if defined(CONFIG_WOLFSSL_HAS_SETTINGS_FILE)
+#error "The bench image takes wolfSSL's settings from the module's Kconfig options only"
+#endif
 #if !defined(CRUX_BENCH_ADDRESS) || !defined(CRUX_BENCH_NETMASK) || !defined(CRUX_BENCH_IMAGE_ID)
 #error "The bench declaration did not reach the compiler: address, netmask and image identity"
 #endif

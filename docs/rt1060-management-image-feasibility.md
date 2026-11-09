@@ -1,6 +1,6 @@
 # The integrated management image on RT1060-EVKB: a build and feasibility report
 
-Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)), **its row C2** ([the UART report](#stage-2-row-c2-the-uart-report)), **its row C3** ([the file backend](rt1060-bench-file-backend.md)), **its row C4**, the first account ([own document](rt1060-bench-first-account.md)), **and its row C6**, the network buffers and the arena ([own document](rt1060-bench-network-buffers.md)),
+Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)), **its row C2** ([the UART report](#stage-2-row-c2-the-uart-report)), **its row C3** ([the file backend](rt1060-bench-file-backend.md)), **its row C4**, the first account ([own document](rt1060-bench-first-account.md)), **its row C6**, the network buffers and the arena ([own document](rt1060-bench-network-buffers.md)), **and its row C9**, RSA trimmed ([own document](rt1060-bench-trim-rsa.md)),
 for review in a Draft PR. Refs #197. It authorises no hardware operation, and **nothing here ran on a board**: every result is a compile and link for
 `mimxrt1060_evk@B//qspi`, a host script, a configure-only run, or a reading of source and of the linked image. The owner approved stage 0 in the working
 session on 2026-11-08 ("0 단게 시작해") and took the decisions D1 to D11 the same day ([Owner decisions](#owner-decisions)). **Nothing here reads as an approval of a
@@ -18,6 +18,7 @@ board stage**: the image still refuses to start, and the approval documents are 
 | What did C2 change? | The bench image prints the stack watermark of every thread, the heap's in-use and peak, and the listener certificate's fingerprint (D4) on the UART, and a host script judges the capture, with a stated margin for the HTTP server thread's stack. [Stage 2, row C2](#stage-2-row-c2-the-uart-report). |
 | What did C1 change? | The vehicle is now a **bench composition** under a declaration for RT1060-EVKB rev B, with guards at three levels, a host script that breaks each guard, a manifest, and listeners bound to the bench address. [Stage 2, row C1](#stage-2-row-c1-the-bench-composition). |
 | What did C6 change? | The bench image has **TCP windows of 4 segments, 1,024 and 768 data buffers, 192 and 32 packets and a 1 MiB arena**, from a paper rule of the declared sessions that the guard enforces, and its UART report prints the **high-water mark of the four pools** and the TCP counters. Paper rules only: nothing ran on a board. [Stage 2, row C6](#stage-2-row-c6-the-network-buffers). |
+| What did C9 change? | `CONFIG_WOLFSSL_RSA=n` in the bench `target.conf` (D11): **Flash 596,696 B to 561,340 B, 35,356 B less**, and the static stack chains of the main thread, the Crux workers and the SSH worker fall by 5 to 18 KB because the single-precision big-number type shrinks from 3,072 to 256 bits. Guarded at the Kconfig, CMake and C levels and by a symbol check of the linked image. [The record](rt1060-bench-trim-rsa.md). |
 | What did C3 change? | The file backend of the bench image is a **RAM disk**, with no card driver in the image, and the mount rule **never formats a card**: the RAM disk is the only medium that may be formatted. The microSD provider is a second declared form for a later run. [The file backend](rt1060-bench-file-backend.md). |
 
 ```mermaid
@@ -172,7 +173,7 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | Network buffer counts and the arena for 16 KiB records and an SFTP window | C6 | **Done in the C6 PR** as paper rules and a guard: [document](rt1060-bench-network-buffers.md). C2 built the instrumentation and no figure has been read, so no count is measured: the list of what a board run must read is in the document. |
 | The programmer's limit raised and `loadfile` split from `verifybin` | C7 (D11) | Not done. `tests/target/` is not touched here. |
 | The image manifest on the stage 1 pattern and the plan for the board | C8 | Not done. The approval documents are the main session's and are not written here. |
-| RSA trimmed from the wolfSSL settings | C9 (D11) | Not done |
+| RSA trimmed from the wolfSSL settings | C9 (D11) | **Done in the C9 PR**: [record](rt1060-bench-trim-rsa.md). `CONFIG_WOLFSSL_RSA=n`, 35,356 B of Flash, nothing run on a board. |
 | The certificate fingerprint printed on the UART (D4) | C2 (the main session put it there) | **Done in the C2 PR**: `BENCH-CERT`, and `check_bench_uart.py` compares it with the listener's certificate. Not run on a board. |
 | The owner's approval of the board stage, the root mount guard, the profile of the generalised tools | Main session, owner, `Crux Pilot` session | Not given |
 
@@ -534,8 +535,10 @@ From the link map, objects placed in the Flash range, grouped by the library tha
 
 The groups add up to 612,922 B, 11,750 B (2 %) more than the 601,172 B image. The cause was not examined: the grouping is a reading of the link map, not the linker's own report.
 
-The linked image also holds **RSA code** (`sp_ModExp_3072`, `psa_asymmetric_generate_key_rsa`) from the wolfSSL module's defaults, which the declared profile
-does not use: a size trim for the stage 2 changes, not measured.
+The linked image also held **RSA code** (`sp_ModExp_3072`, `psa_asymmetric_generate_key_rsa`) from the wolfSSL module's defaults, which the declared profile
+does not use. **Row C9 (D11) trimmed it, and measured it** on today's bench image (the figures above are of stage 0): `CONFIG_WOLFSSL_RSA=n` takes wolfSSL from 284,477 B to
+251,296 B (33,181 B), wolfPSA from 21,224 B to 19,205 B (2,019 B) and the application objects by 353 B, **35,356 B of Flash in all (596,696 B to 561,340 B)**. The
+stage 0 groups above stay as the stage 0 reading: [the record](rt1060-bench-trim-rsa.md#before-and-after) has the two builds side by side.
 
 ### Static RAM and the heap
 
@@ -569,10 +572,10 @@ configured stack is plainly too small, and where it is tight. Interrupt frames (
 | Thread | Configured | `native_sim` (64-bit host, carried) | Static chain on the target ELF | Reading |
 | --- | ---: | --- | --- | --- |
 | HTTP server thread, which also runs each TLS handshake inside `accept` | **4,096 B** (`zephyr/Kconfig:455`). **8,192 B in the bench image since C1.** | Not readable on `native_sim` | `wolfSSL_accept` to the key share check of a **P-256** client share: 616 B of handshake frames plus 3,656 B = **4,272 B**, before the socket layer's and the server's own frames. A client that offers an X25519 share takes a path of about 2.6 KB. ECDSA signing from `accept` is about 2.4 KB. | **Over the stack for a client that offers only P-256, and tight for others.** Raise it and measure: [C2](#code-changes-and-their-order). |
-| SSH worker, 4 of them | 16,384 B | 9,216 B used, with `ecdh-sha2-nistp256`, Ed25519, SFTP and the CLI. The probe image of #192 read 13,808 B with `exec` and every key type. | `wolfSSH_worker` chain through the key exchange: **13,336 B**, of which `SendKexDhReply` has a 6,692 B frame | About 3 KB left, 19 %, before interrupt frames. Tight. |
+| SSH worker, 4 of them | 16,384 B | 9,216 B used, with `ecdh-sha2-nistp256`, Ed25519, SFTP and the CLI. The probe image of #192 read 13,808 B with `exec` and every key type. | `wolfSSH_worker` chain through the key exchange: **13,336 B**, of which `SendKexDhReply` has a 6,692 B frame | About 3 KB left, 19 %, before interrupt frames. Tight. **After C9 the static chain is 4,672 B (by address): the stage 0 reading no longer holds by the estimate, and still needs a board read.** |
 | SSH listener | 4,096 B | Not read | Not computed | Unknown |
-| Crux worker threads, 4 of them | 8,192 B | 8,192 B configured | `web_session_work_once` through `crux_access_login_password`: 10,364 B along a path that ends in an RSA key decode the stored keys never take | **Unknown**: the PBKDF2 login and the store save run here |
-| Main | 16,384 B | 32,768 B configured, not read | `main` through `crux_native_management_start`: 21,192 B, along a key generation path that ends in RSA | Unknown. The deployed key types are ECDSA and Ed25519. |
+| Crux worker threads, 4 of them | 8,192 B | 8,192 B configured | `web_session_work_once` through `crux_access_login_password`: 10,364 B along a path that ends in an RSA key decode the stored keys never take. **After C9: 3,864 B, along the PBKDF2 derivation.** | **Unknown**: the PBKDF2 login and the store save run here |
+| Main | 16,384 B | 32,768 B configured, not read | `main` through `crux_native_management_start`: 21,192 B, along a key generation path that ends in RSA. **After C9: 3,320 B, along the P-256 public key.** | Unknown. The deployed key types are ECDSA and Ed25519. |
 | Logging process thread, ENET receive thread, network receive thread, TCP work queue, system work queue, ISR | 2,048 B, 1,600 B, 1,500 B, 1,024 B, 1,560 B, 2,048 B | | | Zephyr's defaults and the M5 image's. There is no network transmit thread (`NET_TC_TX_COUNT=0`). |
 
 The static chains agree in size class with the host figures for SSH (13.3 KB and 13.8 KB). They are not a substitute for a target read, which
@@ -666,7 +669,7 @@ Rough effort is agent time for the change and its tests, without the board. Hard
 | 3 | **C6.** Network buffer counts and the arena for 16 KiB records and an SFTP window, from the measurements of C2 | C2 | 0.5 day, then a board read | **Done in the C6 PR**: [document](rt1060-bench-network-buffers.md). No measurement of C2 exists, so the counts are paper rules (a guard enforces them) and the board read stays. |
 | 3 | **C7.** The programmer's limit: raise it, split the commands, test the change | D11 | 0.5 to 1 day | Not started |
 | 3 | **C8.** The image manifest and the plan for the bench image, on the stage 1 pattern. **The approval documents are the main session's, and are not written here.** | C1 to C7 | 1 to 2 days | Not started |
-| 4 | **C9.** Trim RSA from the wolfSSL settings and re-measure | D11 | 0.5 day | Not started |
+| 4 | **C9.** Trim RSA from the wolfSSL settings and re-measure | D11 | 0.5 day | **Done in the C9 PR**: [record](rt1060-bench-trim-rsa.md) |
 
 Order: decisions D1 to D11 (taken 2026-11-08), then C1 (done), then C2 to C5, which touch different files and may run in parallel, then C6 and C7, then C8, then the approval, then the board. About 7 to 10 working days if all of it is done in sequence, less if C2 to C5 run in parallel. A
 Zephyr apply port for the network settings (2 to 3 days) is not needed for the first run and is not in this list.
@@ -709,6 +712,14 @@ C1 adds these. The record is [`evidence/.../bench-composition-c1/`](evidence/rt1
 | Six configure-only runs with one setting broken | Each stops: five at the CMake level, one earlier at a module guard. **Two show that Zephyr only warns when Kconfig drops an assignment.** | The author, in the Dev Container |
 | `strings` on the linked image | The public test password occurs 0 times | The author |
 | Not run | A board, the image, any client, any `native_sim` image (none built in C1), the native images (their files are unchanged), the CI workflows | |
+
+C9 adds these. The record is [`rt1060-bench-trim-rsa.md`](rt1060-bench-trim-rsa.md#checks) and the evidence is [`evidence/.../trim-rsa-c9/`](evidence/rt1060-management-image-feasibility/trim-rsa-c9/README.md).
+
+| Check | Result | Who ran it |
+| --- | --- | --- |
+| Target build of the bench image before and after, for `mimxrt1060_evk@B//qspi` | Both link. **Flash 596,696 B to 561,340 B, RAM 1,365,804 B to 1,365,740 B.** One configuration line differs. 212 symbols gone, 4 new, no RSA symbol but five allowed leftovers. | The author, in the Dev Container |
+| `check_bench_guard.py`, `tests/build/test_management_bench_declaration.py`, `test_management_bench_rsa_symbols.py` | Red first (the new cases were not refused), then green, with every mutant killed. | The author, on the host |
+| `scripts/test-wolf-entropy.sh all`, unmodified and with `CONFIG_WOLFSSL_RSA=n` | Both pass | The author, on `native_sim` |
 
 ## What was not measured
 

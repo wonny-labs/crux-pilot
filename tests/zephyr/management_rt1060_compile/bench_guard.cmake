@@ -46,6 +46,8 @@ macro(crux_bench_read_declaration)
         string(TOUPPER "${_bench_field}" _bench_upper)
         string(JSON BENCH_HEAP_${_bench_upper} GET "${_bench_json}" heap ${_bench_field})
     endforeach()
+    string(JSON BENCH_RSA_SYMBOL GET "${_bench_json}" profile wolfssl_rsa symbol)
+    string(JSON BENCH_RSA_DECISION GET "${_bench_json}" profile wolfssl_rsa decision)
     string(JSON BENCH_FIRST_ACCOUNT_USER GET "${_bench_json}" first_account user)
     string(JSON BENCH_FIRST_ACCOUNT_ROLE GET "${_bench_json}" first_account role)
     string(JSON BENCH_FIRST_ACCOUNT_ENV GET "${_bench_json}" first_account password_file_env)
@@ -154,6 +156,17 @@ function(crux_bench_guard)
     endif()
     if(NOT CONFIG_CRUX_LOGGING)
         message(FATAL_ERROR "The security events write to Crux Logging: CONFIG_CRUX_LOGGING is required")
+    endif()
+    # 5b. wolfCrypt without RSA (D11, row C9): the declared profile uses none, and one module option drops it from
+    # wolfCrypt, wolfSSL, the single-precision math and wolfPSA. A wolfSSL settings file would take the options out of
+    # the build (they all depend on there being none) and hide whether RSA is built.
+    if(CONFIG_${BENCH_RSA_SYMBOL})
+        message(FATAL_ERROR "The bench image has no RSA (${BENCH_RSA_DECISION}): CONFIG_${BENCH_RSA_SYMBOL} is "
+                            "refused, so that wolfCrypt is built with NO_RSA")
+    endif()
+    if(CONFIG_WOLFSSL_HAS_SETTINGS_FILE)
+        message(FATAL_ERROR "The bench image takes wolfSSL's settings from the module's Kconfig options only: "
+                            "a settings file would hide whether RSA is built")
     endif()
     # 6. Network: the static bench address, and listeners on that address only (D10).
     if(CONFIG_NET_DHCPV4 OR CONFIG_NET_IPV6 OR CONFIG_NET_CONFIG_SETTINGS)
@@ -354,6 +367,13 @@ function(crux_bench_manifest)
                "{\"symbol\": \"${symbol}\", \"decision\": \"${decision}\", \"state\": \"${state}\", \"set\": ${on}}")
     endforeach()
     string(JSON manifest SET "${manifest}" test_forms "${forms}")
+
+    # The wolfSSL profile (D11, row C9): RSA is trimmed. CONFIG_${BENCH_RSA_SYMBOL} is off, which CMake cannot show as a
+    # variable, so the manifest says what the guard accepted.
+    set(profile "{}")
+    string(JSON profile SET "${profile}" decision "\"${BENCH_RSA_DECISION}\"")
+    string(JSON profile SET "${profile}" rsa "\"trimmed: CONFIG_${BENCH_RSA_SYMBOL} is off, so wolfCrypt is built with NO_RSA\"")
+    string(JSON manifest SET "${manifest}" wolfssl_profile "${profile}")
 
     # The first account (D3, row C4): where its password comes from, and the hash of that file. Never the password.
     # The plaintext is in the image, as the report says, and so the manifest says it too.

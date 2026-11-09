@@ -52,6 +52,10 @@ config DISK_DRIVER_RAM
 	bool "stub"
 config DISK_DRIVER_SDMMC
 	bool "stub"
+config WOLFSSL_RSA
+	bool "stub"
+config WOLFSSL_HAS_SETTINGS_FILE
+	bool "stub"
 source "{kconfig_bench}"
 """
 
@@ -245,6 +249,10 @@ def cmake_cases(tree):
         ("no wolfPSA", {"CONFIG_WOLFPSA": None}, "needs the Wolf profile"),
         ("the Mbed profile", {"CONFIG_MBEDTLS": "y"}, "needs the Wolf profile"),
         ("the Mbed PSA provider", {"CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS": "y"}, "needs the Wolf profile"),
+        # wolfCrypt without RSA (row C9, D11): the setting that drops it, and the setting that would hide it.
+        ("RSA in wolfCrypt", {"CONFIG_WOLFSSL_RSA": "y"}, "has no RSA"),
+        ("a wolfSSL settings file", {"CONFIG_WOLFSSL_HAS_SETTINGS_FILE": "y"},
+         "takes wolfSSL's settings from the module's Kconfig options only"),
         ("no SSH", {"CONFIG_CRUX_SSH": None}, "HTTPS only, and SSH with CLI and SFTP"),
         ("no command line", {"CONFIG_CRUX_SSH_CLI": None}, "HTTPS only, and SSH with CLI and SFTP"),
         ("no SFTP", {"CONFIG_CRUX_SSH_SFTP": None}, "HTTPS only, and SSH with CLI and SFTP"),
@@ -580,6 +588,8 @@ C_GUARD_MESSAGES = (
     "declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY",
     "declared only with CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE",
     "did not reach the compiler: the first account's name and role",
+    "has no RSA",
+    "takes wolfSSL's settings from the module's Kconfig options only",
     "A mount never formats a card",
     "has exactly one file backend",
     "needs the RAM disk File provider and the RAM disk driver",
@@ -638,6 +648,9 @@ def c_cases(tree):
          "SSH listener must listen on the bench address only"),
         ("SSH on 0.0.0.0", {"CONFIG_CRUX_SSH_BIND_ADDRESS": '"0.0.0.0"'},
          "SSH listener must listen on the bench address only"),
+        ("RSA in wolfCrypt", {"CONFIG_WOLFSSL_RSA": "1"}, "has no RSA"),
+        ("a wolfSSL settings file", {"CONFIG_WOLFSSL_HAS_SETTINGS_FILE": "1"},
+         "takes wolfSSL's settings from the module's Kconfig options only"),
         ("mkfs on mount", {"CONFIG_FS_FATFS_MOUNT_MKFS": "1"}, "A mount never formats a card"),
         ("both file forms", {"CONFIG_CRUX_BENCH_FILE_MICROSD": "1"}, "has exactly one file backend"),
         ("the RAM disk form without its provider", {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": None},
@@ -820,6 +833,8 @@ def check_kconfig(tree, kconfiglib):
         ("fake entropy", lambda k: k.syms["FAKE_ENTROPY_NATIVE_SIM"].set_value("y")),
         ("DHCP", lambda k: k.syms["NET_DHCPV4"].set_value("y")),
         ("IPv6", lambda k: k.syms["NET_IPV6"].set_value("y")),
+        ("RSA in wolfCrypt", lambda k: k.syms["WOLFSSL_RSA"].set_value("y")),
+        ("a wolfSSL settings file", lambda k: k.syms["WOLFSSL_HAS_SETTINGS_FILE"].set_value("y")),
     ]
     for name, apply in broken:
         kconf, directory = load()
