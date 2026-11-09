@@ -29,8 +29,8 @@ MARKER = ".crux-isn-fail-closed"
 # tcp.c at the pinned Zephyr (v4.4.2), the patch, and tcp.c after it. A change of any of them means a base or a patch
 # moved: review the result and change the three hashes here, in bench_declaration.json and in docs/rt1060-isn-fail-closed.md together.
 BASE_SHA256 = "393b940e0d96adba9a0f7667c061b9e0e5d8d0ea2f49642e60f29ce1efdb7ad6"
-PATCH_SHA256 = "6ab0d074f3ddab826dd417b0fba10f1622f6ffeb006828b172d6313e8234aaa7"
-PATCHED_SHA256 = "57a59c570bf979640208756d486858d9fc2d1dee49ce7f5fe2913d32e0ca81dd"
+PATCH_SHA256 = "831fecdbc6cfb23f47ace4dda662a95222b977977a167ef786ee02f33712de87"
+PATCHED_SHA256 = "94642fe2257f80dd91b9e84d8c29459ca84144cb56af0cdfdd58039473e0e0cf"
 PATCH = Path(__file__).resolve().parents[1] / "patches/zephyr/zephyr-isn-fail-closed.patch"
 
 

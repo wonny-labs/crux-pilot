@@ -241,8 +241,9 @@ struct outcome {
 };
 
 /* sport is the port as the stack stores it. For a connection that a SYN opened, tcp_conn_new()
- * hashes with the port that net_context_bind() gave the new context at random: the test cannot know
- * it, so any_sport tries every port.
+ * hashes with the port that net_context_get() chose at random for the new context, which
+ * net_context_bind() copies back into tcp_conn_new()'s address when its port is 0: the test cannot
+ * know it, so any_sport tries every port.
  */
 static bool made_from(const uint8_t key[16], uint32_t isn, const struct net_in_addr *saddr,
                       const struct net_in_addr *daddr, uint16_t sport, bool any_sport,

@@ -32,4 +32,4 @@ The record is [`docs/rt1060-isn-fail-closed.md`](../../../rt1060-isn-fail-closed
 
 ## Redactions
 
-Container paths (`/ws/...`, `/build/...`) stay. The host's paths in the commands are `<workspace>` and `<scratch>`. The throwaway password file was deleted with the build directories. The manifests hold the SHA-256 of that file and never the password. No serial number, bench password, employer or product name is in this folder.
+Container paths (`/ws/...`, `/build/...`) stay. The host's paths in the commands are `<workspace>` and `<scratch>`; the shared build lock directory `/private/tmp/crux-build.lock` stays. The throwaway password file was deleted with the build directories. The manifests hold the SHA-256 of that file and never the password. No serial number, bench password, employer or product name is in this folder.

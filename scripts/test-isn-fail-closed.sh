@@ -111,6 +111,7 @@ patched_run() {
     grep -q 'ISN-REPORT phase=A-read-fails path=active sent=nothing isn=- connect=-5' "$log" ||
         fail 'patched: the connect with a failed read was not refused with -EIO and no SYN'
     grep -q 'ISN-REPORT phase=B-read-works path=passive sent=SYN|ACK isn=keyed' "$log" || fail 'patched: no keyed SYN|ACK after the read worked again'
+    grep -q 'ISN-REPORT phase=B-read-works path=active sent=SYN isn=keyed' "$log" || fail 'patched: no keyed SYN from a connect after the read worked again'
     printf 'green run: the patched tree refuses and recovers\n'
 }
 

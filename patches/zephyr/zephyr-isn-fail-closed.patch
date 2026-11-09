@@ -1,5 +1,5 @@
 diff --git a/subsys/net/ip/tcp.c b/subsys/net/ip/tcp.c
-index 7f14e55..2825a17 100644
+index 7f14e55..606b205 100644
 --- a/subsys/net/ip/tcp.c
 +++ b/subsys/net/ip/tcp.c
 @@ -2364,10 +2364,37 @@ static uint32_t seq_scale(uint32_t seq)
@@ -12,7 +12,7 @@ index 7f14e55..2825a17 100644
 -			       uint16_t dport)
 +/* Crux: the key is read from sys_csrand_get() on first use. A failed read must not leave an all-zero key in use for
 + * the rest of the boot: it is returned, nothing is marked as read, and the next call reads again. The read goes to a
-+ * local buffer, so that a failed or concurrent read never changes the key that is in use.
++ * local buffer, so that a failed read never leaves a partly written key in use.
 + */
 +static int tcp_isn_key_get(void)
 +{
@@ -44,13 +44,14 @@ index 7f14e55..2825a17 100644
  {
  	struct {
  		uint8_t key[sizeof(unique_key)];
-@@ -2382,27 +2409,32 @@ static uint32_t tcpv6_init_isn(struct net_in6_addr *saddr,
+@@ -2382,27 +2409,33 @@ static uint32_t tcpv6_init_isn(struct net_in6_addr *saddr,
  		.dport = dport
  	};
  
 -	uint8_t hash[16];
-+	/* Crux: a SHA-256 digest is 32 bytes. A 16-byte buffer is refused by PSA with
-+	 * PSA_ERROR_BUFFER_TOO_SMALL, which was ignored: the hash stayed uninitialised stack and the key was never used.
++	/* Crux: a SHA-256 digest is 32 bytes. PSA refuses a 16-byte buffer with PSA_ERROR_BUFFER_TOO_SMALL, which
++	 * was ignored, so the hash was never produced (Mbed TLS leaves '!' in the buffer, wolfPSA leaves it
++	 * as it was) and the key was never used.
 +	 */
 +	uint8_t hash[PSA_HASH_LENGTH(PSA_ALG_SHA_256)];
  	size_t hash_len;
@@ -91,7 +92,7 @@ index 7f14e55..2825a17 100644
  {
  	struct {
  		uint8_t key[sizeof(unique_key)];
-@@ -2417,50 +2449,65 @@ static uint32_t tcpv4_init_isn(struct net_in_addr *saddr,
+@@ -2417,50 +2450,65 @@ static uint32_t tcpv4_init_isn(struct net_in_addr *saddr,
  		.dport = dport
  	};
  
@@ -173,7 +174,7 @@ index 7f14e55..2825a17 100644
  }
  
  /* Create a new tcp connection, as a part of it, create and register
-@@ -2551,7 +2598,14 @@ static struct tcp *tcp_conn_new(struct net_pkt *pkt)
+@@ -2551,7 +2599,14 @@ static struct tcp *tcp_conn_new(struct net_pkt *pkt)
  
  	if (!(IS_ENABLED(CONFIG_NET_TEST_PROTOCOL) ||
  	      IS_ENABLED(CONFIG_NET_TEST))) {
@@ -189,7 +190,7 @@ index 7f14e55..2825a17 100644
  	}
  
  	conn->isn = conn->seq;
-@@ -4033,7 +4087,12 @@ int net_tcp_connect(struct net_context *context,
+@@ -4033,7 +4088,12 @@ int net_tcp_connect(struct net_context *context,
  
  	if (!(IS_ENABLED(CONFIG_NET_TEST_PROTOCOL) ||
  	      IS_ENABLED(CONFIG_NET_TEST))) {
