@@ -26,12 +26,16 @@ is marked **INFERRED**.
   and 349.
 - Running the repository's own configuration over those 190 sources, report-only: **163 produce no
   diagnostic, 27 produce 64** (1 of the 27 is a deliberate compile-fail probe, which needs an
-  exclusion, not a fix). Of the 63 real findings, 2 are in `components/`, 1 is in `samples/`, and the
-  other 60 are in tests and test fixtures. The run takes about 100 s of clang-tidy time for the 150
+  exclusion, not a fix). Of the 63 real findings, 5 are reported in `components/` files (3 of them in
+  `components/queue/src/queue.c`, reached through an include in the test `tests/queue/faults.c`), 1 in
+  `samples/` and 57 in tests and test fixtures; attributed to the source being analysed, 2 are in
+  `components/` sources, 1 in `samples/` and 60 in tests. The run takes about 100 s of clang-tidy time for the 150
   `host-debug` sources, and about 275 s for the 429 sources run, including 239 that are already analysed.
 - No clang-tidy run exists for any of the 208 Zephyr-only sources.
-- Proposal: generate the list from the compile databases, and keep today's failures in a
-  per-source, per-check exceptions file that a check forces to shrink.
+- Proposal: generate the list from the compile databases of the job's listed builds, and keep today's
+  failures in a per-source, per-check exceptions file that a check forces to shrink. The prototype
+  analyses 420 of the 439 compiled sources; the other 19 are named in
+  [What the prototype leaves out](#what-the-prototype-leaves-out).
 
 ## How it was measured
 
@@ -42,7 +46,7 @@ is marked **INFERRED**.
 | Why not the amd64 Dev Container | MEASURED: configure took 2.5 s native and 19 s emulated; the build 7.5 s and 114 s. Emulated clang-tidy was 1.8 times slower per source on a 30-source sample. Diagnostics were identical on the 30 sources (20 with findings, 10 clean). |
 | Presets | `cmake --preset host-debug` and `host-sanitize`. The 389 owned sources are the same set in both. |
 | Consumer builds | 18 standalone projects under `tests/` configured with `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`, which approximates the commands of the CI scripts (INFERRED to compile the same sources) |
-| Tool | [measure-tidy-coverage.py](../scripts/measure-tidy-coverage.py) (`--self-test` runs its unit tests) |
+| Tool | [measure-tidy-coverage.py](../scripts/measure-tidy-coverage.py) (`--self-test` runs its unit tests). Not written test-first: the approach changed while the data was explored. Alternative verification: the unit tests, the cross-check of its counts against the clang-tidy runs, and a control run over the 239 sources that CI already analyses, which gave no diagnostic. |
 | clang-tidy run | one process per source, `clang-tidy-18 -p <build dir> --quiet <source>`, no `--fix`, no file changed |
 
 `libssl-dev` matters: without OpenSSL headers CMake skips `tests/tls_certificate/differential.c` and the
@@ -57,7 +61,7 @@ flowchart LR
     T["705 sources in the tree"] --> H["439 compiled by a host build"]
     T --> N["266 in no host build"]
     H --> A["249 passed to clang-tidy by a workflow-reached script"]
-    H --> G["190 never passed to clang-tidy"]
+    H --> G["190 passed by no script a workflow runs (56 are passed by a script no workflow runs)"]
     N --> Z["208 Zephyr or native_sim only"]
     N --> P["17 PSA composition"]
     N --> F["40 boundary probes and consumer fixtures"]
@@ -96,8 +100,12 @@ are described in documents such as [reboot-service.md](reboot-service.md) and th
 | passed by any script a workflow reaches in a selecting mode | **150** | **190** |
 | passed by any script, even one no workflow runs | 94 | 134 |
 
-The second row is the working definition below. Every analysed path is in the compile database it is
-analysed with, and every analysed path exists in the tree (0 exceptions each).
+The second row is the working definition below. For every clang-tidy invocation whose `-p` directory
+matches a database given to the script, every analysed path is in that database (0 exceptions). Two
+invocations have a directory that matches none (`test-tls-certificate.sh` uses `$first`, 15 files, and
+`$build`, the PSA composition build, 2 PSA-composition sources), so membership is not checked for those
+17 paths; `analyze-host.sh`'s `$build_dir` is taken to be `build/linux/debug`, its documented default.
+Every analysed path exists in the tree (0 exceptions).
 
 ### The gap by directory
 
@@ -165,8 +173,9 @@ matches and is reported when an analysed source includes it.
 
 - 208 Zephyr or `native_sim` sources plus 17 PSA-composition sources are outside every host database.
   No script calls clang-tidy with a Zephyr or `native_sim` build directory: every `-p` argument in the 13
-  scripts is `build/linux/debug`, a standalone consumer build, or a TLS-certificate preset build. **No
-  clang-tidy run covers a Zephyr-only source.**
+  scripts is `build/linux/debug`, a standalone consumer build, a TLS-certificate preset build, or the
+  TLS-certificate PSA composition build (`$build` in `scripts/test-tls-certificate.sh`, a host build with
+  TF-PSA-Crypto). **No clang-tidy run covers a Zephyr-only source.**
 - Several Zephyr scripts already pass `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to `west build`, for example
   `scripts/test-logging.sh` and `scripts/test-system.sh`. The databases of those builds exist in the
   Zephyr jobs. INFERRED: running clang-tidy over a `native_sim` database needs the west workspace and
@@ -195,11 +204,11 @@ failure of the step.
 
 | Findings | Check | Where |
 |---|---|---|
-| 23 | `bugprone-reserved-identifier` | `__wrap_*` and `__real_*` linker-wrap names and the feature-test macros `_POSIX_C_SOURCE`, `_XOPEN_SOURCE` in tests |
+| 23 | `bugprone-reserved-identifier` | 20 `__wrap_*` and `__real_*` linker-wrap names and 3 feature-test macros (`_POSIX_C_SOURCE` twice, `_XOPEN_SOURCE` once), all in tests |
 | 20 | `bugprone-easily-swappable-parameters` | 2 in `components/`, rest in tests and fixtures |
 | 4 | `clang-analyzer-security.insecureAPI.strcpy` | `tests/file/fake_file.c` |
 | 4 | `bugprone-suspicious-memory-comparison` | `tests/networking`, `tests/time` |
-| 3 | `clang-analyzer-core.StackAddressEscape` | `tests/queue/faults.c` through an included `queue.c` |
+| 3 | `clang-analyzer-core.StackAddressEscape` | reported in `components/queue/src/queue.c`, reached through an `#include` of `queue.c` in the test `tests/queue/faults.c` |
 | 2 | `bugprone-implicit-widening-of-multiplication-result` | `tests/file`, `tests/bench_first_account` |
 | 2 | `clang-analyzer-deadcode.DeadStores` | `tests/file_service_consumer` |
 | 1 | `bugprone-not-null-terminated-result` | `tests/bench_first_account` |
@@ -208,28 +217,31 @@ failure of the step.
 
 Thirteen checks in all; the first two account for 43 of 64. The `clang-diagnostic-unused-result`
 finding is `tests/reboot/probe/nodiscard_probe.c`, a probe built with `EXCLUDE_FROM_ALL` that must fail to
-compile; it is an exclusion, not a defect. Only `components/file_service/src/file_service_security_events.c`
-and `components/ssh/sftp/crux_ssh_sftp_refuse.c` have findings in production code, both
-`bugprone-easily-swappable-parameters`.
+compile; it is an exclusion, not a defect. Two production sources, `components/file_service/src/file_service_security_events.c` and
+`components/ssh/sftp/crux_ssh_sftp_refuse.c`, have a finding (`bugprone-easily-swappable-parameters`).
+A third group is reported in `components/queue/src/queue.c` only because the fixture `tests/queue/faults.c`
+includes that file; the cause is in the fixture's global (`faults.c`), not in a production source.
 
 ### By directory
 
-Findings by directory of the reported file: `tests/time` 18, `tests/file` 16, `tests/queue` 6,
-`tests/thread` 4, `tests/networking` 3, `tests/serial_consumer` 4, `tests/bench_first_account` 2,
-`tests/execution_runtime` 2, `tests/file_service_consumer` 2, one each in `components/file_service`,
-`components/ssh`, `samples/serial`, `tests/i2c`, `tests/management_providers`, `tests/reboot`,
-`tests/web`.
+Findings by directory of the reported file (paths normalised): `tests/time` 18, `tests/file` 16,
+`tests/thread` 4, `tests/serial_consumer` 4, `tests/networking` 3, `tests/queue` 3, `components/queue` 3,
+`tests/bench_first_account` 2, `tests/execution_runtime` 2, `tests/file_service_consumer` 2, one each in
+`components/file_service`, `components/ssh`, `samples/serial`, `tests/i2c`, `tests/management_providers`,
+`tests/reboot`, `tests/web`. Attributed instead to the source that was analysed, `tests/queue` has 6 and
+`components/queue` none.
 
 ### CI time
 
-- clang-tidy time of the analysed set today: 174 s of work for 239 `host-debug` sources (plus the
-  consumer sources of `analyze-host.sh`). The full set is about 275 s of work: 58 percent more.
-- The proposed single run over 420 sources with two workers took **152 s wall time** on the container
+- clang-tidy time of the analysed set today: 174 s of work for the 239 `host-debug` sources that are already
+  analysed (the 10 logging and system consumer sources of `analyze-host.sh` were not timed). The 429
+  sources run here are about 275 s of work, 58 percent more than the 239.
+- The proposed single run over 420 sources with two workers took **151 s wall time** (2 m 30.7 s) on the container
   above (INFERRED to be of the same order on a GitHub-hosted runner; the emulated sample was 1.8 times
   slower, so 90 to 300 s is a fair range). Some sources are INFERRED to be analysed twice today, once by a
   per-component script and once by another; dropping the duplicates later saves time.
 - A few sources dominate: the six slowest, of which `tests/networking/client_test.cpp` (18.7 s) and
-  `components/file_service/src/file_service.c` (15.1 s) are two, take 10 to 19 s each.
+  `components/file_service/src/file_service.c` (15.1 s) are two, take 9.9 to 18.7 s each.
 
 ## Design
 
@@ -239,7 +251,10 @@ Findings by directory of the reported file: `tests/time` 18, `tests/file` 16, `t
    source is analysed as soon as a build compiles it. Nobody maintains a path list.
 2. Today's failures stay visible and shrink. They are named per source and per check, not excluded by
    directory or by disabling a check for everybody.
-3. Compiled means analysed. A compiled source that is neither analysed nor listed cannot exist.
+3. Compiled in a listed build means analysed. A source in the database of a listed build is analysed
+   or named in the exceptions file; a build directory that is neither listed nor ignored fails the step.
+   The design does not see sources that are compiled elsewhere (see
+   [What the prototype leaves out](#what-the-prototype-leaves-out)).
 4. Protected files change only within an explicit human approval ([AGENTS.md](../AGENTS.md)).
 
 ### The generated list
@@ -271,23 +286,69 @@ so the existing `unittest discover` step runs its tests, and a 12-line step in `
   (`build/*-boundary`) hold probe sources that must fail to compile. A new CI build is a deliberate act,
   so listing it once costs little, and every source inside it is then analysed with no further list.
 - **Exceptions file.** One line per source: `source ; check[,check] ; reference`, comments with `#`.
-  The listed checks are switched off for that source only (`--checks=-check`, which was confirmed to
-  leave all other checks active); the pseudo check `@skip` marks a probe that must fail to compile.
+  The listed checks are switched off for that source only (`--checks=-check`; clang-tidy appends the
+  command-line list to the configuration, and the prototype test below shows another check still
+  failing in a listed source); the pseudo check `@skip` marks a probe that must fail to compile.
 - **It can only shrink.** The tool fails when a listed check no longer fires for its source or when the
   source is no longer compiled, so a fixed source forces its entry out. A `host.yml` step on pull
   requests compares the file with the base branch version and fails when a source-and-check pair was
-  added. The first pull request has no base version and is exempt. `scripts/` is a protected path, so
+  added. The first pull request has no base version and is exempt; a failed fetch fails the step. `scripts/` is a protected path, so
   any edit to the file also needs human approval and an independent review.
-- **A new source cannot skip analysis** because the list is the database. Tested in the prototype: a
-  new source with a reserved identifier, added to the build, failed the run by name; the same source
-  without the defect passed.
+- **A new source cannot skip analysis** because the list is the database (case C and D below).
 
-Tests of the prototype in a throwaway container (all passed as expected): the full run with the 25
-exceptions (exit 0, 420 sources); removing one exception (exit 1, names the source); adding an exception
-for a check that does not fire (exit 1); a new defective source (exit 1); the same source fixed
-(exit 0); an unlisted build directory (exit 2); a listed build missing with all required (exit 2); the
-shrink-only check on unchanged, shrunk and grown files (exit 0, 0, 1). Not tested: a real CI run, the
-`host.yml` step, and the contents of the build directories that exist at that point of the CI job.
+Tests of the prototype, in a throwaway container with the final patch applied, only the ten listed
+builds plus `host-debug` present, `CRUX_ANALYZE_REQUIRE_ALL_BUILDS=1`, each case a full run of the real
+`scripts/analyze-host.sh` on a freshly regenerated compile database (about 150 s each):
+
+| Case | Result |
+|---|---|
+| 0. Unchanged tree, 25 exceptions | exit 0, 420 sources analysed |
+| A. One exception removed | exit 1, `clang-tidy failed on tests/time/clock_linux_test.c` with its reserved-identifier findings |
+| B. A check that does not fire added to an entry | exit 1, "tests/web/assets/cpp_header.cpp no longer triggers bugprone-foo" |
+| C. A new source with a reserved identifier, added to CMake | exit 1, names `tests/time/zz_new_probe.c` and the check; 421 sources |
+| D. The same source without the defect | exit 0, 421 sources |
+| E. A new finding of an already listed check in a listed source | **exit 0**: the limit named below |
+| F. Another function added to a listed source (meant to trigger `bugprone-easily-swappable-parameters`) | exit 0, inconclusive: the check did not fire on that function |
+| Direct clang-tidy runs, with and without `--checks=-bugprone-reserved-identifier`, on a source with reserved-identifier and `DeadStores` findings | the reserved-identifier findings disappear and the `DeadStores` finding remains: other checks stay active |
+| Unlisted build directories present (the eight consumer builds made by hand), no exceptions run | exit 2, names each (an earlier run) |
+| A listed build missing, all required | exit 2 (same run) |
+| `--shrink-only` against the baseline: unchanged, shrunk, grown | exit 0, 0, 1 (an earlier run) |
+
+An earlier run of cases A to D used a stale database and the 27-entry draft of the exceptions file; its
+results were discarded for the table above. Not tested: a real CI run, the `host.yml` step itself, and
+the build directories that exist at that point of the CI job.
+
+### What the prototype leaves out
+
+The prototype analyses 420 of the 439 compiled sources. The 19 it
+does not analyse are in eight standalone consumer builds that are in neither of its two lists:
+
+| Consumer build | Sources |
+|---|---|
+| `access`, `cli`, `credential`, `security_event`, `web`, `file_service`, `networking` consumers | 2 each (14) |
+| `configuration` consumer | 5 |
+
+INFERRED from the scripts, CI builds some of these in places the guard cannot see: the
+`check-access-boundary.py`, `check-cli-boundary.py`, `check-credential-boundary.py` and
+`check-security-event-boundary.py` scripts default to `build/*-boundary` (which the prototype ignores,
+because their probe sources must fail to compile), and `check-web-boundary.py` uses a temporary directory.
+Where the other three are built was not established. Their default-probe sources, `consumer.c` and
+`consumer.cpp`, do compile; a later stage can analyse them by pointing a listed build at the default
+probe. Among the 19 are the two `tests/file_service_consumer` sources, which have two `DeadStores`
+findings that the prototype neither analyses nor lists. The 27 failing sources are therefore 24 sources
+with findings that the prototype analyses, those 2 consumer sources, and the `@skip` probe; the exceptions
+file has 24 + 1 = 25 entries.
+
+Other limits of the gate, stated plainly:
+
+- A new finding of an **already listed** check in a listed source passes, because the check is switched
+  off for the whole source and the ratchet only tests that the check still fires somewhere in it.
+  A new finding of any **other** check fails. A per-location baseline would close the gap and costs
+  line numbers in the exceptions file.
+- The exceptions for consumer-only sources fail as "not compiled" when a local run lacks that build.
+  CI sets `CRUX_ANALYZE_REQUIRE_ALL_BUILDS=1`; a developer without the build sees the failure.
+- The pull-request step compares with `origin/<base>`; it fails when the fetch fails, and is exempt only
+  when the base has no exceptions file.
 
 ### How to treat the findings
 
@@ -300,7 +361,7 @@ shrink-only check on unchanged, shrunk and grown files (exit 0, 0, 1). Not teste
 
 Two checks deserve a decision of their own, because they are policy, not defects:
 `bugprone-easily-swappable-parameters` is a style heuristic (20 findings, 2 in production code) and
-`bugprone-reserved-identifier` flags the linker-wrap convention (23 findings, 0 in production code).
+`bugprone-reserved-identifier` flags the linker-wrap convention (20 findings) and feature-test macros (3), none in production code.
 Neither is a claim about the correctness of the code.
 
 ### Stages
@@ -360,7 +421,7 @@ require that name. `main` has no branch protection today, so none of these names
 | 1 | Replace the hand-written list by the generated list | **Yes**, stage 2 | a new source cannot skip analysis; 163 of 190 gap sources are already clean |
 | 2 | Handle today's 27 failing sources by baseline (B), fix-first (A) or exclude a check (C) | **B first**, then burn down | keeps coverage at once and keeps debts visible |
 | 3 | Approve changes to protected paths: `scripts/analyze-host.sh`, `.github/workflows/host.yml`, and the new scripts | **Yes**, within one reviewed PR | the check definitions are protected by [AGENTS.md](../AGENTS.md) |
-| 4 | Let the `--wrap` names pass `bugprone-reserved-identifier` through `AllowedIdentifiers` in `.clang-tidy` | **Yes, as a separate reviewed change** | 23 findings are a convention, not defects; this edits a protected file |
+| 4 | Let the `--wrap` names pass `bugprone-reserved-identifier` through `AllowedIdentifiers` in `.clang-tidy` | **Yes, as a separate reviewed change** | 20 of the 23 findings are a convention, not defects; the other 3 are feature-test macros and need a `NOLINT` with a reason or a compile definition; this edits a protected file |
 | 5 | Keep or remove the 12 per-component clang-tidy calls once the generated list exists | **Remove in stage 3** | they duplicate the list; 6 of them never run their clang-tidy step in CI today |
 | 6 | Analyse the boundary and probe consumer builds | **No**; list them as ignored with a reason | some of their sources must fail to compile |
 | 7 | Cover Zephyr-only sources | **Not now**; decide after stage 3 | needs a west workspace and an ARM-aware setup; 208 sources, 0 covered today |
@@ -373,6 +434,8 @@ require that name. `main` has no branch protection today, so none of these names
 - MISRA C and CERT C: no compliance claim exists, none is made. Dedicated analysers would need their
   own justification.
 - Coverage (line, branch) and SonarQube: not measured and not designed here.
+- The 19 sources of the eight consumer builds that the prototype leaves out, including the two
+  `DeadStores` findings of `tests/file_service_consumer`.
 - Whether a diagnostic is a true defect: the 63 findings were counted, not triaged one by one.
 - Sources compiled only on a platform other than the Linux host.
 

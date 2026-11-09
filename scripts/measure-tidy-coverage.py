@@ -239,7 +239,10 @@ def headers_of(entry: dict, db_root: str) -> set[str]:
             skip = True
         elif token not in ("-c", "-MD", "-MMD"):
             cleaned.append(token)
-    output = subprocess.run(cleaned + ["-MM"], cwd=entry["directory"], capture_output=True, text=True)
+    try:
+        output = subprocess.run(cleaned + ["-MM"], cwd=entry["directory"], capture_output=True, text=True)
+    except OSError:
+        return set()  # the build directory or the compiler is gone
     if output.returncode != 0:
         return set()
     names = output.stdout.replace("\\\n", " ").split(":", 1)[-1].split()
@@ -270,6 +273,7 @@ def measure(repo: str, databases: dict[str, str], db_root: str, with_headers: bo
     analysed: dict[str, dict] = {}
     per_script: dict[str, list[str]] = collections.defaultdict(list)
     missing_from_database = []
+    unresolved_directories = []
     for item in invocations:
         script_rel = os.path.relpath(item["script"], repo).replace(os.sep, "/")
         files = expand(repo, item["patterns"])
@@ -282,6 +286,9 @@ def measure(repo: str, databases: dict[str, str], db_root: str, with_headers: bo
             per_script[script_rel].append(rel)
             if database in entries and rel not in entries[database]:
                 missing_from_database.append((script_rel, database, rel))
+        if database not in entries:
+            # Membership in the build's database cannot be checked for this invocation.
+            unresolved_directories.append([script_rel, item["directory"], len(files)])
 
     def analysed_by(scripts_filter) -> set[str]:
         return {rel for rel, slot in analysed.items() if any(scripts_filter(s) for s in slot["scripts"])}
@@ -302,6 +309,7 @@ def measure(repo: str, databases: dict[str, str], db_root: str, with_headers: bo
         "analysed_by_any_script": len(all_analysed),
         "tidy_scripts": {},
         "analysed_not_in_database": [list(item) for item in missing_from_database],
+        "analysed_with_unresolved_build_directory": unresolved_directories,
         "analysed_not_in_tree": sorted(all_analysed - set(tree_src)),
     }
     for item in invocations:
@@ -381,7 +389,10 @@ def render(result: dict) -> str:
     lines.append(table([(key, len(value)) for key, value in result["not_in_any_host_database"].items()],
                        ("Reason (inferred from path)", "Sources")))
     for key in ("analysed_not_in_database", "analysed_not_in_tree", "compiled_not_in_tree"):
-        lines += ["", f"{key}: {len(result[key])}"]
+        lines += ["", f"{key}: {len(result[key])} (checked only for build directories that match a database given)"]
+    lines += ["", "Invocations whose build directory matches no database given (membership not checked):"]
+    lines += [f"- {script}: `-p {directory}`, {count} files" for script, directory, count in
+              result["analysed_with_unresolved_build_directory"]]
     if "headers" in result:
         header = result["headers"]
         lines += ["", "## Headers", ""]
@@ -427,6 +438,7 @@ class SelfTest(unittest.TestCase):
             self.assertEqual(sorted(result["not_in_any_host_database"]),
                              ["boundary-probe-or-consumer-fixture", "zephyr-or-native_sim-only"])
             self.assertEqual(result["analysed_not_in_database"], [])
+            self.assertEqual(result["analysed_with_unresolved_build_directory"], [])
 
     def test_not_run_mode(self) -> None:
         with tempfile.TemporaryDirectory() as root:
@@ -443,6 +455,14 @@ class SelfTest(unittest.TestCase):
             db = {PRIMARY: os.path.join(root, "build/linux/debug/compile_commands.json")}
             result = measure(root, db, root, with_headers=False)
             self.assertIn(["scripts/orphan.sh", PRIMARY, "components/a/src/c.c"], result["analysed_not_in_database"])
+
+    def test_unresolved_directory_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as root:
+            self.make_repo(root)
+            Path(root, "scripts/other.sh").write_text('"$tidy" -p "$build" --quiet "$repo"/tests/a/t.c\n')
+            db = {PRIMARY: os.path.join(root, "build/linux/debug/compile_commands.json")}
+            result = measure(root, db, root, with_headers=False)
+            self.assertEqual(result["analysed_with_unresolved_build_directory"], [["scripts/other.sh", "$build", 1]])
 
     def test_classify(self) -> None:
         self.assertEqual(classify_not_compiled("components/time/ports/zephyr/x.c"), "zephyr-or-native_sim-only")
