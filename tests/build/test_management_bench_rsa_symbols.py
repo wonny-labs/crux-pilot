@@ -29,8 +29,25 @@ RSA_NAMES = ["wc_MakeRsaKey", "wc_RsaPrivateKeyDecode", "_RsaPrivateKeyDecode", 
              "WC_RSA_PSS_TABLE", "wolfSSL_RSA_new", "wolfpsa_pk_rsa_verify"]
 
 
+_OBJECTS = {}
+_CACHE = []
+
+
+def tearDownModule():
+    for directory in _CACHE:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
 def build_object(directory, defined, undefined=(), data=()):
-    """An object file that defines functions and data and references others, built by the host compiler."""
+    """An object file that defines functions and data and references others, built by the host compiler. The
+    same object is built once, because every mutant of the script is run against the same objects."""
+    key = (tuple(defined), tuple(undefined), tuple(data))
+    if key in _OBJECTS:
+        return _OBJECTS[key]
+    if not _CACHE:
+        _CACHE.append(tempfile.mkdtemp())
+    directory = Path(_CACHE[0]) / f"object{len(_OBJECTS)}"
+    directory.mkdir()
     source = Path(directory) / "probe.c"
     lines = []
     for name in undefined:
@@ -44,7 +61,23 @@ def build_object(directory, defined, undefined=(), data=()):
     source.write_text("\n".join(lines) + "\n")
     obj = Path(directory) / "probe.o"
     subprocess.run(["cc", "-c", "-O0", "-o", str(obj), str(source)], check=True, capture_output=True)
+    _OBJECTS[key] = obj
     return obj
+
+
+def fake_nm(directory, name, lines):
+    """A stand-in nm that prints `nm -P -S` lines (name, type, value, size), for what a host object cannot hold."""
+    path = Path(directory) / name
+    path.write_text("#!/bin/sh\n" + "".join(f"echo '{line}'\n" for line in lines))
+    path.chmod(0o755)
+    return path
+
+
+# What the trimmed bench image holds that still has RSA in its name (the real image's nm, sizes in hex).
+LEFTOVERS = ["psa_asymmetric_sign_rsa T 60073568 0000000e", "BEGIN_RSA_PRIV r 6008768f 00000020",
+             "BEGIN_RSA_PUB r 60087652 0000001f", "END_RSA_PRIV r 60087671 0000001e",
+             "END_RSA_PUB r 60087635 0000001d"]
+BASE = ["wc_ecc_make_key_ex T 60010000 00000100", "sp_ecc_sign_256 T 60011000 00000200"]
 
 
 def run(script, obj, *extra):
@@ -60,15 +93,14 @@ def checks(script):
         result = run(script, clean)
         if result.returncode != 0:
             wrong.append(f"a clean image was refused: {result.stdout}{result.stderr}")
-        for name in RSA_NAMES:
-            as_function = build_object(scratch, KEPT + [name])
-            result = run(script, as_function)
-            if result.returncode != 1 or name not in result.stderr + result.stdout:
-                wrong.append(f"{name} as a function was not refused and named: rc={result.returncode}")
-            as_data = build_object(scratch, KEPT, data=[name])
-            result = run(script, as_data)
-            if result.returncode != 1 or name not in result.stderr + result.stdout:
-                wrong.append(f"{name} as data was not refused and named: rc={result.returncode}")
+        # Every RSA name, once as functions and once as data, in one image: the report must name each of them.
+        for kind, image in (("functions", build_object(scratch, KEPT + RSA_NAMES)),
+                            ("data", build_object(scratch, KEPT, data=RSA_NAMES))):
+            result = run(script, image)
+            report = result.stderr + result.stdout
+            missed = [name for name in RSA_NAMES if name not in report]
+            if result.returncode != 1 or missed:
+                wrong.append(f"RSA names as {kind}: rc={result.returncode}, not named: {missed}")
         # A reference alone cannot link without a definition, so it is not what the check looks for.
         referenced = build_object(scratch, KEPT, undefined=["wc_MakeRsaKey"])
         result = run(script, referenced)
@@ -99,6 +131,32 @@ def checks(script):
         result = run(script, clean, "--nm", str(failing))
         if result.returncode != 2:
             wrong.append(f"an nm that fails passed: rc={result.returncode}")
+        # The five names that the trimmed image keeps pass as what they are, and as nothing else.
+        small = ["psa_asymmetric_verify_rsa T 60073600 00000010", "psa_asymmetric_encrypt_rsa t 60073620 00000040",
+                 "psa_asymmetric_decrypt_rsa T 60073680 00000012"]
+        good = fake_nm(scratch, "leftover-nm", BASE + LEFTOVERS + small)
+        result = run(script, clean, "--nm", str(good))
+        if result.returncode != 0:
+            wrong.append(f"the stubs and PEM labels of the trimmed image were refused: {result.stdout}{result.stderr}")
+        for why, line in (
+                ("a stub as large as the real function", "psa_asymmetric_sign_rsa T 60073568 0000028c"),
+                ("a stub with no size", "psa_asymmetric_sign_rsa T 60073568"),
+                ("a stub of size zero", "psa_asymmetric_sign_rsa T 60073568 00000000"),
+                ("a stub that is data", "psa_asymmetric_sign_rsa r 60073568 0000000e"),
+                ("a second stub name as the real function", "psa_asymmetric_verify_rsa T 60073568 000000c8"),
+                ("an encrypt stub as the real function", "psa_asymmetric_encrypt_rsa T 60073568 00000200"),
+                ("a decrypt stub as the real function", "psa_asymmetric_decrypt_rsa T 60073568 00000200"),
+                ("a PEM label as code", "BEGIN_RSA_PRIV T 6008768f 00000020"),
+                ("a PEM label as a large table", "BEGIN_RSA_PRIV r 6008768f 00001000"),
+                ("a PEM label with no size", "END_RSA_PUB r 60087635"),
+                ("another RSA name that only looks like a label", "BEGIN_RSA_KEY r 6008768f 00000020"),
+                ("a stub with another name", "psa_asymmetric_wrap_rsa T 60073568 0000000e"),
+                ("a Mach-O name of the single-precision RSA math", "_sp_ModExp_3072 T 60073568 00000220"),
+                ("a Mach-O name of an RSA function", "_wc_MakeRsaKey T 60073568 000003c4")):
+            bad = fake_nm(scratch, "bad-nm", BASE + [line])
+            result = run(script, clean, "--nm", str(bad))
+            if result.returncode != 1:
+                wrong.append(f"{why} was not refused: rc={result.returncode}")
         # The report names every offender, not only the first.
         two = build_object(scratch, KEPT + ["wc_MakeRsaKey", "sp_ModExp_3072"])
         result = run(script, two)
@@ -115,14 +173,33 @@ def mutants(text):
     for number in range(start + 1, end):
         rest = lines[:number] + lines[number + 1:]
         yield f"pattern line {number + 1} is removed: {lines[number].strip()[:60]}", "".join(rest)
+    allowed = next(i for i, line in enumerate(lines) if line.startswith("ALLOWED = {"))
+    allowed_end = next(i for i in range(allowed, len(lines)) if lines[i].startswith("}"))
+    for number in range(allowed + 1, allowed_end):
+        rest = lines[:number] + lines[number + 1:]
+        yield f"allowance line {number + 1} is removed: {lines[number].strip()[:60]}", "".join(rest)
     for old, new, why in (
-            ('if kind in ("U", "u")', 'if False', "undefined symbols are counted"),
+            ('if kind in ("U", "u", "w", "v")', 'if False', "undefined and weak symbols are counted"),
+            ('if kind in ("U", "u", "w", "v")', 'if kind in ("U", "u")', "weak symbols are counted"),
             ("sys.exit(2)", "sys.exit(0)", "an unreadable image passes"),
-            ("if not names:", "if False:", "an image with no symbols passes"),
-            ("return 1", "return 0", "an offender does not fail the check"),
+            ("if not symbols:", "if False:", "an image with no symbols passes"),
+            ("return 1\n", "return 0\n", "an offender does not fail the check"),
+            ("if kind in kinds and 0 < size <= largest:", "if 0 < size <= largest:", "an allowed name passes as any kind"),
+            ("if kind in kinds and 0 < size <= largest:", "if kind in kinds and size <= largest:",
+             "an allowed name passes with no size"),
+            ("if kind in kinds and 0 < size <= largest:", "if kind in kinds and 0 < size:",
+             "an allowed name passes at any size"),
+            ("if kind in kinds and 0 < size <= largest:", "if kind in kinds and 0 < size < largest:",
+             "an allowed name at its largest size is refused"),
+            ("for form in forms:\n        if form in ALLOWED:", "for form in forms[:0]:\n        if form in ALLOWED:",
+             "no allowance applies"),
+            ("forms = [name, name[1:]] if name.startswith(\"_\") else [name]", "forms = [name]",
+             "the Mach-O underscore is not stripped"),
     ):
-        if old in text:
-            yield why, text.replace(old, new)
+        if old not in text:
+            yield f"NOT APPLICABLE: {why}", None
+            continue
+        yield why, text.replace(old, new)
 
 
 class RsaSymbolCheck(unittest.TestCase):
@@ -137,6 +214,7 @@ class RsaSymbolCheck(unittest.TestCase):
         with tempfile.TemporaryDirectory() as scratch:
             for description, text in mutants(original):
                 count += 1
+                self.assertIsNotNone(text, description)
                 copy = Path(scratch) / f"mutant{count}.py"
                 copy.write_text(text)
                 self.assertNotEqual(checks(copy), [], f"mutant survived: {description}")
