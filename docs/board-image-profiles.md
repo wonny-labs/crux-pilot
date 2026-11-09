@@ -1,6 +1,6 @@
 # Image profiles for the RT1060-EVKB program and restore path
 
-Status: **proposed**, software only. M5 and S2 (see below) are the registered profiles. Since the capture change a profile also says whether and for how long the `program` mode records the UART of the image it starts ([UART capture in `program` mode](#uart-capture-in-program-mode)). This document and its code change nothing about what may be done on the board. No programming, reset, cable operation or merge is authorised by it. Every physical use of a new image still needs its own approval, reviewed plan and the root mount guard described in [the physical preparation](networking-physical-preparation.md).
+Status: **proposed**, software only. M5 and S2 (see below) are the registered profiles. A third, the RT1060-EVKB management bench image, is built but **not registered** ([below](#the-bench-profile-built-not-registered)). Since the capture change a profile also says whether and for how long the `program` mode records the UART of the image it starts ([UART capture in `program` mode](#uart-capture-in-program-mode)). This document and its code change nothing about what may be done on the board. No programming, reset, cable operation or merge is authorised by it. Every physical use of a new image still needs its own approval, reviewed plan and the root mount guard described in [the physical preparation](networking-physical-preparation.md).
 
 ## Why
 
@@ -253,3 +253,37 @@ The lists keep the first 100 entries; the counts are exact.
 - The raw capture is tested only against fakes: a real capture of stage 1 (a restore of the normal image) replayed through a fake port, and synthetic cut lines, non-ASCII bytes and poll gaps, because the real captures have none. No serial port, no Commander and no board were involved. Whether the reader keeps up at 115200 baud on the Mac, how long the kernel buffers the entry image's bytes before the capture opens, and what S2 actually prints are unknown.
 - `main` passes `capture_spec(profile, args.mode)` to the driver: by reading the code and the tested helper, as for `bind_profile`.
 - Real errno verification under a non-M5 profile and the exact M5 `default_tools` list are covered only through the M5 tests that were not changed.
+
+## The bench profile: built, not registered
+
+Software only; nothing here ran on a board and nothing authorises a programming, reset or capture. The management bench image of row C8 ([plan](rt1060-bench-image-plan.md), section "The image profile input") has its profile **built and tested but not registered**: `PROFILES` in `tests/target/prepare_m5_network.py` is unchanged, `profile_named('crux-mgmt-bench-rt1060-evkb-b')` refuses the name, and a test asserts it. A registered profile would let a freeze record a Zephyr tree that was never compiled (blocker B2), so the owner decides the blockers below first.
+
+| Piece | Where |
+|---|---|
+| `check_image(binary, elf, config)`: the shared geometry check, the Board, declaration and forms, Entropy, Network, Buffers, No card and Report groups, the still-refused list, and the stack symbols of the linked image as a multiset (`worker_stacks` is two symbols of one name). It returns the facts and the firmware identity, and raises `ValueError` on a mismatch. It reads only the BIN, the ELF and the `.config` | `tests/target/bench_image.py` (new) |
+| `bench_profile()`: the factory, with the ten pinned projects of the plan, no modules, `commit_tag=False`, no errno evidence, `record-build-provenance.py` as the only tool script (the bench freeze script does not exist), `capture='raw'` | `tests/target/bench_image.py` |
+| Tests: one subtest per group, the M5 constants, the identity, the pinned set compared with the table of the plan, not registered, the window | `tests/build/test_bench_image_profile.py` (18 cases) |
+| Fixtures: an unchanged 56-line extract of the resolved `.config` of the recorded build and its measured symbol sizes | `tests/build/fixtures/bench-image/` |
+
+The configuration of the bench sets `LOG`, `FILE_SYSTEM`, `DISK_ACCESS` and `WATCHDOG`, which the M5 check forbids, so the bench check does not refuse them (the plan lists them as differences, not as refused features). The ELF and BIN of the tests are synthetic layouts; the real ELF is not committed, and the real build's sizes are in the evidence of row C8.
+
+**Capture window (open question B4).** `capture_seconds` is 300, the largest value that the current maximum (`MAX_CAPTURE_SECONDS`, unchanged) and the series budget allow. The plan needs about 2,000 s, so 300 s covers one boot and its first report, not the traffic steps. The number is a placeholder for the owner's decision.
+
+### Open blockers, and who decides each
+
+| # | Blocker | What it needs | Decides |
+|---|---|---|---|
+| B2 | The patched Zephyr copy is not a west project; a freeze that pins stock Zephyr records a tree that was not compiled, and one that sees the copy refuses it as dirty. No bench freeze script exists | Option 1 of the plan (the copy as a git checkout of the pin plus the patch as one local commit, pinned under `zephyr`) option 2 (stock Zephyr as the project, the copy's marker, patch, patched file and a tree hash frozen as extra artefacts and checked against `patched_zephyr` of the bench manifest), or option 3 (wait for #185), then a freeze script and, for option 2, a check in `check_image` | Owner (the plan names `Crux Pilot` for the way out and the owner only for the copy; this table adds the owner for gate and limit changes), then the Crux Pilot session |
+| B4 | A window above 300 s | A change of `MAX_CAPTURE_SECONDS` and of the series budget (`series_seconds`), which are driver and gate changes with their own reviewed plan; or a separate read-only capture mode under the same gates | Owner, then the Crux Pilot session |
+| B5 | No mode resets the board on its own | A new gated reset mode, or the owner pressing the reset button, which an approval must name. Not in this change | Owner, then the Crux Pilot session |
+| B1 | The programmer's 30 s limit (`capture_m3.py:58`, `process.wait(timeout=30)`) against about 23 s extrapolated for the 562,232 B load alone, with the verify read and the reset after it, all in one Commander run | A reviewed safety-gate change or a split of the run. Not in this change | Owner, then the Crux Pilot session |
+| D-b | The first account's password is plaintext in the ELF and BIN | Options A, B or C of row C4; the plan recommends C for one run | Owner |
+| D-c | `tcp_init_isn` keeps an all-zero key when `sys_csrand_get` fails | Patch the copy, add a composition check or accept for the first run | Owner |
+| D-d | The judge's margins: 25 percent of the HTTP stack, 80 percent of the arena and pools | Adopt as defaults or change | Owner |
+| D-e | The loaded scope: the reachable subset (one account, three sessions) or a second row | The scope of the run | Owner |
+| D-f | The reset mechanism (B5) and whether a commit tag goes into the banner | A reset mode; no tag recommended (a tag would make `commit_tag` true and change the BIN at every commit) | Owner |
+
+The plan's other blockers (B3, the refusal in `main()`, B6, B7, B9) and its decision D-a (the place of the entropy line) do not concern the profile itself; B3 matters only for the board run and is listed below for that reason.
+
+**What registering needs.** All of: B2 settled and its freeze script written; B4 settled, with `capture_seconds` set to the decided value and the limits changed in their own review; B5 and B1 settled if the board run needs them; D-b to D-f decided and recorded; the profile added to `PROFILES` (one reviewed line, plus the freeze script in `tool_scripts`), with a freeze test on a real build; the lifted image (B3) built, since the image of the record refuses to start; and the approval of the board stage, which this document is not.
+
