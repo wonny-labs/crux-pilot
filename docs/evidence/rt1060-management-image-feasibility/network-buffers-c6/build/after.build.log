@@ -34,8 +34,8 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [25/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap_stats.c.obj
 [26/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/clock.c.obj
 [27/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_packaged.c.obj
-[28/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
-[29/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/sem.c.obj
+[28/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/sem.c.obj
+[29/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
 [30/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/thread_entry.c.obj
 [31/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
 [32/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/assert.c.obj
@@ -51,8 +51,8 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [42/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt.c.obj
 [43/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt_common.c.obj
 [44/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/last_section_id.c.obj
-[45/555] Building C object zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj
-[46/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/ring_buffer.c.obj
+[45/555] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/ring_buffer.c.obj
+[46/555] Building C object zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj
 [47/555] Building C object zephyr/CMakeFiles/zephyr.dir/soc/nxp/imxrt/mpu_regions.c.obj
 [48/555] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_core.c.obj
 [49/555] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_mgmt.c.obj
@@ -86,14 +86,14 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [77/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/scb.c.obj
 [78/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/irq_manage.c.obj
 [79/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/prep_c.c.obj
-[80/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread.c.obj
-[81/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/cpu_idle.c.obj
+[80/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/cpu_idle.c.obj
+[81/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread.c.obj
 [82/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/exc_exit.c.obj
 [83/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread_abort.c.obj
 [84/555] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/swap_helper.S.obj
 [85/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/irq_init.c.obj
-[86/555] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/__aeabi_read_tp.S.obj
-[87/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/isr_wrapper.c.obj
+[86/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/isr_wrapper.c.obj
+[87/555] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/__aeabi_read_tp.S.obj
 [88/555] Building C object zephyr/arch/arch/arm/core/mpu/CMakeFiles/arch__arm__core__mpu.dir/arm_core_mpu.c.obj
 [89/555] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/cache.c.obj
 [90/555] Linking C static library zephyr/arch/arch/arm/core/cortex_m/libarch__arm__core__cortex_m.a
@@ -173,8 +173,8 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [164/555] Building C object zephyr/subsys/fs/CMakeFiles/subsys__fs.dir/fs_impl.c.obj
 [165/555] Building C object zephyr/subsys/fs/CMakeFiles/subsys__fs.dir/fs.c.obj
 [166/555] Building C object zephyr/subsys/fs/CMakeFiles/subsys__fs.dir/fat_fs.c.obj
-[167/555] Building C object zephyr/subsys/random/CMakeFiles/subsys__random.dir/random_xoshiro128.c.obj
-[168/555] Linking C static library zephyr/subsys/fs/libsubsys__fs.a
+[167/555] Linking C static library zephyr/subsys/fs/libsubsys__fs.a
+[168/555] Building C object zephyr/subsys/random/CMakeFiles/subsys__random.dir/random_xoshiro128.c.obj
 [169/555] Building C object zephyr/subsys/random/CMakeFiles/subsys__random.dir/random_psa.c.obj
 [170/555] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/hostname.c.obj
 [171/555] Linking C static library zephyr/subsys/random/libsubsys__random.a
@@ -245,12 +245,12 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [236/555] Building C object modules/crux-pilot/interrupt/CMakeFiles/crux_interrupt.dir/ports/zephyr/interrupt_zephyr.c.obj
 [237/555] Linking C static library modules/crux-pilot/interrupt/libcrux_interrupt.a
 [238/555] Generating the web route table of app
-[239/555] Building C object modules/crux-pilot/thread/CMakeFiles/crux_thread_zephyr.dir/ws/crux-pilot/components/thread/src/thread.c.obj
-[240/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/agent.c.obj
+[239/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/agent.c.obj
+[240/555] Building C object modules/crux-pilot/thread/CMakeFiles/crux_thread_zephyr.dir/ws/crux-pilot/components/thread/src/thread.c.obj
 [241/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/certman.c.obj
 [242/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/io.c.obj
-[243/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/internal.c.obj
-[244/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/keygen.c.obj
+[243/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/keygen.c.obj
+[244/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/internal.c.obj
 [245/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/misc.c.obj
 [246/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/log.c.obj
 [247/555] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/ossh.c.obj
@@ -282,8 +282,8 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [261/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/src/access_clock_time.c.obj
 [262/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/ports/psa/access_psa.c.obj
 [263/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/src/credential_image.c.obj
-[264/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/access_store/credential_access_store.c.obj
-[265/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/src/credential_store.c.obj
+[264/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/src/credential_store.c.obj
+[265/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/access_store/credential_access_store.c.obj
 [266/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/ports/psa/credential_psa.c.obj
 [267/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/ports/zephyr/credential_device_id.c.obj
 [268/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/src/credential_security_events.c.obj
@@ -306,14 +306,14 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [285/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/mgmt_status/src/source_security_events.c.obj
 [286/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/session/web_session.c.obj
 [287/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/session/web_session_attempt.c.obj
-[288/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/session/web_session_json.c.obj
-[289/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/ports/psa/web_session_psa.c.obj
+[288/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/ports/psa/web_session_psa.c.obj
+[289/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/session/web_session_json.c.obj
 [290/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/management/web_management_save.c.obj
 [291/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/management/web_management_json.c.obj
 [292/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/management/web_management_network_json.c.obj
 [293/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings.c.obj
-[294/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_events.c.obj
-[295/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_check.c.obj
+[294/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_check.c.obj
+[295/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_events.c.obj
 [296/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_no_apply.c.obj
 [297/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_cli.c.obj
 [298/555] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/tls_certificate/src/tls_certificate.c.obj
@@ -406,8 +406,8 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [385/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sha.c.obj
 [386/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sha256.c.obj
 [387/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sha512.c.obj
-[388/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sha3.c.obj
-[389/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/dh.c.obj
+[388/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/dh.c.obj
+[389/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sha3.c.obj
 [390/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/arc4.c.obj
 [391/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/cmac.c.obj
 [392/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/argon2.c.obj
@@ -481,16 +481,16 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [460/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wolfevent.c.obj
 [461/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa.c.obj
 [462/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wolfmath.c.obj
-[463/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa_aes.c.obj
-[464/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa_hash.c.obj
+[463/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa_hash.c.obj
+[464/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa_aes.c.obj
 [465/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa_pkcbs.c.obj
 [466/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/st/stm32.c.obj
 [467/555] Building C object modules/wolfssl/CMakeFiles/..__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/realtek/rtl8735b.c.obj
 [468/555] Linking C static library modules/wolfssl/lib..__modules__crypto__wolfssl__zephyr.a
 [469/555] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/ws/modules/fs/fatfs/ff.c.obj
 [470/555] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/zfs_diskio.c.obj
-[471/555] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/zfs_ffsystem.c.obj
-[472/555] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/ws/modules/fs/fatfs/option/ffunicode.c.obj
+[471/555] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/ws/modules/fs/fatfs/option/ffunicode.c.obj
+[472/555] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/zfs_ffsystem.c.obj
 [473/555] Linking C static library modules/fatfs/libmodules__fatfs.a
 [474/555] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/common/fsl_common.c.obj
 [475/555] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/common/fsl_common_arm.c.obj
@@ -513,8 +513,8 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [492/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_asymmetric_api.c.obj
 [493/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_attestation.c.obj
 [494/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_chacha20_poly1305.c.obj
-[495/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_crypto.c.obj
-[496/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_cipher.c.obj
+[495/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_cipher.c.obj
+[496/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_crypto.c.obj
 [497/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_ecc.c.obj
 [498/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_ed25519_ed448.c.obj
 [499/555] Building C object modules/wolfpsa/CMakeFiles/..__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_engine.c.obj
@@ -552,8 +552,8 @@ largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 
 [531/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mutex.c.obj
 [532/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/queue.c.obj
 [533/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sem.c.obj
-[534/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/stack.c.obj
-[535/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/system_work_q.c.obj
+[534/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/system_work_q.c.obj
+[535/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/stack.c.obj
 [536/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/condvar.c.obj
 [537/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/work.c.obj
 [538/555] Building C object zephyr/kernel/CMakeFiles/kernel.dir/thread.c.obj

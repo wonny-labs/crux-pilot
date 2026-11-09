@@ -5,11 +5,11 @@
   [
     {
       "path" : "tests/zephyr/management_rt1060_compile/bench_declaration.json",
-      "sha256" : "6a7d5c964ecb1ba5d6b4dae198146b36d56c2957c2f6c67525abba069a3aafb0"
+      "sha256" : "70c61998341d6cbbb1510b0120ae400e571706ece6a00db692e49238deb38825"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/bench_guard.cmake",
-      "sha256" : "a5f27d3d6bf4c7b01a60fd8667342f8dd70615a58749c2edc420e237d5387ebe"
+      "sha256" : "d2e3803add35d5dbef0c7ad70f62e3f49aebf5eec7f2f627abaf2bd61d2e8b73"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/management_target.cmake",
@@ -41,7 +41,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/target.conf",
-      "sha256" : "4fc125b8e8b3e3ed6768d52ed3f1747ecd290353b11824b031e9df4de353173b"
+      "sha256" : "0d860ac41a9baddf623912aee342710f355cbf4b6e41988769abae04a9d7671f"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/target.overlay",
@@ -61,7 +61,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/target.conf",
-      "sha256" : "4fc125b8e8b3e3ed6768d52ed3f1747ecd290353b11824b031e9df4de353173b"
+      "sha256" : "0d860ac41a9baddf623912aee342710f355cbf4b6e41988769abae04a9d7671f"
     },
     {
       "path" : "samples/controller/zephyr/m3-network.overlay",
@@ -182,8 +182,8 @@
     "CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE" : "5840",
     "CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE" : "5840"
   },
-  "source_commit" : "ccac6aa70bf7dda344c87d024f2f35a3b0a1f401",
-  "source_tree_modified" : "true",
+  "source_commit" : "55ead8523691c9062964f09aedbd80cd6ddc1925",
+  "source_tree_modified" : "false",
   "sources" : 
   [
     {

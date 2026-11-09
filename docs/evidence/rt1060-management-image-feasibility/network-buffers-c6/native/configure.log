@@ -25,6 +25,6 @@ Kconfig header saved to '/build/bench_report_native/zephyr/include/generated/zep
 -- Found assembler: /usr/bin/gcc
 -- Crux Zephyr integration module discovered
 -- Found gen_kobject_list: /ws/zephyr/scripts/build/gen_kobject_list.py
--- Configuring done (56.0s)
+-- Configuring done (57.1s)
 -- Generating done (0.1s)
 -- Build files have been written to: /build/bench_report_native

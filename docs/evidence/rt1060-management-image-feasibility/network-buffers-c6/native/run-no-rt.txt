@@ -7,8 +7,13 @@ BENCH-STACK seq=1 thread=idle size=256 used=40 unused=216 state=live
 BENCH-STACK seq=1 thread=main size=4096 used=40 unused=4056 state=ended
 BENCH-STACK seq=1 thread=ssh_worker size=16384 used=10384 unused=6000 state=ended
 BENCH-HEAP seq=1 arena=65536 in_use=0 peak=0 free=65424
-BENCH-REPORT v=1 end seq=1 lines=8 missed=0
-BENCH-REPORT v=1 begin seq=2 reason=quiet uptime_ms=12780 bursts=1
+BENCH-POOL seq=1 pool=rx_pkt size=192 used=3 peak=21
+BENCH-POOL seq=1 pool=tx_pkt size=32 used=3 peak=7
+BENCH-POOL seq=1 pool=rx_buf size=1024 used=3 peak=151
+BENCH-POOL seq=1 pool=tx_buf size=768 used=3 peak=91
+BENCH-NET seq=1 ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=0 tcp_conndrop=0
+BENCH-REPORT v=1 end seq=1 lines=13 missed=0
+BENCH-REPORT v=1 begin seq=2 reason=quiet uptime_ms=12670 bursts=1
 BENCH-STACK seq=2 thread=bench_report size=2048 used=40 unused=2008 state=live
 BENCH-STACK seq=2 thread=thread@417040 size=1024 used=40 unused=984 state=live
 BENCH-STACK seq=2 thread=http_server_tid size=8192 used=40 unused=8152 state=live
@@ -17,8 +22,13 @@ BENCH-STACK seq=2 thread=idle size=256 used=40 unused=216 state=live
 BENCH-STACK seq=2 thread=main size=4096 used=40 unused=4056 state=ended
 BENCH-STACK seq=2 thread=ssh_worker size=16384 used=10384 unused=6000 state=ended
 BENCH-HEAP seq=2 arena=65536 in_use=0 peak=0 free=65424
-BENCH-REPORT v=1 end seq=2 lines=8 missed=0
-BENCH-REPORT v=1 begin seq=3 reason=idle uptime_ms=40900 bursts=1
+BENCH-POOL seq=2 pool=rx_pkt size=192 used=3 peak=22
+BENCH-POOL seq=2 pool=tx_pkt size=32 used=3 peak=8
+BENCH-POOL seq=2 pool=rx_buf size=1024 used=3 peak=152
+BENCH-POOL seq=2 pool=tx_buf size=768 used=3 peak=92
+BENCH-NET seq=2 ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=1 tcp_conndrop=0
+BENCH-REPORT v=1 end seq=2 lines=13 missed=0
+BENCH-REPORT v=1 begin seq=3 reason=idle uptime_ms=40680 bursts=1
 BENCH-STACK seq=3 thread=bench_report size=2048 used=40 unused=2008 state=live
 BENCH-STACK seq=3 thread=thread@417040 size=1024 used=40 unused=984 state=live
 BENCH-STACK seq=3 thread=http_server_tid size=8192 used=40 unused=8152 state=live
@@ -80,5 +90,10 @@ BENCH-STACK seq=4 thread=thread@4144c0 size=512 used=40 unused=472 state=live
 BENCH-STACK seq=4 thread=main size=4096 used=40 unused=4056 state=ended
 BENCH-STACK seq=4 thread=ssh_worker size=16384 used=10384 unused=6000 state=ended
 BENCH-HEAP seq=4 arena=65536 in_use=0 peak=0 free=65424
-BENCH-REPORT v=1 end seq=4 lines=51 missed=17
+BENCH-POOL seq=4 pool=rx_pkt size=192 used=3 peak=24
+BENCH-POOL seq=4 pool=tx_pkt size=32 used=3 peak=10
+BENCH-POOL seq=4 pool=rx_buf size=1024 used=3 peak=154
+BENCH-POOL seq=4 pool=tx_buf size=768 used=3 peak=94
+BENCH-NET seq=4 ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=3 tcp_conndrop=0
+BENCH-REPORT v=1 end seq=4 lines=56 missed=17
 BENCH_REPORT_TEST complete

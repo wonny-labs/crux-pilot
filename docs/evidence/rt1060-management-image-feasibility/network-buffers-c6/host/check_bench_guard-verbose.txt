@@ -3,8 +3,8 @@
   refused  CMake control: 256 B data buffers with the counts exactly at their need for that size: accepted
   refused  CMake control: 64 B data buffers with the counts exactly at their need for that size: accepted
   refused  CMake control: a declaration of a 130 percent margin and a 60 percent paper peak, exactly at its needs: accepted
-  refused  CMake control: 6 SSH connections, 5 HTTPS clients and an SSH window of 32768 B, exactly at their need: accepted
-  refused  CMake control: 2 SSH connections, 1 HTTPS clients and an SSH window of 8192 B, exactly at their need: accepted
+  refused  CMake control: 6 SSH connections, 5 HTTPS clients, a web backlog of 8 and an SSH window of 32768 B, exactly at their need: accepted
+  refused  CMake control: 2 SSH connections, 1 HTTPS clients, a web backlog of 1 and an SSH window of 8192 B, exactly at their need: accepted
   refused  CMake no declaration: This build is not a declared RT1060-EVKB bench image: set CRUX_MANAGEMENT_BENCH_IMAGE only in the bench image, tests/zephyr/management_rt1060_compile
   refused  CMake a native test image's declaration only: This build is not a declared RT1060-EVKB bench image: set CRUX_MANAGEMENT_BENCH_IMAGE only in the bench image, tests/zephyr/management_rt1060_compile
   refused  CMake native_sim: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
@@ -70,6 +70,8 @@
   refused  CMake CRUX_SSH_MAX_CONNECTIONS not a number: CONFIG_CRUX_SSH_MAX_CONNECTIONS is not set to a number: the buffer and heap rule of row C6 reads it
   refused  CMake HTTP_SERVER_MAX_CLIENTS not set: CONFIG_HTTP_SERVER_MAX_CLIENTS is not set to a number: the buffer and heap rule of row C6 reads it
   refused  CMake HTTP_SERVER_MAX_CLIENTS not a number: CONFIG_HTTP_SERVER_MAX_CLIENTS is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake CRUX_WEB_BACKLOG not set: CONFIG_CRUX_WEB_BACKLOG is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake CRUX_WEB_BACKLOG not a number: CONFIG_CRUX_WEB_BACKLOG is not set to a number: the buffer and heap rule of row C6 reads it
   refused  CMake CRUX_SSH_WINDOW_BYTES not set: CONFIG_CRUX_SSH_WINDOW_BYTES is not set to a number: the buffer and heap rule of row C6 reads it
   refused  CMake CRUX_SSH_WINDOW_BYTES not a number: CONFIG_CRUX_SSH_WINDOW_BYTES is not set to a number: the buffer and heap rule of row C6 reads it
   refused  CMake COMMON_LIBC_MALLOC_ARENA_SIZE not set: CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE is not set to a number: the buffer and heap rule of row C6 reads it
@@ -81,18 +83,19 @@
   refused  CMake a send window of 8 segments: The TCP send window must be the declared 5840 B (4 segments of 1460 B), and not the value Zephyr derives from the buffer counts: CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE is 11680
   refused  CMake a driver ring one frame short of the window and its spare frames: The Ethernet driver's receive ring of 5 frames must hold the declared window (4 segments) and 2 spare frames: at least 6
   refused  CMake the receive data buffers one under the need (914): CONFIG_NET_BUF_RX_COUNT 914 is under the 915 receive data buffers that the declared load needs
-  refused  CMake the transmit data buffers one under the need (612): CONFIG_NET_BUF_TX_COUNT 612 is under the 613 transmit data buffers that the declared load needs
+  refused  CMake the transmit data buffers one under the need (516): CONFIG_NET_BUF_TX_COUNT 516 is under the 517 transmit data buffers that the declared load needs
   refused  CMake the receive packets one under the need (172): CONFIG_NET_PKT_RX_COUNT 172 is under the 173 receive packets that the declared load needs
   refused  CMake the transmit packets one under the need (17): CONFIG_NET_PKT_TX_COUNT 17 is under the 18 transmit packets that the declared load needs
   refused  CMake the arena one under the need (694207): CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE 694207 is under the 694208 B in which the declared sessions' paper peak of 347104 B stays under 50 percent
   refused  CMake a 130 percent margin and a 60 percent paper peak, NET_BUF_RX_COUNT one under its need: CONFIG_NET_BUF_RX_COUNT 951 is under the 952 receive data buffers that the declared load needs
-  refused  CMake a 130 percent margin and a 60 percent paper peak, NET_BUF_TX_COUNT one under its need: CONFIG_NET_BUF_TX_COUNT 636 is under the 637 transmit data buffers that the declared load needs
+  refused  CMake a 130 percent margin and a 60 percent paper peak, NET_BUF_TX_COUNT one under its need: CONFIG_NET_BUF_TX_COUNT 536 is under the 537 transmit data buffers that the declared load needs
   refused  CMake a 130 percent margin and a 60 percent paper peak, NET_PKT_RX_COUNT one under its need: CONFIG_NET_PKT_RX_COUNT 179 is under the 180 receive packets that the declared load needs
   refused  CMake a 130 percent margin and a 60 percent paper peak, NET_PKT_TX_COUNT one under its need: CONFIG_NET_PKT_TX_COUNT 18 is under the 19 transmit packets that the declared load needs
   refused  CMake a 130 percent margin and a 60 percent paper peak, COMMON_LIBC_MALLOC_ARENA_SIZE one under its need: CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE 578506 is under the 578507 B in which the declared sessions' paper peak of 347104 B stays under 60 percent
   refused  CMake a count with letters after its digits: CONFIG_NET_BUF_RX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
   refused  CMake eight SSH connections, the pools as they are: CONFIG_NET_BUF_RX_COUNT 1024 is under the 1215 receive data buffers that the declared load needs
   refused  CMake eight HTTPS clients, the pools as they are: CONFIG_NET_BUF_RX_COUNT 1024 is under the 1290 receive data buffers that the declared load needs
+  refused  CMake a web listener backlog of 8, the pools as they are: CONFIG_NET_BUF_RX_COUNT 1024 is under the 1215 receive data buffers that the declared load needs
   refused  CMake a 128 KiB SSH window, the arena as it is: CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE 1048576 is under the 2463680 B in which the declared sessions' paper peak of 1231840 B stays under 50 percent
   refused  CMake a data buffer of 64 B, the counts as they are: CONFIG_NET_BUF_RX_COUNT 1024 is under the 1665 receive data buffers that the declared load needs
   refused  CMake the test form test_host_key not set: The test form test_host_key (D5) is declared selected, and CONFIG_CRUX_BENCH_TEST_HOST_KEY is not set
@@ -136,49 +139,51 @@
   refused  C     the microSD form with the RAM disk driver: "The microSD image has no RAM disk: the RAM disk provider and driver are refused"
   refused  C     ssh_target.c without its form symbol: declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY
   refused  C     bench_first_account.c without its form symbol: declared only with CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE
-  killed   bench_guard.cmake: the refusal at line 125 only logs
-  killed   bench_guard.cmake: the refusal at line 133 only logs
-  killed   bench_guard.cmake: the refusal at line 138 only logs
-  killed   bench_guard.cmake: the refusal at line 142 only logs
-  killed   bench_guard.cmake: the refusal at line 148 only logs
-  killed   bench_guard.cmake: the refusal at line 152 only logs
-  killed   bench_guard.cmake: the refusal at line 155 only logs
-  killed   bench_guard.cmake: the refusal at line 159 only logs
-  killed   bench_guard.cmake: the refusal at line 163 only logs
-  killed   bench_guard.cmake: the refusal at line 167 only logs
-  killed   bench_guard.cmake: the refusal at line 172 only logs
-  killed   bench_guard.cmake: the refusal at line 177 only logs
-  killed   bench_guard.cmake: the refusal at line 180 only logs
-  killed   bench_guard.cmake: the refusal at line 192 only logs
-  killed   bench_guard.cmake: the refusal at line 196 only logs
-  killed   bench_guard.cmake: the refusal at line 204 only logs
-  killed   bench_guard.cmake: the refusal at line 211 only logs
-  killed   bench_guard.cmake: the refusal at line 215 only logs
-  killed   bench_guard.cmake: the refusal at line 220 only logs
-  killed   bench_guard.cmake: the refusal at line 225 only logs
-  killed   bench_guard.cmake: the refusal at line 230 only logs
-  killed   bench_guard.cmake: the refusal at line 234 only logs
-  killed   bench_guard.cmake: the refusal at line 241 only logs
-  killed   bench_guard.cmake: the refusal at line 249 only logs
-  killed   bench_guard.cmake: the refusal at line 259 only logs
-  killed   bench_guard.cmake: the refusal at line 265 only logs
-  killed   bench_guard.cmake: the refusal at line 271 only logs
-  killed   bench_guard.cmake: the refusal at line 277 only logs
-  killed   bench_guard.cmake: the refusal at line 282 only logs
-  killed   bench_guard.cmake: the refusal at line 286 only logs
-  killed   bench_guard.cmake: the refusal at line 290 only logs
-  killed   bench_guard.cmake: the refusal at line 294 only logs
-  killed   bench_guard.cmake: the refusal at line 298 only logs
-  killed   bench_guard.cmake: the refusal at line 362 only logs
+  killed   bench_guard.cmake: the refusal at line 126 only logs
+  killed   bench_guard.cmake: the refusal at line 134 only logs
+  killed   bench_guard.cmake: the refusal at line 139 only logs
+  killed   bench_guard.cmake: the refusal at line 143 only logs
+  killed   bench_guard.cmake: the refusal at line 149 only logs
+  killed   bench_guard.cmake: the refusal at line 153 only logs
+  killed   bench_guard.cmake: the refusal at line 156 only logs
+  killed   bench_guard.cmake: the refusal at line 160 only logs
+  killed   bench_guard.cmake: the refusal at line 164 only logs
+  killed   bench_guard.cmake: the refusal at line 168 only logs
+  killed   bench_guard.cmake: the refusal at line 173 only logs
+  killed   bench_guard.cmake: the refusal at line 178 only logs
+  killed   bench_guard.cmake: the refusal at line 181 only logs
+  killed   bench_guard.cmake: the refusal at line 193 only logs
+  killed   bench_guard.cmake: the refusal at line 197 only logs
+  killed   bench_guard.cmake: the refusal at line 205 only logs
+  killed   bench_guard.cmake: the refusal at line 212 only logs
+  killed   bench_guard.cmake: the refusal at line 216 only logs
+  killed   bench_guard.cmake: the refusal at line 221 only logs
+  killed   bench_guard.cmake: the refusal at line 226 only logs
+  killed   bench_guard.cmake: the refusal at line 231 only logs
+  killed   bench_guard.cmake: the refusal at line 235 only logs
+  killed   bench_guard.cmake: the refusal at line 242 only logs
+  killed   bench_guard.cmake: the refusal at line 250 only logs
+  killed   bench_guard.cmake: the refusal at line 260 only logs
+  killed   bench_guard.cmake: the refusal at line 266 only logs
+  killed   bench_guard.cmake: the refusal at line 272 only logs
+  killed   bench_guard.cmake: the refusal at line 278 only logs
+  killed   bench_guard.cmake: the refusal at line 283 only logs
+  killed   bench_guard.cmake: the refusal at line 287 only logs
+  killed   bench_guard.cmake: the refusal at line 291 only logs
+  killed   bench_guard.cmake: the refusal at line 295 only logs
+  killed   bench_guard.cmake: the refusal at line 299 only logs
+  killed   bench_guard.cmake: the refusal at line 363 only logs
   killed   bench_guard.cmake, row C6 rule: the receive buffers take no margin
   killed   bench_guard.cmake, row C6 rule: the receive buffers leave out the driver's ring
   killed   bench_guard.cmake, row C6 rule: the receive buffers are not rounded up
-  killed   bench_guard.cmake, row C6 rule: the backlog is left out of the connections
+  killed   bench_guard.cmake, row C6 rule: the web backlog is left out of the connections
   killed   bench_guard.cmake, row C6 rule: a connection holds full frames only, never the typical segments
   killed   bench_guard.cmake, row C6 rule: a connection holds as many packets as full frames only
   killed   bench_guard.cmake, row C6 rule: a frame is 12 buffers whatever the buffer size
   killed   bench_guard.cmake, row C6 rule: a typical segment is 5 buffers whatever the buffer size
-  killed   bench_guard.cmake, row C6 rule: the transmit buffers leave out the senders' copies
+  killed   bench_guard.cmake, row C6 rule: the transmit buffers leave out the senders' segments
+  killed   bench_guard.cmake, row C6 rule: the senders' header buffer is not counted
+  killed   bench_guard.cmake, row C6 rule: the transmit packets count one packet per sender
   killed   bench_guard.cmake, row C6 rule: the transmit buffers leave out the queued windows
   killed   bench_guard.cmake, row C6 rule: the HTTP server thread is not a sender
   killed   bench_guard.cmake, row C6 rule: the receive packets leave out the ring
@@ -232,5 +237,5 @@
   killed   Kconfig.bench: line 39 (depends on DISK_DRIVER_RAM && !DISK_DRIVER_SDMMC) is removed
   killed   Kconfig.bench: line 48 (depends on DISK_DRIVER_SDMMC && !DISK_DRIVER_RAM) is removed
   killed   Kconfig.bench: the block that puts the test forms under the declaration is removed
-CMake: ok; C: ok; Kconfig: ok; mutants: 96 of 96 killed
+CMake: ok; C: ok; Kconfig: ok; mutants: 98 of 98 killed
 control ok: the bench image refuses every build that is not the declared RT1060-EVKB bench, in CMake, in C and in Kconfig

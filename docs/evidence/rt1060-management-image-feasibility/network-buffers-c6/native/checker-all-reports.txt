@@ -56,7 +56,15 @@ thread@416e70                512        40         472     92.2%
 thread@416f58                512        40         472     92.2%
 thread@417040               1024        40         984     96.1%
 heap: peak 0 B of 65536 B (0.0 percent, limit 80), in use at most 0 B
+pool                        size  peak max    peak %
+rx_buf                      1024       154     15.0%
+rx_pkt                       192        24     12.5%
+tx_buf                       768        94     12.2%
+tx_pkt                        32        10     31.2%
+net: ip_drop=0 tcp_drop=0 tcp_seg_drop=0 tcp_rexmit=3 tcp_conndrop=0
 certificate: None
+WARN tcp_rexmit: 3 at the last report (a short pool, or a bad link)
 FAIL report seq=4: 17 threads missed (the table was full)
 FAIL report seq=4: no row for http_server_tid
+FAIL report seq=3: no BENCH-POOL rows, though other reports have them
 FAIL

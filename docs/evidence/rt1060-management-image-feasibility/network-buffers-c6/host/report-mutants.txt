@@ -1,3 +1,4 @@
+control: the unmutated tests pass
 killed         checker: pool peak limit ignored
 killed         checker: pool limit compared with >= (off by one)
 killed         checker: pool peak not kept over reports
@@ -13,6 +14,9 @@ killed         checker: missing pool lines accepted
 killed         checker: pool lines not counted in the end line
 killed         checker: two BENCH-NET lines accepted
 killed         checker: declared size skipped
+killed         checker: pool rows without a net line (or the reverse) accepted
+killed         checker: a report without pool rows accepted among reports that have them
+killed         checker: the highest counter read instead of the last report's
 killed         formatter: a peak over the size is accepted
 killed         formatter: a use over the size is accepted
 killed         formatter: a bad name is accepted
@@ -26,4 +30,4 @@ killed         formatter: size printed as used
 killed         formatter: retransmissions printed as drops
 killed         formatter: connection drops printed as segment drops
 killed         formatter: IP drops printed as TCP drops
-28 of 28 killed
+31 of 31 killed

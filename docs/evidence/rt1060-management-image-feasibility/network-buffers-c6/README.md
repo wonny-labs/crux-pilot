@@ -4,14 +4,14 @@ New evidence record of [`docs/rt1060-bench-network-buffers.md`](../../../rt1060-
 
 | Folder | What it holds | Who ran it, where |
 | --- | --- | --- |
-| `build/` | For `origin/main` at `4794f4dd` (`before.*`) and for the C6 commit `ccac6aa7` (`after.*`): the configure and build logs, `size` and the section sizes, the sizes of the network symbols, the resolved network settings, the manifest, the SHA-256 of the artifacts and the link map | The author, in the Dev Container (`crux-pilot-devcontainer:local`, amd64 emulation), one build at a time under the shared lock |
+| `build/` | For `origin/main` at `4794f4dd` (`before.*`) and for the C6 commit `55ead852` (`after.*`): the configure and build logs, `size` and the section sizes, the sizes of the network symbols, the resolved network settings, the manifest, the SHA-256 of the artifacts and the link map | The author, in the Dev Container (`crux-pilot-devcontainer:local`, amd64 emulation), one build at a time under the shared lock |
 | `host/red1-…`, `red2-…`, `red3-…`, `red4-…` | The red runs, in order: the guard script before the guard existed (the 39 cases of that first version, none refused), the script with the guard and the old `target.conf` (the real configuration refused), the declaration test on the old `target.conf`, the report tests before the formatter and the checker had the pool lines | The author, on the host |
 | `host/check_bench_guard-verbose.txt` | Every refusal of the three guard levels with the line each printed, the controls at the need, then 98 mutants, **98 of 98 killed** | The author, on the host (macOS, Python 3.9, CMake 4.4, Apple clang, Kconfiglib from the patched Zephyr copy) |
-| `host/report-mutants.txt` | 15 mutants of `check_bench_uart.py` and 13 of the formatter, **28 of 28 killed** (the first run killed 21 of 26: 4 survived and 1 did not compile, and the tests and the mutant were fixed, not the rules) | The author, on the host |
-| `host/unittest.txt` | 60 tests of `test_management_bench_declaration.py`, `test_management_target_lists.py` and `test_management_bench_report.py` | The author, on the host |
-| `host/ci-like-container.txt` | The same 60 tests, the guard script without its Kconfig level, and `scripts/check-format.sh` with clang-format 18.1.8, in the Dev Container (CMake 3.28.4, Python 3.12.3): what CI's `host` job looks like. **The docs step did not run**: it needs its pinned lychee, a download that was not approved. | The author, in the Dev Container |
+| `host/report-mutants.txt` | 18 mutants of `check_bench_uart.py` and 13 of the formatter, **31 of 31 killed**, after an unmutated control (the first run killed 21 of 26: 4 survived and 1 did not compile, and the tests and the mutant were fixed, not the rules) | The author, on the host |
+| `host/unittest.txt` | 64 tests of `test_management_bench_declaration.py`, `test_management_target_lists.py` and `test_management_bench_report.py` | The author, on the host |
+| `host/ci-like-container.txt` | At `522b6d0d`, before the review's fixes (not repeated after them: CI is the check): the 60 tests of that tree, the guard script without its Kconfig level, and `scripts/check-format.sh` with clang-format 18.1.8, in the Dev Container (CMake 3.28.4, Python 3.12.3): what CI's `host` job looks like. **The docs step did not run**: it needs its pinned lychee, a download that was not approved. | The author, in the Dev Container |
 | `host/linkcheck.txt`, `commands/linkcheck.py` | The relative links and anchors of the two changed documents, checked by a small script because the docs step could not run | The author, on the host |
-| `native/` | `tests/native/bench_report` (the generic report core, which the image shares) built on `native_sim/native/64` with the C6 change: no warning, 84 lines of the run, the checker over them (it fails report 4, the table-overflow report, as it did in C2) | The author, in the Dev Container |
+| `native/` | `tests/native/bench_report` (the generic report core, which the image shares) built on `native_sim/native/64` with the C6 change and a fake network read (made-up pools and counters; its third read fails): no warning, the run, the checker over it (report 3 has no pool rows by design, report 4 is the table-overflow report, as in C2), and `native-mutants.txt`: two mutants of the core's network lines, each killed by this run | The author, in the Dev Container |
 | `commands/` | `container.sh` with `<workspace>`, `<scratch>` and `<folder outside any repository>` where host paths were; `build.sh`, `native.sh`, `hostci.sh`, `run_before.sh`, `run_after.sh`; `report-mutants.py`; `linkcheck.py` | |
 
 ## Build
@@ -24,7 +24,7 @@ New evidence record of [`docs/rt1060-bench-network-buffers.md`](../../../rt1060-
 | FLASH | **596,696 B** before, **597,584 B** after (+888 B) |
 | RAM (SDRAM) | **1,365,804 B** before, **2,172,076 B** after (+806,272 B) |
 | Warnings | The same three, in wolfSSH `wolfsftp.c` |
-| Source tree | Before: `4794f4dd`, `source_tree_modified: false`. After: `ccac6aa7`; the manifest says `true` because this document's counts were edited after the commit and before the build; all 97 repository files that the manifest hashes equal the commit's |
+| Source tree | Before: `4794f4dd`, `source_tree_modified: false`. After: `55ead852`, `source_tree_modified: false`. The first build of the change, at `ccac6aa7` before the review, gave the same sizes; its review changed the guard's transmit rule (need 613 to 517), the judge and the tests, and no setting of the image |
 
 ## What is not here
 

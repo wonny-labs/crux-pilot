@@ -23,8 +23,8 @@ ninja: Entering directory `/build/bench_report_native'
 [20/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap.c.obj
 [21/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_packaged.c.obj
 [22/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/clock.c.obj
-[23/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/sem.c.obj
-[24/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
+[23/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
+[24/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/sem.c.obj
 [25/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/thread_entry.c.obj
 [26/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
 [27/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf.c.obj
@@ -41,8 +41,8 @@ ninja: Entering directory `/build/bench_report_native'
 [38/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt_common.c.obj
 [39/146] Building C object zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj
 [40/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/ring_buffer.c.obj
-[41/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_core.c.obj
-[42/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_mgmt.c.obj
+[41/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_mgmt.c.obj
+[42/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_core.c.obj
 [43/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_cache.c.obj
 [44/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_msg.c.obj
 [45/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_output.c.obj
@@ -56,11 +56,11 @@ ninja: Entering directory `/build/bench_report_native'
 [53/146] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/fatal.c.obj
 [54/146] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/irq.c.obj
 [55/146] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/swap.c.obj
-[56/146] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/posix_core_nsi.c.obj
-[57/146] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/thread.c.obj
+[56/146] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/thread.c.obj
+[57/146] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/posix_core_nsi.c.obj
 [58/146] Generating ../../../include/generated/libc/minimal/strerror_table.h
-[59/146] Linking C static library zephyr/arch/arch/posix/core/libarch__posix__core.a
-[60/146] Building C object zephyr/CMakeFiles/zephyr_pre0.dir/misc/empty_file.c.obj
+[59/146] Building C object zephyr/CMakeFiles/zephyr_pre0.dir/misc/empty_file.c.obj
+[60/146] Linking C static library zephyr/arch/arch/posix/core/libarch__posix__core.a
 [61/146] Building C object zephyr/lib/libc/minimal/CMakeFiles/lib__libc__minimal.dir/source/stdlib/atoi.c.obj
 [62/146] Building C object zephyr/lib/libc/minimal/CMakeFiles/lib__libc__minimal.dir/source/stdlib/strtol.c.obj
 [63/146] Building C object zephyr/lib/libc/minimal/CMakeFiles/lib__libc__minimal.dir/source/stdlib/strtoul.c.obj
@@ -116,8 +116,8 @@ ninja: Entering directory `/build/bench_report_native'
 [113/146] Linking C static library zephyr/drivers/timer/libdrivers__timer.a
 [114/146] Building C object zephyr/kernel/CMakeFiles/kernel.dir/banner.c.obj
 [115/146] Building C object zephyr/kernel/CMakeFiles/kernel.dir/busy_wait.c.obj
-[116/146] Building C object zephyr/kernel/CMakeFiles/kernel.dir/errno.c.obj
-[117/146] Building C object zephyr/kernel/CMakeFiles/kernel.dir/device.c.obj
+[116/146] Building C object zephyr/kernel/CMakeFiles/kernel.dir/device.c.obj
+[117/146] Building C object zephyr/kernel/CMakeFiles/kernel.dir/errno.c.obj
 [118/146] Building C object zephyr/kernel/CMakeFiles/kernel.dir/fatal.c.obj
 [119/146] Building C object zephyr/kernel/CMakeFiles/kernel.dir/init.c.obj
 [120/146] Building C object zephyr/kernel/CMakeFiles/kernel.dir/kheap.c.obj
