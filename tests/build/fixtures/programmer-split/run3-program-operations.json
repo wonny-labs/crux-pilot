@@ -1,0 +1,35 @@
+[
+  {
+    "step": "01-identity-only",
+    "commands": "q\n",
+    "state": "checks",
+    "monotonic": 143392.521614
+  },
+  {
+    "step": "01-identity-only",
+    "state": "done",
+    "monotonic": 143394.099757
+  },
+  {
+    "step": "02-entry-image",
+    "commands": "verifybin \"<artifacts>/normal-ec94fbe/build/zephyr/zephyr.bin\", 0x60000000\nIsHalted\nq\n",
+    "state": "checks",
+    "monotonic": 143394.09998
+  },
+  {
+    "step": "02-entry-image",
+    "state": "done",
+    "monotonic": 143399.20701
+  },
+  {
+    "step": "03-program-m5",
+    "commands": "loadfile \"<ws>/crux-pilot-5/build/zephyr/m5-physical-evkb-94a4a7da879f/zephyr/zephyr.bin\", 0x60000000\nverifybin \"<ws>/crux-pilot-5/build/zephyr/m5-physical-evkb-94a4a7da879f/zephyr/zephyr.bin\", 0x60000000\nr\ng\nq\n",
+    "state": "checks",
+    "monotonic": 143399.208233
+  },
+  {
+    "step": "03-program-m5",
+    "state": "done",
+    "monotonic": 143409.602729
+  }
+]

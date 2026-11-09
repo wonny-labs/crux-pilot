@@ -43,7 +43,13 @@ def verify_jlink_tools(manifest=None):
     return records['executable']['path']
 
 
-def _commander(probe, commands, output):
+COMMAND_SECONDS = 30            # the limit of one Commander run unless a caller passes a longer one
+MAX_COMMAND_SECONDS = 80        # hard ceiling; with the 1 s reap it stays inside the 90 s the guard must have left
+
+
+def _commander(probe, commands, output, seconds=COMMAND_SECONDS):
+    if type(seconds) is not int or not 1 <= seconds <= MAX_COMMAND_SECONDS:
+        raise HardwareStop('Commander limit outside 1 to %d s; no probe access' % MAX_COMMAND_SECONDS)
     executable = verify_jlink_tools()
     require(probe == '602003106', 'Unexpected probe selection')
     script = output.with_suffix('.jlink')
@@ -55,7 +61,7 @@ def _commander(probe, commands, output):
         process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
                                    start_new_session=True, env=environment)
         try:
-            code = process.wait(timeout=30)
+            code = process.wait(timeout=seconds)
         except subprocess.TimeoutExpired as error:
             cleanup = []
             try:
@@ -68,7 +74,7 @@ def _commander(probe, commands, output):
                 cleanup.append('created process not reaped; no retry')
             output.with_suffix('.timeout.json').write_text(json.dumps(dict(
                 status='PROBE_STATE_UNCERTAIN', pid=process.pid, pgid=process.pid,
-                cleanup=cleanup), indent=2))
+                limit_seconds=seconds, cleanup=cleanup), indent=2))
             raise HardwareStop('Probe timeout; state uncertain; no further hardware changes') from error
         require(code == 0, 'Probe exited unsuccessfully; state uncertain')
     text = output.read_text(errors='replace')
@@ -81,9 +87,9 @@ def _commander(probe, commands, output):
     return text
 
 
-def commander(probe, commands, output):
+def commander(probe, commands, output, seconds=COMMAND_SECONDS):
     try:
-        return _commander(probe, commands, output)
+        return _commander(probe, commands, output, seconds)
     except HardwareStop:
         raise
     except Exception as error:
