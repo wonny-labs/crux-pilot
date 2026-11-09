@@ -396,7 +396,7 @@ Row C6 sizes the network buffers, the TCP windows and the heap arena of the benc
 | Pools | RX data buffers **1,024**, TX **768** (128 B each); RX packets **192**, TX **32**. Needs by the declared load: 915, 517, 173, 18 |
 | Arena | **1 MiB** (was 512 KiB): the paper peak of 347,104 B stays under half of it |
 | What a short pool does | Receive: a silent drop (the ENET driver counts none) and a retransmission. **Transmit data: `ENOBUFS` after 100 ms, which ends the TLS or SSH connection** |
-| Guard | `bench_guard.cmake` step 10 refuses a pool under its need, a window that is not the declared one, a short driver ring and a short arena. 98 mutants killed. **The CMake mutants of C3 and C4 had been vacuous** (the copy lacked `ram_disk.overlay`) and are real now |
+| Guard | `bench_guard.cmake` step 10 refuses a pool under its need, a window that is not the declared one, a short driver ring and a short arena. 104 mutants killed. **The CMake mutants of C3 and C4 had been vacuous** (the copy lacked `ram_disk.overlay`) and are real now |
 | UART report | `BENCH-POOL` (four pools, size, use, peak) and `BENCH-NET` (TCP and IP counters); the judge fails a pool over 80 percent |
 | Cost | Flash and RAM from two cross-builds: see the document |
 

@@ -11,8 +11,8 @@ Status: **row C6 of stage 2** of [the RT1060-EVKB feasibility report](rt1060-man
 | Is "a short pool slows TCP and does not break it" true? | **For receive, yes. For transmit, no.** A shortage of transmit data buffers makes `send()` fail with `ENOBUFS` after 100 ms, and **both the TLS socket layer and the SSH provider turn that error into a failed connection**: [what each shortage does](#what-each-shortage-does). The earlier statement was an assumption and is corrected in the feasibility report. |
 | Was a driver count found that is not counted? | **Yes.** The ENET driver drops a received frame when it cannot allocate a packet, **and counts nothing**: it has no statistics callback, so Zephyr's call to count the error does nothing. A short receive pool is therefore visible only in the pools' high-water marks and in the retransmissions that the host sees. |
 | Sockets and contexts? | **Unchanged** (`NET_MAX_CONTEXTS` 32, `NET_MAX_CONN` 32, `ZVFS_OPEN_MAX` 48, TLS contexts 6). The only evidence is `native_sim` (about 9 of 48 sockets), which says there is room, not that more is needed. The report now prints `tcp_conndrop`, which is the number that would show a shortage. |
-| What does it cost? | **Flash +888 B (597,584 B, 7.12 % of 8 MB), RAM +806,272 B (2,172,076 B)** from two real cross-builds of the bench image: [cost](#cost). The RAM is SDRAM, 32 MB of which 6.47 percent is used. |
-| Is the guard stronger? | **Yes, and a hole in the old one was found and closed.** A new refusal checks the pools, the windows, the driver ring and the arena against the declared load, with 98 mutants killed. The mutation check of the CMake guard had been vacuous since row C3 (its copy lacked a file, so every mutant failed for that reason): [the guard](#the-guard). |
+| What does it cost? | **Flash +892 B (562,232 B, 6.70 % of 8 MB), RAM +806,336 B (2,172,076 B)**, against the RSA-trimmed image of row C9 from two real cross-builds of the bench image: [cost](#cost). The RAM is SDRAM, 32 MB of which 6.47 percent is used. |
+| Is the guard stronger? | **Yes, and a hole in the old one was found and closed.** A new refusal checks the pools, the windows, the driver ring and the arena against the declared load, with 104 mutants killed. The mutation check of the CMake guard had been vacuous since row C3 (its copy lacked a file, so every mutant failed for that reason): [the guard](#the-guard). |
 | What can a board run read? | The report now prints the high-water mark of all four pools and the TCP counters, and the judge fails a pool over 80 percent of its size. The list of what a run must read for the plan of row C8 is [below](#what-a-board-run-must-read). |
 
 ## What was decided
@@ -147,7 +147,7 @@ The declared rule is that the paper peak stays under **half** the arena (`paper_
 
 | Mutation check | Result |
 | --- | --- |
-| Every `message(FATAL_ERROR` weakened to a log, and the 32 arithmetic and comparison mutants of the new rule | **98 of 98 killed**, with the CMake mutants now genuinely tested |
+| Every `message(FATAL_ERROR` weakened to a log, and the 32 arithmetic and comparison mutants of the new rule | **104 of 104 killed**, with the CMake mutants now genuinely tested |
 | **A finding about the old check** | `copy_tree()` did not copy `ram_disk.overlay`, which `crux_bench_manifest()` reads (row C3). A copy then failed `check_manifest()` whatever the mutant, so **every CMake mutant had been "killed" for that one reason since C3**, and the counts of C3 and C4 for that group said nothing. The script now copies the file. An unmutated copy passes and **no earlier mutant survived the fix**, so the earlier guards hold. |
 
 ## The report, and the judge
@@ -163,15 +163,15 @@ The report of row C2 prints, after `BENCH-HEAP`, the high-water mark of each poo
 
 ## Cost
 
-Two cross-builds for `mimxrt1060_evk@B//qspi` of the same recipe, in the Dev Container, with the guards inside the configure: `origin/main` at `4794f4dd` (rows C1 to C5 merged) and this change at `55ead852`, a clean tree (`source_tree_modified: false`). The first build of this change, before the review, gave the same sizes: its review changed the guard's rule for the transmit buffers (613 to 517 needed, the 768 chosen unchanged), the judge and the tests, and no setting of the image. Three warnings in both, all in wolfSSH `wolfsftp.c`, as before. The configure printed `Bench network buffers meet the declared load: rx buffers 1024 (need 915), tx buffers 768 (517), rx packets 192 (173), tx packets 32 (18), window 5840, arena 1048576 (694208)`.
+Two cross-builds for `mimxrt1060_evk@B//qspi` of the same recipe, in the Dev Container, with the guards inside the configure: `origin/main` at `616d9437` (rows C1 to C5 and C9 merged, so the image without RSA) and this change merged with it at `d2005b22`, both clean trees (`source_tree_modified: false`). Before the merge of row C9 the same change measured +888 B of Flash and +806,272 B of RAM against `4794f4dd`: row C9 moves the base (Flash 596,696 B to 561,340 B), not the cost. The linked image of both builds passes C9's check of RSA symbols. Four warnings in both (the three in wolfSSH `wolfsftp.c` and one in wolfPSA `psa_key_storage.c`, which row C9's NO_RSA leaves unused). The configure printed `Bench network buffers meet the declared load: rx buffers 1024 (need 915), tx buffers 768 (517), rx packets 192 (173), tx packets 32 (18), window 5840, arena 1048576 (694208)`.
 
-| | Before (`4794f4dd`) | After (`55ead852`) | Delta |
+| | Before (`616d9437`) | After (`d2005b22`) | Delta |
 | --- | ---: | ---: | ---: |
-| **FLASH** | 596,696 B (7.11 % of 8 MB) | **597,584 B** (7.12 %) | **+888 B** |
-| **RAM** (all in SDRAM, 32 MB) | 1,365,804 B (4.07 %) | **2,172,076 B** (6.47 %) | **+806,272 B** |
-| `size`: text, data, bss | 592,324, 4,356, 1,361,414 | 593,184, 4,380, 2,167,650 | +860, +24, +806,236 |
+| **FLASH** | 561,340 B (6.69 % of 8 MB) | **562,232 B** (6.70 %) | **+892 B** |
+| **RAM** (all in SDRAM, 32 MB) | 1,365,740 B (4.07 %) | **2,172,076 B** (6.47 %) | **+806,336 B** |
+| `size`: text, data, bss | 557,000, 4,324, 1,361,414 | 557,864, 4,348, 2,167,650 | +864, +24, +806,236 |
 | ITCM, DTCM, OCRAM, OCRAM2 | 0 | 0 | |
-| Steps, warnings | 555, 3 | 555, 3 | |
+| Steps, warnings | 556, 4 | 556, 4 | |
 
 The Flash is the pool and counter lines (formatter, glue and strings). No component changed.
 
@@ -182,8 +182,8 @@ The Flash is the pool and counter lines (formatter, glue and strings). No compon
 | TX data buffers: data, then headers | 4,096 + 896 B | 98,304 + 21,504 B | +114,816 B |
 | RX packets (64 B each) | 1,024 B | 12,288 B | +11,264 B |
 | TX packets | 1,024 B | 2,048 B | +1,024 B |
-| The rest: the report's snapshot buffer and the slabs' high-water fields | | | +128 B |
-| **Total** | | | **+806,272 B** |
+| The rest: the report's snapshot buffer, the slabs' high-water fields and alignment (not separated) | | | +192 B |
+| **Total** | | | **+806,336 B** |
 
 The symbol sizes are in the build's [`net-symbols`](evidence/rt1060-management-image-feasibility/network-buffers-c6/build/after.net-symbols.txt), the pools alone are 281,856 B more, and the arena is 65 percent of the growth. The report thread's stack is still 2,048 B: the snapshot buffer is static, under the report's lock.
 

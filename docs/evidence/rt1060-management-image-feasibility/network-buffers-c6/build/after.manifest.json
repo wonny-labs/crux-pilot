@@ -5,11 +5,11 @@
   [
     {
       "path" : "tests/zephyr/management_rt1060_compile/bench_declaration.json",
-      "sha256" : "70c61998341d6cbbb1510b0120ae400e571706ece6a00db692e49238deb38825"
+      "sha256" : "6745aa4a1ef07af5ea773c99bac77c574d9b7de21e9a0bd893b3c9402f92d723"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/bench_guard.cmake",
-      "sha256" : "d2e3803add35d5dbef0c7ad70f62e3f49aebf5eec7f2f627abaf2bd61d2e8b73"
+      "sha256" : "b213ab3c1ac9021f67ae779df8ac8f86544ab75f0e980a8e8bcb1a2118517ce3"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/management_target.cmake",
@@ -17,7 +17,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/CMakeLists.txt",
-      "sha256" : "264e1f17064ffba3bf30fc61a4957305e276da90248c37b1a77684313f305cd8"
+      "sha256" : "f7eda933a5b5a4128df641133bd47ad1f9e78c552c5bfd569c7d632d89729c1b"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/bench_first_account.cmake",
@@ -33,7 +33,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/Kconfig.bench",
-      "sha256" : "ea7f95309fe5803351e7b80d387ac6eb4b2317594249d5b0756e5cd2c8b92fd5"
+      "sha256" : "58aaf7e78ba8c83a333391a8618143371e66a11def3bc4f18612391133cf8fdf"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/prj.conf",
@@ -41,7 +41,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/target.conf",
-      "sha256" : "0d860ac41a9baddf623912aee342710f355cbf4b6e41988769abae04a9d7671f"
+      "sha256" : "8a4bf72259eb333442aa63bc6f23a634b2e951583a496a18e414dc68f3d626b6"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/target.overlay",
@@ -61,7 +61,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/target.conf",
-      "sha256" : "0d860ac41a9baddf623912aee342710f355cbf4b6e41988769abae04a9d7671f"
+      "sha256" : "8a4bf72259eb333442aa63bc6f23a634b2e951583a496a18e414dc68f3d626b6"
     },
     {
       "path" : "samples/controller/zephyr/m3-network.overlay",
@@ -182,7 +182,7 @@
     "CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE" : "5840",
     "CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE" : "5840"
   },
-  "source_commit" : "55ead8523691c9062964f09aedbd80cd6ddc1925",
+  "source_commit" : "d2005b226b33e3fe848225d8abff33226c90360c",
   "source_tree_modified" : "false",
   "sources" : 
   [
@@ -608,5 +608,10 @@
       "state" : "selected",
       "symbol" : "CRUX_BENCH_TEST_HOST_KEY"
     }
+  },
+  "wolfssl_profile" : 
+  {
+    "decision" : "D11",
+    "rsa" : "trimmed: CONFIG_WOLFSSL_RSA is off, so wolfCrypt is built with NO_RSA"
   }
 }

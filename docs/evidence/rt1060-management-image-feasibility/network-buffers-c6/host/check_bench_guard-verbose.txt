@@ -18,6 +18,8 @@
   refused  CMake no wolfPSA: The bench image needs the Wolf profile: CONFIG_WOLFPSA, and no Mbed TLS
   refused  CMake the Mbed profile: The bench image needs the Wolf profile: CONFIG_WOLFPSA, and no Mbed TLS
   refused  CMake the Mbed PSA provider: The bench image needs the Wolf profile: CONFIG_WOLFPSA, and no Mbed TLS
+  refused  CMake RSA in wolfCrypt: The bench image has no RSA (D11): CONFIG_WOLFSSL_RSA is refused, so that wolfCrypt is built with NO_RSA
+  refused  CMake a wolfSSL settings file: The bench image takes wolfSSL's settings from the module's Kconfig options only: a settings file would hide whether RSA is built
   refused  CMake no SSH: The bench image is HTTPS only, and SSH with CLI and SFTP
   refused  CMake no command line: The bench image is HTTPS only, and SSH with CLI and SFTP
   refused  CMake no SFTP: The bench image is HTTPS only, and SSH with CLI and SFTP
@@ -125,6 +127,8 @@
   refused  C     HTTPS on another address: static assertion failed due to requirement '__builtin_strcmp("192.168.77.3", "192.168.77.2") == 0': The HTTPS listener must listen on the bench address only
   refused  C     SSH on every address: static assertion failed due to requirement '__builtin_strcmp("", "192.168.77.2") == 0': The SSH listener must listen on the bench address only
   refused  C     SSH on 0.0.0.0: static assertion failed due to requirement '__builtin_strcmp("0.0.0.0", "192.168.77.2") == 0': The SSH listener must listen on the bench address only
+  refused  C     RSA in wolfCrypt: "The bench image has no RSA (D11): CONFIG_WOLFSSL_RSA is refused"
+  refused  C     a wolfSSL settings file: "The bench image takes wolfSSL's settings from the module's Kconfig options only"
   refused  C     mkfs on mount: "A mount never formats a card: CONFIG_FS_FATFS_MOUNT_MKFS is refused in the bench image"
   refused  C     both file forms: "The bench image has exactly one file backend, and both of its forms are set"
   refused  C     the RAM disk form without its provider: "The RAM disk form needs the RAM disk File provider and the RAM disk driver"
@@ -139,40 +143,42 @@
   refused  C     the microSD form with the RAM disk driver: "The microSD image has no RAM disk: the RAM disk provider and driver are refused"
   refused  C     ssh_target.c without its form symbol: declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY
   refused  C     bench_first_account.c without its form symbol: declared only with CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE
-  killed   bench_guard.cmake: the refusal at line 126 only logs
-  killed   bench_guard.cmake: the refusal at line 134 only logs
-  killed   bench_guard.cmake: the refusal at line 139 only logs
-  killed   bench_guard.cmake: the refusal at line 143 only logs
-  killed   bench_guard.cmake: the refusal at line 149 only logs
-  killed   bench_guard.cmake: the refusal at line 153 only logs
-  killed   bench_guard.cmake: the refusal at line 156 only logs
-  killed   bench_guard.cmake: the refusal at line 160 only logs
+  killed   bench_guard.cmake: the refusal at line 128 only logs
+  killed   bench_guard.cmake: the refusal at line 136 only logs
+  killed   bench_guard.cmake: the refusal at line 141 only logs
+  killed   bench_guard.cmake: the refusal at line 145 only logs
+  killed   bench_guard.cmake: the refusal at line 151 only logs
+  killed   bench_guard.cmake: the refusal at line 155 only logs
+  killed   bench_guard.cmake: the refusal at line 158 only logs
   killed   bench_guard.cmake: the refusal at line 164 only logs
   killed   bench_guard.cmake: the refusal at line 168 only logs
   killed   bench_guard.cmake: the refusal at line 173 only logs
-  killed   bench_guard.cmake: the refusal at line 178 only logs
+  killed   bench_guard.cmake: the refusal at line 177 only logs
   killed   bench_guard.cmake: the refusal at line 181 only logs
-  killed   bench_guard.cmake: the refusal at line 193 only logs
-  killed   bench_guard.cmake: the refusal at line 197 only logs
-  killed   bench_guard.cmake: the refusal at line 205 only logs
-  killed   bench_guard.cmake: the refusal at line 212 only logs
-  killed   bench_guard.cmake: the refusal at line 216 only logs
-  killed   bench_guard.cmake: the refusal at line 221 only logs
-  killed   bench_guard.cmake: the refusal at line 226 only logs
-  killed   bench_guard.cmake: the refusal at line 231 only logs
-  killed   bench_guard.cmake: the refusal at line 235 only logs
-  killed   bench_guard.cmake: the refusal at line 242 only logs
-  killed   bench_guard.cmake: the refusal at line 250 only logs
-  killed   bench_guard.cmake: the refusal at line 260 only logs
-  killed   bench_guard.cmake: the refusal at line 266 only logs
-  killed   bench_guard.cmake: the refusal at line 272 only logs
-  killed   bench_guard.cmake: the refusal at line 278 only logs
-  killed   bench_guard.cmake: the refusal at line 283 only logs
-  killed   bench_guard.cmake: the refusal at line 287 only logs
+  killed   bench_guard.cmake: the refusal at line 186 only logs
+  killed   bench_guard.cmake: the refusal at line 191 only logs
+  killed   bench_guard.cmake: the refusal at line 194 only logs
+  killed   bench_guard.cmake: the refusal at line 206 only logs
+  killed   bench_guard.cmake: the refusal at line 210 only logs
+  killed   bench_guard.cmake: the refusal at line 218 only logs
+  killed   bench_guard.cmake: the refusal at line 225 only logs
+  killed   bench_guard.cmake: the refusal at line 229 only logs
+  killed   bench_guard.cmake: the refusal at line 234 only logs
+  killed   bench_guard.cmake: the refusal at line 239 only logs
+  killed   bench_guard.cmake: the refusal at line 244 only logs
+  killed   bench_guard.cmake: the refusal at line 248 only logs
+  killed   bench_guard.cmake: the refusal at line 255 only logs
+  killed   bench_guard.cmake: the refusal at line 263 only logs
+  killed   bench_guard.cmake: the refusal at line 273 only logs
+  killed   bench_guard.cmake: the refusal at line 279 only logs
+  killed   bench_guard.cmake: the refusal at line 285 only logs
   killed   bench_guard.cmake: the refusal at line 291 only logs
-  killed   bench_guard.cmake: the refusal at line 295 only logs
-  killed   bench_guard.cmake: the refusal at line 299 only logs
-  killed   bench_guard.cmake: the refusal at line 363 only logs
+  killed   bench_guard.cmake: the refusal at line 296 only logs
+  killed   bench_guard.cmake: the refusal at line 300 only logs
+  killed   bench_guard.cmake: the refusal at line 304 only logs
+  killed   bench_guard.cmake: the refusal at line 308 only logs
+  killed   bench_guard.cmake: the refusal at line 312 only logs
+  killed   bench_guard.cmake: the refusal at line 383 only logs
   killed   bench_guard.cmake, row C6 rule: the receive buffers take no margin
   killed   bench_guard.cmake, row C6 rule: the receive buffers leave out the driver's ring
   killed   bench_guard.cmake, row C6 rule: the receive buffers are not rounded up
@@ -209,14 +215,16 @@
   killed   bench_guard.h: the #error at line 19 only warns
   killed   bench_guard.h: the #error at line 24 only warns
   killed   bench_guard.h: the #error at line 28 only warns
-  killed   bench_guard.h: the #error at line 31 only warns
-  killed   bench_guard.h: the #error at line 37 only warns
-  killed   bench_guard.h: the #error at line 48 only warns
-  killed   bench_guard.h: the #error at line 51 only warns
-  killed   bench_guard.h: the #error at line 55 only warns
+  killed   bench_guard.h: the #error at line 33 only warns
+  killed   bench_guard.h: the #error at line 36 only warns
+  killed   bench_guard.h: the #error at line 39 only warns
+  killed   bench_guard.h: the #error at line 45 only warns
+  killed   bench_guard.h: the #error at line 56 only warns
   killed   bench_guard.h: the #error at line 59 only warns
-  killed   bench_guard.h: the #error at line 65 only warns
-  killed   bench_guard.h: the #error at line 68 only warns
+  killed   bench_guard.h: the #error at line 63 only warns
+  killed   bench_guard.h: the #error at line 67 only warns
+  killed   bench_guard.h: the #error at line 73 only warns
+  killed   bench_guard.h: the #error at line 76 only warns
   killed   bench_guard.h: static assertion 1 always holds
   killed   bench_guard.h: static assertion 2 always holds
   killed   bench_first_account.c: the include of bench_guard.h is removed
@@ -233,9 +241,11 @@
   killed   Kconfig.bench: line 10 (depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION = "B") is removed
   killed   Kconfig.bench: line 11 (depends on ENTROPY_MCUX_TRNG && !TEST_RANDOM_GENERATOR && !FAKE_ENTROPY_NATIVE_SIM) is removed
   killed   Kconfig.bench: line 12 (depends on !NET_DHCPV4 && !NET_IPV6) is removed
-  killed   Kconfig.bench: line 33 (depends on !RTC) is removed
-  killed   Kconfig.bench: line 39 (depends on DISK_DRIVER_RAM && !DISK_DRIVER_SDMMC) is removed
-  killed   Kconfig.bench: line 48 (depends on DISK_DRIVER_SDMMC && !DISK_DRIVER_RAM) is removed
+  killed   Kconfig.bench: line 13 (depends on !WOLFSSL_RSA) is removed
+  killed   Kconfig.bench: line 14 (depends on !WOLFSSL_HAS_SETTINGS_FILE) is removed
+  killed   Kconfig.bench: line 36 (depends on !RTC) is removed
+  killed   Kconfig.bench: line 42 (depends on DISK_DRIVER_RAM && !DISK_DRIVER_SDMMC) is removed
+  killed   Kconfig.bench: line 51 (depends on DISK_DRIVER_SDMMC && !DISK_DRIVER_RAM) is removed
   killed   Kconfig.bench: the block that puts the test forms under the declaration is removed
-CMake: ok; C: ok; Kconfig: ok; mutants: 98 of 98 killed
+CMake: ok; C: ok; Kconfig: ok; mutants: 104 of 104 killed
 control ok: the bench image refuses every build that is not the declared RT1060-EVKB bench, in CMake, in C and in Kconfig

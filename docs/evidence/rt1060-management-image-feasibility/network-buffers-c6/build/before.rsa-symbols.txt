@@ -1,0 +1,2 @@
+check_bench_rsa_symbols: 5547 defined symbols, none of them RSA code
+rsa symbol check rc=0
