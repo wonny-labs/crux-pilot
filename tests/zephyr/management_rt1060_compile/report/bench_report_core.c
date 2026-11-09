@@ -33,6 +33,7 @@ static uint32_t rows_missed;
 static row_t ended_rows[BENCH_REPORT_ENDED_MAX];
 static uint32_t ended_count;
 static char line[BENCH_REPORT_LINE_MAX];
+static bench_report_net_t netstat;
 static uint32_t sequence;
 static uint32_t bursts_seen;
 static bench_report_core_config_t config;
@@ -121,12 +122,42 @@ static void emit(void)
     k_msleep(BENCH_REPORT_LINE_PACE_MS);
 }
 
+/* One report's network pools and counters: BENCH-POOL per pool and one BENCH-NET. Called with the
+ * report lock held, from the snapshot, so the line buffer and the sequence are the snapshot's.
+ * Counts the lines it printed. */
+static void emit_net(uint32_t *printed)
+{
+    for (uint32_t i = 0; i < netstat.pool_count && i < BENCH_REPORT_POOLS_MAX; i++) {
+        const bench_report_pool_t *pool = &netstat.pools[i];
+
+        if (bench_report_format_pool(line, sizeof(line), sequence, pool->name, pool->size,
+                                     pool->used, pool->peak) != 0u) {
+            emit();
+            (*printed)++;
+        } else {
+            rows_missed++;
+        }
+    }
+    if (bench_report_format_net(line, sizeof(line), sequence, netstat.ip_drop, netstat.tcp_drop,
+                                netstat.tcp_seg_drop, netstat.tcp_rexmit,
+                                netstat.tcp_conndrop) != 0u) {
+        emit();
+        (*printed)++;
+    } else {
+        rows_missed++;
+    }
+}
+
 void bench_report_core_snapshot(bench_report_reason_t reason)
 {
     struct sys_memory_stats heap = {0};
+    bool have_net = false;
     uint32_t printed = 0;
 
     (void)k_mutex_lock(&report_lock, K_FOREVER);
+    /* Static, not on the 2,048 B stack of the report thread: the lock makes one snapshot at a time.
+     */
+    memset(&netstat, 0, sizeof(netstat));
     if (config.refresh != NULL) {
         config.refresh();
     }
@@ -140,6 +171,9 @@ void bench_report_core_snapshot(bench_report_reason_t reason)
     k_thread_foreach_unlocked(collect, NULL);
     k_sched_unlock();
     (void)malloc_runtime_stats_get(&heap);
+    if (config.net != NULL) {
+        have_net = config.net(&netstat);
+    }
     sequence++;
 
     if (bench_report_format_begin(line, sizeof(line), sequence, reason, k_uptime_get_32(),
@@ -169,6 +203,9 @@ void bench_report_core_snapshot(bench_report_reason_t reason)
                                  (uint32_t)heap.free_bytes) != 0u) {
         emit();
         printed++;
+    }
+    if (have_net) {
+        emit_net(&printed);
     }
     if (bench_report_format_end(line, sizeof(line), sequence, printed, rows_missed) != 0u) {
         emit();

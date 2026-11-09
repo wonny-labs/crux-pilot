@@ -17,11 +17,17 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/net/net_if.h>
+#include <zephyr/net/net_pkt.h>
 #include <zephyr/sys/printk.h>
 
 #if !defined(CONFIG_NET_STATISTICS_PER_INTERFACE) || !defined(CONFIG_NET_STATISTICS_TCP)
 #error                                                                                             \
     "The bench report counts TCP segments per interface: NET_STATISTICS_PER_INTERFACE and NET_STATISTICS_TCP"
+#endif
+#if !defined(CONFIG_NET_BUF_POOL_USAGE) || !defined(CONFIG_MEM_SLAB_TRACE_MAX_UTILIZATION) ||      \
+    !defined(CONFIG_NET_STATISTICS_IPV4)
+#error                                                                                             \
+    "The bench report reads the network pools' high-water marks and the IPv4 counters (row C6): NET_BUF_POOL_USAGE, MEM_SLAB_TRACE_MAX_UTILIZATION and NET_STATISTICS_IPV4"
 #endif
 #if !defined(CONFIG_CRUX_SSH_STACK_REPORT)
 #error "The bench report reads the SSH workers' stacks: CONFIG_CRUX_SSH_STACK_REPORT"
@@ -36,6 +42,57 @@ static uint32_t tcp_segments(void)
         return 0u;
     }
     return (uint32_t)iface->stats.tcp.recv + (uint32_t)iface->stats.tcp.sent;
+}
+
+/* Row C6. The network stack's packets are memory slabs and its data buffers are net_buf pools. Both
+ * keep the most that was ever in use: the pools' own high-water marks, which no component needs to
+ * maintain. The size is the constant that each was built with, so that a read in the middle of an
+ * allocation cannot make it wrong. */
+static void slab_row(bench_report_pool_t *row, const char *name, struct k_mem_slab *slab)
+{
+    uint32_t used = k_mem_slab_num_used_get(slab);
+
+    row->name = name;
+    row->size = slab->info.num_blocks;
+    row->used = MIN(used, row->size);
+    row->peak = MIN(MAX(k_mem_slab_max_used_get(slab), row->used), row->size);
+}
+
+static void buf_row(bench_report_pool_t *row, const char *name, struct net_buf_pool *pool)
+{
+    uint32_t available = (uint32_t)net_buf_get_available(pool);
+
+    row->name = name;
+    row->size = pool->pool_size;
+    row->used = available >= row->size ? 0u : row->size - available;
+    row->peak = MIN(MAX((uint32_t)net_buf_get_max_used(pool), row->used), row->size);
+}
+
+static bool net_snapshot(bench_report_net_t *out)
+{
+    struct net_if *iface = net_if_get_default();
+    struct k_mem_slab *rx_pkt = NULL;
+    struct k_mem_slab *tx_pkt = NULL;
+    struct net_buf_pool *rx_buf = NULL;
+    struct net_buf_pool *tx_buf = NULL;
+
+    if (iface == NULL) {
+        return false;
+    }
+    net_pkt_get_info(&rx_pkt, &tx_pkt, &rx_buf, &tx_buf);
+    slab_row(&out->pools[0], "rx_pkt", rx_pkt);
+    slab_row(&out->pools[1], "tx_pkt", tx_pkt);
+    buf_row(&out->pools[2], "rx_buf", rx_buf);
+    buf_row(&out->pools[3], "tx_buf", tx_buf);
+    out->pool_count = 4u;
+    /* The ENET driver counts no receive drop (it has no statistics callback), so the pools' marks
+     * are what shows a drop for want of a packet or a buffer. These are the counters that exist. */
+    out->ip_drop = (uint32_t)iface->stats.ipv4.drop;
+    out->tcp_drop = (uint32_t)iface->stats.tcp.drop;
+    out->tcp_seg_drop = (uint32_t)iface->stats.tcp.seg_drop;
+    out->tcp_rexmit = (uint32_t)iface->stats.tcp.rexmit;
+    out->tcp_conndrop = (uint32_t)iface->stats.tcp.conndrop;
+    return true;
 }
 
 /* Before each snapshot: the workers that have ended are in no thread list, so the provider's
@@ -56,6 +113,7 @@ bool crux_bench_report_start(void)
         .activity = tcp_segments,
         .refresh = note_ended_threads,
         .arena_bytes = CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE,
+        .net = net_snapshot,
     };
     return bench_report_core_start(&config);
 }

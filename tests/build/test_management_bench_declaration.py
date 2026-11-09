@@ -104,6 +104,33 @@ class BenchDeclaration(unittest.TestCase):
         self.assertNotIn("STACK", (BENCH / "bench_declaration.json").read_text().upper())
         self.assertNotIn("HTTP_SERVER_STACK_SIZE", (BENCH / "bench_guard.cmake").read_text().split("function(crux_bench_manifest")[0])
 
+    def test_network_buffers_and_arena_meet_the_declared_load_of_row_c6(self):
+        # The rule is in bench_guard.cmake and again in check_bench_guard.py. These are the figures worked by hand in
+        # docs/rt1060-bench-network-buffers.md for D9's sessions, so a change to either copy of the rule shows here.
+        sys.path.insert(0, str(BENCH))
+        try:
+            import check_bench_guard  # noqa: PLC0415
+        finally:
+            sys.path.remove(str(BENCH))
+        values = settings(BENCH / "target.conf")
+        needs = check_bench_guard.buffer_needs(DECLARATION, values)
+        self.assertEqual(needs, {"window": 5840, "ring_min": 6, "rx_bufs": 915, "tx_bufs": 517, "rx_pkts": 173,
+                                 "tx_pkts": 18, "paper_peak": 347104, "arena": 694208})
+        self.assertEqual(int(values["NET_TCP_MAX_RECV_WINDOW_SIZE"]), needs["window"])
+        self.assertEqual(int(values["NET_TCP_MAX_SEND_WINDOW_SIZE"]), needs["window"])
+        self.assertGreaterEqual(int(values["ETH_NXP_ENET_RX_BUFFERS"]), needs["ring_min"])
+        for symbol, key in (("NET_BUF_RX_COUNT", "rx_bufs"), ("NET_BUF_TX_COUNT", "tx_bufs"),
+                            ("NET_PKT_RX_COUNT", "rx_pkts"), ("NET_PKT_TX_COUNT", "tx_pkts"),
+                            ("COMMON_LIBC_MALLOC_ARENA_SIZE", "arena")):
+            self.assertGreaterEqual(int(values[symbol]), needs[key], symbol)
+        # D9 is not changed by this row: 4 SSH connections, 3 HTTPS clients, the SSH window at the provider's 16 KiB.
+        self.assertEqual((int(values["CRUX_SSH_MAX_CONNECTIONS"]), int(values["HTTP_SERVER_MAX_CLIENTS"]),
+                          int(values["CRUX_SSH_WINDOW_BYTES"]), int(values["CRUX_WEB_BACKLOG"])), (4, 3, 16384, 4))
+        self.assertEqual(int(values["NET_BUF_DATA_SIZE"]), 128)
+        # The window stays under what the driver's ring can take, which is the reason for it.
+        self.assertLessEqual(DECLARATION["network_buffers"]["window_segments"] + DECLARATION["network_buffers"]["ring_spare_frames"],
+                             int(values["ETH_NXP_ENET_RX_BUFFERS"]))
+
     def test_kconfig_names_the_declared_test_forms_and_each_depends_on_the_declaration(self):
         text = (BENCH / "Kconfig.bench").read_text()
         symbols = set(re.findall(r"^config (CRUX_BENCH_[A-Z0-9_]+)", text, re.MULTILINE))

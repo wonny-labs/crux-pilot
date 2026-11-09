@@ -43,10 +43,25 @@ size_t bench_report_format_stack(char *out, size_t capacity, uint32_t seq, const
 /** "BENCH-HEAP seq=.. arena=.. in_use=.. peak=.. free=..". */
 size_t bench_report_format_heap(char *out, size_t capacity, uint32_t seq, uint32_t arena,
                                 uint32_t in_use, uint32_t peak, uint32_t free_bytes);
-/** "BENCH-REPORT v=1 end seq=.. lines=.. missed=..": lines are the STACK and HEAP lines before it.
- */
+/** "BENCH-REPORT v=1 end seq=.. lines=.. missed=..": lines are the STACK, HEAP, POOL and NET lines
+ * before it. */
 size_t bench_report_format_end(char *out, size_t capacity, uint32_t seq, uint32_t lines,
                                uint32_t missed);
+/**
+ * "BENCH-POOL seq=.. pool=.. size=.. used=.. peak=..": one network pool of row C6 (the packets and
+ * data buffers of Zephyr's network stack): the count it was built with, the count in use now, and
+ * the most that was ever in use. The name is lower case letters and '_' only. 0 for any other name,
+ * a NULL or empty one, or for used or peak above size.
+ */
+size_t bench_report_format_pool(char *out, size_t capacity, uint32_t seq, const char *pool,
+                                uint32_t size, uint32_t used, uint32_t peak);
+/**
+ * "BENCH-NET seq=.. ip_drop=.. tcp_drop=.. tcp_seg_drop=.. tcp_rexmit=.. tcp_conndrop=..": the
+ * counters of the one interface that tell a short pool from a good one. They count from boot.
+ */
+size_t bench_report_format_net(char *out, size_t capacity, uint32_t seq, uint32_t ip_drop,
+                               uint32_t tcp_drop, uint32_t tcp_seg_drop, uint32_t tcp_rexmit,
+                               uint32_t tcp_conndrop);
 /**
  * "BENCH-CERT v=1 sha256=<fingerprint> source=generated|stored". The fingerprint must be exactly
  * 32 uppercase hexadecimal pairs joined by colons, which is what `openssl x509 -fingerprint

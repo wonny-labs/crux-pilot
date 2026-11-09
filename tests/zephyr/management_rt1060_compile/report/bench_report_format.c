@@ -201,6 +201,57 @@ size_t bench_report_format_end(char *out, size_t capacity, uint32_t seq, uint32_
     return finish(&w);
 }
 
+static bool pool_name_valid(const char *name)
+{
+    if (name == NULL || name[0] == '\0') {
+        return false;
+    }
+    for (size_t i = 0; name[i] != '\0'; i++) {
+        if (!((name[i] >= 'a' && name[i] <= 'z') || name[i] == '_') || i >= 15u) {
+            return false;
+        }
+    }
+    return true;
+}
+
+size_t bench_report_format_pool(char *out, size_t capacity, uint32_t seq, const char *pool,
+                                uint32_t size, uint32_t used, uint32_t peak)
+{
+    writer_t w;
+
+    if (!start(&w, out, capacity, "BENCH-POOL")) {
+        return 0u;
+    }
+    if (!pool_name_valid(pool) || used > size || peak > size) {
+        return refuse(&w);
+    }
+    put_field(&w, "seq", seq);
+    put_text(&w, " pool=");
+    put_text(&w, pool);
+    put_field(&w, "size", size);
+    put_field(&w, "used", used);
+    put_field(&w, "peak", peak);
+    return finish(&w);
+}
+
+size_t bench_report_format_net(char *out, size_t capacity, uint32_t seq, uint32_t ip_drop,
+                               uint32_t tcp_drop, uint32_t tcp_seg_drop, uint32_t tcp_rexmit,
+                               uint32_t tcp_conndrop)
+{
+    writer_t w;
+
+    if (!start(&w, out, capacity, "BENCH-NET")) {
+        return 0u;
+    }
+    put_field(&w, "seq", seq);
+    put_field(&w, "ip_drop", ip_drop);
+    put_field(&w, "tcp_drop", tcp_drop);
+    put_field(&w, "tcp_seg_drop", tcp_seg_drop);
+    put_field(&w, "tcp_rexmit", tcp_rexmit);
+    put_field(&w, "tcp_conndrop", tcp_conndrop);
+    return finish(&w);
+}
+
 static bool fingerprint_valid(const char *text)
 {
     if (text == NULL) {

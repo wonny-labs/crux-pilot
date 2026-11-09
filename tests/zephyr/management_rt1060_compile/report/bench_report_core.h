@@ -28,6 +28,27 @@
 /** Stack of the reporting thread. Its own row in every report shows how much of it is used. */
 #define BENCH_REPORT_STACK_BYTES 2048u
 
+/** Pools in one report of row C6: the packets and the data buffers, each way. */
+#define BENCH_REPORT_POOLS_MAX 4u
+
+typedef struct {
+    const char *name; /**< "rx_pkt", "tx_pkt", "rx_buf" or "tx_buf": lower case letters and '_' */
+    uint32_t size;    /**< The count the pool was built with */
+    uint32_t used;    /**< In use now */
+    uint32_t peak;    /**< The most that was ever in use */
+} bench_report_pool_t;
+
+/** What the image's network stack says, read once per report. */
+typedef struct {
+    bench_report_pool_t pools[BENCH_REPORT_POOLS_MAX];
+    uint32_t pool_count;
+    uint32_t ip_drop;
+    uint32_t tcp_drop;
+    uint32_t tcp_seg_drop;
+    uint32_t tcp_rexmit;
+    uint32_t tcp_conndrop;
+} bench_report_net_t;
+
 typedef struct {
     /** A counter that moves when a client is talking, such as TCP segments. Required. */
     uint32_t (*activity)(void);
@@ -35,6 +56,12 @@ typedef struct {
     void (*refresh)(void);
     /** The heap's configured size, printed as `arena=`. */
     uint32_t arena_bytes;
+    /**
+     * Fills the network pools and counters for the report (row C6): called once per snapshot, after
+     * the heap line is read. Returns false when it cannot, and then no BENCH-POOL or BENCH-NET line
+     * is printed. May be NULL, as in the native_sim image, which has no network.
+     */
+    bool (*net)(bench_report_net_t *out);
 } bench_report_core_config_t;
 
 /** Starts the reporting thread, once. Returns false for a second call or a NULL activity. */

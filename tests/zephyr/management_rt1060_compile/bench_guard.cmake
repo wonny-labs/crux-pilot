@@ -33,6 +33,19 @@ macro(crux_bench_read_declaration)
     string(JSON BENCH_PEER GET "${_bench_json}" network peer)
     string(JSON BENCH_HTTPS_PORT GET "${_bench_json}" listeners https_port)
     string(JSON BENCH_SSH_PORT GET "${_bench_json}" listeners ssh_port)
+    # Row C6: the load that the network buffers and the heap are sized for.
+    foreach(_bench_field IN ITEMS frame_bytes mss_bytes window_segments ring_spare_frames
+            typical_segment_bytes segment_header_bytes sender_threads_beyond_slots packets_per_sender
+            header_buffers_per_sender margin_percent)
+        string(TOUPPER "${_bench_field}" _bench_upper)
+        string(JSON BENCH_NB_${_bench_upper} GET "${_bench_json}" network_buffers ${_bench_field})
+    endforeach()
+    foreach(_bench_field IN ITEMS ssh_connection_floor_bytes ssh_window_extra_bytes tls_record_bytes
+            tls_record_overhead_bytes tls_connection_object_bytes tls_handshake_bytes other_users_bytes
+            paper_peak_limit_percent)
+        string(TOUPPER "${_bench_field}" _bench_upper)
+        string(JSON BENCH_HEAP_${_bench_upper} GET "${_bench_json}" heap ${_bench_field})
+    endforeach()
     string(JSON BENCH_RSA_SYMBOL GET "${_bench_json}" profile wolfssl_rsa symbol)
     string(JSON BENCH_RSA_DECISION GET "${_bench_json}" profile wolfssl_rsa decision)
     string(JSON BENCH_FIRST_ACCOUNT_USER GET "${_bench_json}" first_account user)
@@ -56,6 +69,56 @@ macro(crux_bench_read_declaration)
         list(APPEND BENCH_FORMS "${_bench_name}|${_bench_symbol}|${_bench_state}|${_bench_decision}")
     endforeach()
 endmacro()
+
+# Row C6: what the declared load needs of the network buffers and the heap, in BENCH_NEED_* of the caller. The load is
+# the session sizes of D9 (SSH connections, HTTPS clients), the web listener's backlog and the declared window, with a margin, from the arithmetic
+# of docs/rt1060-bench-network-buffers.md. check_bench_guard.py writes the same rule again in Python and compares.
+function(crux_bench_buffer_needs)
+    set(data ${CONFIG_NET_BUF_DATA_SIZE})
+    set(ring ${CONFIG_ETH_NXP_ENET_RX_BUFFERS})
+    set(ssh ${CONFIG_CRUX_SSH_MAX_CONNECTIONS})
+    set(http ${CONFIG_HTTP_SERVER_MAX_CLIENTS})
+    math(EXPR window "${BENCH_NB_WINDOW_SEGMENTS} * ${BENCH_NB_MSS_BYTES}")
+    math(EXPR frame_bufs "(${BENCH_NB_FRAME_BYTES} + ${data} - 1) / ${data}")
+    math(EXPR served "${ssh} + ${http}")
+    math(EXPR connections "${served} + ${CONFIG_CRUX_WEB_BACKLOG}")
+    math(EXPR typical_segments "(${window} + ${BENCH_NB_TYPICAL_SEGMENT_BYTES} - 1) / ${BENCH_NB_TYPICAL_SEGMENT_BYTES}")
+    math(EXPR typical_bufs "(${BENCH_NB_TYPICAL_SEGMENT_BYTES} + ${BENCH_NB_SEGMENT_HEADER_BYTES} + ${data} - 1) / ${data}")
+    math(EXPR full_bufs "${BENCH_NB_WINDOW_SEGMENTS} * ${frame_bufs}")
+    math(EXPR typical_window_bufs "${typical_segments} * ${typical_bufs}")
+    set(held_bufs ${full_bufs})
+    if(typical_window_bufs GREATER held_bufs)
+        set(held_bufs ${typical_window_bufs})
+    endif()
+    set(held_pkts ${BENCH_NB_WINDOW_SEGMENTS})
+    if(typical_segments GREATER held_pkts)
+        set(held_pkts ${typical_segments})
+    endif()
+    math(EXPR senders "${ssh} + 1 + ${BENCH_NB_SENDER_THREADS_BEYOND_SLOTS}")
+    math(EXPR window_data_bufs "(${window} + ${data} - 1) / ${data}")
+    set(margin ${BENCH_NB_MARGIN_PERCENT})
+    math(EXPR rx_bufs "(${margin} * (${connections} * ${held_bufs} + ${ring} * ${frame_bufs}) + 99) / 100")
+    math(EXPR tx_bufs "(${margin} * (${served} * ${window_data_bufs} + ${senders} * (${frame_bufs} + ${BENCH_NB_HEADER_BUFFERS_PER_SENDER})) + 99) / 100")
+    math(EXPR rx_pkts "(${margin} * (${connections} * ${held_pkts} + ${ring}) + 99) / 100")
+    math(EXPR tx_pkts "(${margin} * ${senders} * ${BENCH_NB_PACKETS_PER_SENDER} + 99) / 100")
+    math(EXPR ring_min "${BENCH_NB_WINDOW_SEGMENTS} + ${BENCH_NB_RING_SPARE_FRAMES}")
+    # The heap: the paper peak of the declared sessions, and an arena in which it stays under the declared share.
+    math(EXPR ssh_each "2 * ${CONFIG_CRUX_SSH_WINDOW_BYTES} + ${BENCH_HEAP_SSH_WINDOW_EXTRA_BYTES}")
+    if(BENCH_HEAP_SSH_CONNECTION_FLOOR_BYTES GREATER ssh_each)
+        set(ssh_each ${BENCH_HEAP_SSH_CONNECTION_FLOOR_BYTES})
+    endif()
+    math(EXPR tls_each "2 * (${BENCH_HEAP_TLS_RECORD_BYTES} + ${BENCH_HEAP_TLS_RECORD_OVERHEAD_BYTES}) + ${BENCH_HEAP_TLS_CONNECTION_OBJECT_BYTES}")
+    math(EXPR paper_peak "${ssh} * ${ssh_each} + ${http} * ${tls_each} + ${BENCH_HEAP_TLS_HANDSHAKE_BYTES} + ${BENCH_HEAP_OTHER_USERS_BYTES}")
+    math(EXPR arena "(${paper_peak} * 100 + ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT} - 1) / ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT}")
+    set(BENCH_NEED_WINDOW ${window} PARENT_SCOPE)
+    set(BENCH_NEED_RING ${ring_min} PARENT_SCOPE)
+    set(BENCH_NEED_RX_BUFS ${rx_bufs} PARENT_SCOPE)
+    set(BENCH_NEED_TX_BUFS ${tx_bufs} PARENT_SCOPE)
+    set(BENCH_NEED_RX_PKTS ${rx_pkts} PARENT_SCOPE)
+    set(BENCH_NEED_TX_PKTS ${tx_pkts} PARENT_SCOPE)
+    set(BENCH_NEED_PAPER_PEAK ${paper_peak} PARENT_SCOPE)
+    set(BENCH_NEED_ARENA ${arena} PARENT_SCOPE)
+endfunction()
 
 function(crux_bench_guard)
     crux_bench_read_declaration()
@@ -200,6 +263,61 @@ function(crux_bench_guard)
         message(FATAL_ERROR "ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket "
                             "patch that the declaration names (${BENCH_PATCH_NAME} on ${BENCH_ZEPHYR_PIN})")
     endif()
+    # 10. The network buffers, the TCP windows and the arena (row C6): sized for the declared load. A pool below its
+    # need, a window that is not the declared one, and a session size raised without the pools are refused.
+    foreach(setting IN ITEMS NET_BUF_DATA_SIZE NET_BUF_RX_COUNT NET_BUF_TX_COUNT NET_PKT_RX_COUNT NET_PKT_TX_COUNT
+            NET_TCP_MAX_RECV_WINDOW_SIZE NET_TCP_MAX_SEND_WINDOW_SIZE ETH_NXP_ENET_RX_BUFFERS
+            CRUX_SSH_MAX_CONNECTIONS HTTP_SERVER_MAX_CLIENTS CRUX_WEB_BACKLOG CRUX_SSH_WINDOW_BYTES
+            COMMON_LIBC_MALLOC_ARENA_SIZE)
+        if(NOT "${CONFIG_${setting}}" MATCHES "^[0-9]+$")
+            message(FATAL_ERROR "CONFIG_${setting} is not set to a number: the buffer and heap rule of row C6 "
+                                "reads it")
+        endif()
+    endforeach()
+    crux_bench_buffer_needs()
+    if(NOT "${CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE}" STREQUAL "${BENCH_NEED_WINDOW}")
+        message(FATAL_ERROR "The TCP receive window must be the declared ${BENCH_NEED_WINDOW} B "
+                            "(${BENCH_NB_WINDOW_SEGMENTS} segments of ${BENCH_NB_MSS_BYTES} B), and not the value Zephyr "
+                            "derives from the buffer counts: CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE is "
+                            "${CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE}")
+    endif()
+    if(NOT "${CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE}" STREQUAL "${BENCH_NEED_WINDOW}")
+        message(FATAL_ERROR "The TCP send window must be the declared ${BENCH_NEED_WINDOW} B "
+                            "(${BENCH_NB_WINDOW_SEGMENTS} segments of ${BENCH_NB_MSS_BYTES} B), and not the value Zephyr "
+                            "derives from the buffer counts: CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE is "
+                            "${CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE}")
+    endif()
+    if(CONFIG_ETH_NXP_ENET_RX_BUFFERS LESS BENCH_NEED_RING)
+        message(FATAL_ERROR "The Ethernet driver's receive ring of ${CONFIG_ETH_NXP_ENET_RX_BUFFERS} frames must "
+                            "hold the declared window (${BENCH_NB_WINDOW_SEGMENTS} segments) and "
+                            "${BENCH_NB_RING_SPARE_FRAMES} spare frames: at least ${BENCH_NEED_RING}")
+    endif()
+    if(CONFIG_NET_BUF_RX_COUNT LESS BENCH_NEED_RX_BUFS)
+        message(FATAL_ERROR "CONFIG_NET_BUF_RX_COUNT ${CONFIG_NET_BUF_RX_COUNT} is under the ${BENCH_NEED_RX_BUFS} "
+                            "receive data buffers that the declared load needs")
+    endif()
+    if(CONFIG_NET_BUF_TX_COUNT LESS BENCH_NEED_TX_BUFS)
+        message(FATAL_ERROR "CONFIG_NET_BUF_TX_COUNT ${CONFIG_NET_BUF_TX_COUNT} is under the ${BENCH_NEED_TX_BUFS} "
+                            "transmit data buffers that the declared load needs")
+    endif()
+    if(CONFIG_NET_PKT_RX_COUNT LESS BENCH_NEED_RX_PKTS)
+        message(FATAL_ERROR "CONFIG_NET_PKT_RX_COUNT ${CONFIG_NET_PKT_RX_COUNT} is under the ${BENCH_NEED_RX_PKTS} "
+                            "receive packets that the declared load needs")
+    endif()
+    if(CONFIG_NET_PKT_TX_COUNT LESS BENCH_NEED_TX_PKTS)
+        message(FATAL_ERROR "CONFIG_NET_PKT_TX_COUNT ${CONFIG_NET_PKT_TX_COUNT} is under the ${BENCH_NEED_TX_PKTS} "
+                            "transmit packets that the declared load needs")
+    endif()
+    if(CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE LESS BENCH_NEED_ARENA)
+        message(FATAL_ERROR "CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE ${CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE} is under "
+                            "the ${BENCH_NEED_ARENA} B in which the declared sessions' paper peak of "
+                            "${BENCH_NEED_PAPER_PEAK} B stays under ${BENCH_HEAP_PAPER_PEAK_LIMIT_PERCENT} percent")
+    endif()
+    message(STATUS "Bench network buffers meet the declared load: rx buffers ${CONFIG_NET_BUF_RX_COUNT} (need "
+                   "${BENCH_NEED_RX_BUFS}), tx buffers ${CONFIG_NET_BUF_TX_COUNT} (${BENCH_NEED_TX_BUFS}), rx packets "
+                   "${CONFIG_NET_PKT_RX_COUNT} (${BENCH_NEED_RX_PKTS}), tx packets ${CONFIG_NET_PKT_TX_COUNT} "
+                   "(${BENCH_NEED_TX_PKTS}), window ${BENCH_NEED_WINDOW}, arena ${CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE} "
+                   "(${BENCH_NEED_ARENA})")
 endfunction()
 
 # The definitions that carry the declaration into C. src/bench_guard.h refuses a source without them.
@@ -282,7 +400,7 @@ function(crux_bench_manifest)
     get_cmake_property(all_variables VARIABLES)
     list(SORT all_variables)
     foreach(variable IN LISTS all_variables)
-        if(variable MATCHES "^CONFIG_(CRUX_|HTTP_SERVER_STACK_SIZE|MAIN_STACK_SIZE|COMMON_LIBC_MALLOC_ARENA_SIZE|NET_MAX_|NET_SOCKETS_TLS_MAX_CONTEXTS|ENTROPY_MCUX_TRNG|RTC|BOARD_TARGET)")
+        if(variable MATCHES "^CONFIG_(CRUX_|HTTP_SERVER_STACK_SIZE|HTTP_SERVER_MAX_CLIENTS|MAIN_STACK_SIZE|COMMON_LIBC_MALLOC_ARENA_SIZE|NET_MAX_|NET_PKT_|NET_BUF_|NET_TCP_MAX_|ETH_NXP_ENET_RX_BUFFERS|NET_SOCKETS_TLS_MAX_CONTEXTS|ENTROPY_MCUX_TRNG|RTC|BOARD_TARGET)")
             set(value "${${variable}}")
             string(REPLACE "\\" "\\\\" value "${value}")
             string(REPLACE "\"" "\\\"" value "${value}")

@@ -1,6 +1,6 @@
 # The integrated management image on RT1060-EVKB: a build and feasibility report
 
-Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)), **its row C2** ([the UART report](#stage-2-row-c2-the-uart-report)), **its row C3** ([the file backend](rt1060-bench-file-backend.md)), **its row C4**, the first account ([own document](rt1060-bench-first-account.md)), **and its row C9**, RSA trimmed ([own document](rt1060-bench-trim-rsa.md)),
+Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)), **its row C2** ([the UART report](#stage-2-row-c2-the-uart-report)), **its row C3** ([the file backend](rt1060-bench-file-backend.md)), **its row C4**, the first account ([own document](rt1060-bench-first-account.md)), **its row C6**, the network buffers and the arena ([own document](rt1060-bench-network-buffers.md)), **and its row C9**, RSA trimmed ([own document](rt1060-bench-trim-rsa.md)),
 for review in a Draft PR. Refs #197. It authorises no hardware operation, and **nothing here ran on a board**: every result is a compile and link for
 `mimxrt1060_evk@B//qspi`, a host script, a configure-only run, or a reading of source and of the linked image. The owner approved stage 0 in the working
 session on 2026-11-08 ("0 단게 시작해") and took the decisions D1 to D11 the same day ([Owner decisions](#owner-decisions)). **Nothing here reads as an approval of a
@@ -17,6 +17,7 @@ board stage**: the image still refuses to start, and the approval documents are 
 | Ready for a board run? | **No.** The eleven owner decisions are taken (2026-11-08) and row C1 is done. Rows C2 to C9 (C4, the first account, is [its own document](rt1060-bench-first-account.md)) and the approval documents of the main session still come first. [What still blocks a board run](#what-still-blocks-a-board-run), [changes and order](#code-changes-and-their-order). |
 | What did C2 change? | The bench image prints the stack watermark of every thread, the heap's in-use and peak, and the listener certificate's fingerprint (D4) on the UART, and a host script judges the capture, with a stated margin for the HTTP server thread's stack. [Stage 2, row C2](#stage-2-row-c2-the-uart-report). |
 | What did C1 change? | The vehicle is now a **bench composition** under a declaration for RT1060-EVKB rev B, with guards at three levels, a host script that breaks each guard, a manifest, and listeners bound to the bench address. [Stage 2, row C1](#stage-2-row-c1-the-bench-composition). |
+| What did C6 change? | The bench image has **TCP windows of 4 segments, 1,024 and 768 data buffers, 192 and 32 packets and a 1 MiB arena**, from a paper rule of the declared sessions that the guard enforces, and its UART report prints the **high-water mark of the four pools** and the TCP counters. Paper rules only: nothing ran on a board. [Stage 2, row C6](#stage-2-row-c6-the-network-buffers). |
 | What did C9 change? | `CONFIG_WOLFSSL_RSA=n` in the bench `target.conf` (D11): **Flash 596,696 B to 561,340 B, 35,356 B less**, and the static stack chains of the main thread, the Crux workers and the SSH worker fall by 5 to 18 KB because the single-precision big-number type shrinks from 3,072 to 256 bits. Guarded at the Kconfig, CMake and C levels and by a symbol check of the linked image. [The record](rt1060-bench-trim-rsa.md). |
 | What did C3 change? | The file backend of the bench image is a **RAM disk**, with no card driver in the image, and the mount rule **never formats a card**: the RAM disk is the only medium that may be formatted. The microSD provider is a second declared form for a later run. [The file backend](rt1060-bench-file-backend.md). |
 
@@ -147,6 +148,7 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | C3 (RAM disk) | `zephyr/Kconfig` and the file provider's CMake for the backend, a mount rule in a copy of `medium_ready()`, `target.conf` | `CONFIG_CRUX_BENCH_FILE_RAM_DISK` is declared in `Kconfig.bench`, **reserved**, and refused by `bench_guard.cmake` until `bench_declaration.json` says `"state": "selected"` for `ram_disk`. The declaration test and the host script then require it to be set in `target.conf`. `medium_ready()` in `src/mgmt_start.c` still calls `fs_mkfs` after a failed mount, which formats a card: the copy test pins that line, so C3 changes the copy and its declared edit together. |
 | C4 (first account) | `src/bench_first_account.c`, `target.conf`, `bench_declaration.json` | **Done**: [document](rt1060-bench-first-account.md). `crux_bench_first_account()` is called from `main()` on an empty store. The public test password is not in the image and the copy test pins that. |
 | C5 (TRNG failure path) | A native test, `src/` for a boot line | Needs nothing from C1 beyond `bench_guard.h`. |
+| C8 (plan) | the plan of the board stage | **C6 left it a list**: what a run must read to confirm or change the network pools, the windows and the arena, with the figure that passes and the action if not ([the list](rt1060-bench-network-buffers.md#what-a-board-run-must-read)). The loaded steps (4 SSH shells, 3 web logins, SFTP of at least 1 MiB on one and on two connections) are what makes the pool marks mean something. |
 | every row | `check_bench_guard.py`, `tests/build/test_management_bench_declaration.py` | Run both. A new source in `src/` must include `bench_guard.h`, or the script says so. A new `CRUX_BENCH_` symbol must be listed in `bench_declaration.json` and sit under the declaration in `Kconfig.bench`. |
 
 | What | Where |
@@ -168,7 +170,7 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | A RAM disk as the file backend, and a mount rule that never formats a card | C3 (D2) | **Done in the C3 PR**: [the file backend](rt1060-bench-file-backend.md). The image links no card driver and no `fs_mkfs` call outside the RAM disk glue. A card run, and the card's own approval, are a later run. |
 | The first account from an untracked file, hashed into the manifest | C4 (D3) | **Done in the C4 PR**: [document](rt1060-bench-first-account.md). The plaintext is in the bench image's read-only data. |
 | A native test of the failing TRNG path, and a boot line for the first random read | C5 | Not done |
-| Network buffer counts and the arena for 16 KiB records and an SFTP window | C6 | Not done, needs C2's measurements |
+| Network buffer counts and the arena for 16 KiB records and an SFTP window | C6 | **Done in the C6 PR** as paper rules and a guard: [document](rt1060-bench-network-buffers.md). C2 built the instrumentation and no figure has been read, so no count is measured: the list of what a board run must read is in the document. |
 | The programmer's limit raised and `loadfile` split from `verifybin` | C7 (D11) | Not done. `tests/target/` is not touched here. |
 | The image manifest on the stage 1 pattern and the plan for the board | C8 | Not done. The approval documents are the main session's and are not written here. |
 | RSA trimmed from the wolfSSL settings | C9 (D11) | **Done in the C9 PR**: [record](rt1060-bench-trim-rsa.md). `CONFIG_WOLFSSL_RSA=n`, 35,356 B of Flash, nothing run on a board. |
@@ -384,6 +386,20 @@ Row C4 gives the bench image its first account by decision D3: a password in a f
 | The manifest | The file's SHA-256, the account's name and role, and the statement that the plaintext is in the image |
 | Public test password | 0 times in the ELF, as in C1 |
 
+## Stage 2, row C6: the network buffers
+
+Row C6 sizes the network buffers, the TCP windows and the heap arena of the bench image for HTTPS, SSH and SFTP at the session sizes of D9, which it does not change. Everything is in [its own document](rt1060-bench-network-buffers.md). **Nothing is measured on a target:** C2 built the instrumentation and no run has read it, so every count is a paper rule. In short:
+
+| Question | Answer |
+| --- | --- |
+| Windows | **5,840 B each way** (4 segments). Left at 0, Zephyr derives 1,365 B from the old pools, which is less than one segment |
+| Pools | RX data buffers **1,024**, TX **768** (128 B each); RX packets **192**, TX **32**. Needs by the declared load: 915, 517, 173, 18 |
+| Arena | **1 MiB** (was 512 KiB): the paper peak of 347,104 B stays under half of it |
+| What a short pool does | Receive: a silent drop (the ENET driver counts none) and a retransmission. **Transmit data: `ENOBUFS` after 100 ms, which ends the TLS or SSH connection** |
+| Guard | `bench_guard.cmake` step 10 refuses a pool under its need, a window that is not the declared one, a short driver ring and a short arena. 104 mutants killed. **The CMake mutants of C3 and C4 had been vacuous** (the copy lacked `ram_disk.overlay`) and are real now |
+| UART report | `BENCH-POOL` (four pools, size, use, peak) and `BENCH-NET` (TCP and IP counters); the judge fails a pool over 80 percent |
+| Cost | Flash and RAM from two cross-builds: see the document |
+
 ## What the vehicle is and is not
 
 This section and the ones below it are the report of stage 0. Where C1 changed a statement, the row says so, and [Stage 2, row C1](#stage-2-row-c1-the-bench-composition) is the current state. The word "vehicle" is the same image, now under the bench declaration.
@@ -540,10 +556,11 @@ stage 0 groups above stay as the stage 0 reading: [the record](rt1060-bench-trim
 
 | Heap | Value | Provenance |
 | --- | ---: | --- |
-| Configured arena | 524,288 B | **Target build** |
+| Configured arena | 524,288 B. **Since C6: 1,048,576 B** | **Target build** |
 | Peak in the integrated `native_sim` run | 97,496 B in two runs and 100,448 B in a third, which is 19 % of the arena | **Carried from `native_sim`** ([#197](ssh-integrated-image.md#flash-ram-stacks-sockets-and-heap)): a 64-bit host with test entropy, valid as a size class only |
 | Paper rule | 4 SSH connections × max(45 KiB, two windows + 5 KiB) = 180 KiB, plus the Wolf TLS arena of 131,072 B declared in `https-composition.md`: **about 315 KB, 60 % of the arena** | The rule of [`ssh-wolf-provider.md`](ssh-wolf-provider.md#resource-use) and the declaration, **not measured here** |
 | Peak on this target | **Unknown.** `CONFIG_SYS_HEAP_RUNTIME_STATS=y` is set, so a board run can read it. | |
+| Rule since C6 | 4 SSH × 46,080 B + 3 HTTPS × 39,584 B + a handshake 11,264 B + others 32,768 B = **347,104 B**, kept under half the arena by the guard | **Paper rule**, written term by term in [the C6 document](rt1060-bench-network-buffers.md#the-heap-arena). The 16 KiB record term and the others are not measured. |
 
 ### Thread stacks
 
@@ -568,8 +585,8 @@ The static chains agree in size class with the host figures for SSH (13.3 KB and
 
 | Resource | Configured | Margin and provenance |
 | --- | --- | --- |
-| Packet buffers | RX 16, TX 16 (the M5 image's) | Chosen for 32-byte echo frames. **Unknown** for 16 KiB TLS records and an SFTP window. A short pool slows TCP and does not break it. |
-| Data buffers | RX 32, TX 32 of 128 B, 4 KiB each way | The same. Likely too small for a 16 KiB window: raise in stage 2 and measure. |
+| Packet buffers | RX 16, TX 16 (the M5 image's). **Since C6: RX 192, TX 32** | Stage 0: chosen for 32-byte echo frames, **unknown** for 16 KiB TLS records and an SFTP window. Since C6 a paper rule of the declared sessions. |
+| Data buffers | RX 32, TX 32 of 128 B, 4 KiB each way. **Since C6: RX 1,024, TX 768** | Stage 0: too small. Zephyr's own rule then gave a TCP window of 1,365 B, under one segment. Since C6 the windows are 5,840 B and the pools are sized to them: [document](rt1060-bench-network-buffers.md). **The stage 0 sentence "a short pool slows TCP and does not break it" holds for receive only:** a short transmit data pool ends the connection with `ENOBUFS`. |
 | Sockets | `ZVFS_OPEN_MAX` 48, `NET_MAX_CONTEXTS` 32, `NET_MAX_CONN` 32 | `native_sim`: 6 with four SSH shells and 5 at peak under load, plus 3 HTTPS clients: about 9 of 48. **Carried** |
 | TLS contexts | `NET_SOCKETS_TLS_MAX_CONTEXTS` 6 | 3 HTTPS clients. **Carried** |
 | Network session slots | **7**, shared by HTTPS and SSH (`CRUX_ACCESS_SESSION_MAX` 8, slot 0 serial only: `access_port.h:6-7`) | With four SSH shells, three slots are left for the web. [#197 decision 5](ssh-integrated-image.md#decisions-for-review) |
@@ -649,7 +666,7 @@ Rough effort is agent time for the change and its tests, without the board. Hard
 | 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day | **Done in the C3 PR**: [the file backend](rt1060-bench-file-backend.md) |
 | 2 | **C4.** The first account of D3, with the password never in the repository or the log | D3 | 0.5 to 1 day | **Done in the C4 PR** ([document](rt1060-bench-first-account.md)) |
 | 2 | **C5.** A native test of the failing-TRNG path on the Wolf profile, and a boot line that says the first random read succeeded | none | 1 day | **Done in the C5 PR**: [record](rt1060-wolf-entropy.md) |
-| 3 | **C6.** Network buffer counts and the arena for 16 KiB records and an SFTP window, from the measurements of C2 | C2 | 0.5 day, then a board read | Not started |
+| 3 | **C6.** Network buffer counts and the arena for 16 KiB records and an SFTP window, from the measurements of C2 | C2 | 0.5 day, then a board read | **Done in the C6 PR**: [document](rt1060-bench-network-buffers.md). No measurement of C2 exists, so the counts are paper rules (a guard enforces them) and the board read stays. |
 | 3 | **C7.** The programmer's limit: raise it, split the commands, test the change | D11 | 0.5 to 1 day | Not started |
 | 3 | **C8.** The image manifest and the plan for the bench image, on the stage 1 pattern. **The approval documents are the main session's, and are not written here.** | C1 to C7 | 1 to 2 days | Not started |
 | 4 | **C9.** Trim RSA from the wolfSSL settings and re-measure | D11 | 0.5 day | **Done in the C9 PR**: [record](rt1060-bench-trim-rsa.md) |
@@ -670,7 +687,7 @@ and the lines of the other steps start with `BENCH` and not `MGMT_RT1060`. Step 
 | 4 | Host | HTTPS: `openssl s_client -connect 192.168.77.2:443` to fetch the certificate, compare its fingerprint with the UART's (`check_bench_uart.py --connect`), then `curl --cacert` for the two-request login, `session/me` and `status`. **Also the clients that decide the HTTP stack's margin** ([row C2](#the-next-size-and-when-to-take-it)): `openssl s_client -groups P-256`, `-groups X25519`, a client that rejects the certificate, and a browser at `https://192.168.77.2/` with the warning accepted. A pause of 3 s or more between clients, so that each gets its report. |
 | 5 | Host | SSH: `ssh-keyscan -t ed25519 192.168.77.2` against the UART fingerprint, `ssh` for the CLI (`help`, `account list`, the viewer's refusal), `sftp` for put and get with a hash check |
 | 6 | Host | The slot limits, four SSH shells and three web logins, and the eighth refused. Handshake and transfer times with `curl -w` and `time`. These are the first target timings of the project. |
-| 7 | Host | The UART's stack and heap lines after each step, judged by `check_bench_uart.py` (the HTTP stack's margin, the heap, the certificate), then a reset and the fingerprints again: **with a RAM disk they change**, which also shows the entropy source varies, and is not a statement on its quality |
+| 7 | Host | The UART's stack, heap and pool lines after each step, judged by `check_bench_uart.py` (the HTTP stack's margin, the heap, the four network pools, the certificate), with the host's own retransmission counts and the other reads of [the C6 list](rt1060-bench-network-buffers.md#what-a-board-run-must-read), then a reset and the fingerprints again: **with a RAM disk they change**, which also shows the entropy source varies, and is not a statement on its quality |
 | 8 | Host | `restore` of the accepted normal image, two verifies, a capture of its normal boot, and an offline replay |
 
 Not covered by that stage: persistence and power loss (RAM disk), a card, the control timing under load, a long run, a scan from another host.
@@ -711,6 +728,7 @@ C9 adds these. The record is [`rt1060-bench-trim-rsa.md`](rt1060-bench-trim-rsa.
 | Anything on a board: boot, the TRNG, the link, a handshake, a login, a transfer | No hardware in this stage |
 | Stack use on a target | Static chains only. **Row C2 prints the watermarks, and no run has read them.** |
 | Heap peak on a target | The runtime statistics are on, and nothing ran |
+| Network pool use, retransmissions, the round trip and the throughput of the bench link (row C6) | The report prints the pools' high-water marks and the counters, and nothing ran. [What a run must read](rt1060-bench-network-buffers.md#what-a-board-run-must-read) |
 | Timing of a handshake, a PBKDF2 login, a key generation, a TRNG read, a transfer | `native_sim` gives CPU work no time, and nothing ran on the target |
 | SDRAM and cache effects on a Cortex-M7 running from QSPI with all data in SDRAM | No run. DCACHE and ICACHE are on. |
 | The microSD provider with this composition | The card is not touched, and `fs_mkfs` behaviour is read from source only |

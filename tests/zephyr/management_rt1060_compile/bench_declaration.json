@@ -18,6 +18,30 @@
     "https_port": 443,
     "ssh_port": 22
   },
+  "network_buffers": {
+    "decision": "C6",
+    "frame_bytes": 1514,
+    "mss_bytes": 1460,
+    "window_segments": 4,
+    "ring_spare_frames": 2,
+    "typical_segment_bytes": 512,
+    "segment_header_bytes": 54,
+    "sender_threads_beyond_slots": 2,
+    "packets_per_sender": 2,
+    "header_buffers_per_sender": 1,
+    "margin_percent": 125
+  },
+  "heap": {
+    "decision": "C6",
+    "ssh_connection_floor_bytes": 46080,
+    "ssh_window_extra_bytes": 5120,
+    "tls_record_bytes": 16384,
+    "tls_record_overhead_bytes": 768,
+    "tls_connection_object_bytes": 5280,
+    "tls_handshake_bytes": 11264,
+    "other_users_bytes": 32768,
+    "paper_peak_limit_percent": 50
+  },
   "test_forms": {
     "test_host_key": {"symbol": "CRUX_BENCH_TEST_HOST_KEY", "decision": "D5", "state": "selected"},
     "no_time_source": {"symbol": "CRUX_BENCH_NO_TIME_SOURCE", "decision": "D7", "state": "selected"},
