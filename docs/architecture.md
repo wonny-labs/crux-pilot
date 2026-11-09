@@ -78,7 +78,7 @@ For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CP
 
 Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
 
-Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples, and the reference controller with them, are under `samples/` today, and no `applications/` folder exists yet. If the [proposed `applications/` folder](#applications-proposed) is adopted, the maintained integrated applications get their own top-level folder beside `samples/`, and `samples/controller` would move into it. That move is not scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposed) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
+Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples, and the reference controller with them, are under `samples/` today, and no `applications/` folder exists yet. The owner decided on 9 November 2026 that the maintained integrated applications get their own top-level folder, [`applications/`](#applications-proposed), beside `samples/`. The folder does not exist yet, and `samples/controller` would move into it. That move is not scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposed) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
 
 ### Layout and naming of samples (proposed)
 
@@ -155,7 +155,7 @@ Choices for the owner:
 
 #### Applications (proposed)
 
-**Status.** The owner decided the folder `applications/` and the names `io_controller` and `managed_controller` on 9 November 2026, following the recommendations for the layout questions. The definition, the admission conditions and the limit below are proposed text, and like the rest of this section they bind only once adopted. The folder does not exist yet. **The move of `samples/controller` into `applications/io_controller` is not scheduled**, for the reasons in [the status of the move](#status-of-the-move).
+**Status.** The owner decided the folder `applications/` and the names `io_controller` and `managed_controller` on 9 November 2026. The names and the folder are decided. The definition, the admission conditions and the limit below are proposed text, and like the rest of this section they bind only once adopted. The folder does not exist yet. **The move of `samples/controller` into `applications/io_controller` is not scheduled**, for the reasons in [the status of the move](#status-of-the-move).
 
 An application is a maintained, integrated image of Crux. A sample shows one capability, one framework or one scenario and makes none of the promises below.
 
@@ -190,7 +190,7 @@ The two applications decided so far:
 flowchart TB
     comp["components/<br/>public contracts and usage targets"]
     samples["samples/<br/>one capability each"]
-    apps["applications/ (proposed)<br/>io_controller, managed_controller"]
+    apps["applications/ (decided, not yet created)<br/>io_controller, managed_controller"]
     tmpl["templates/product/ (proposed, separate change)<br/>skeleton that a product copies"]
     tests["tests/<br/>checks of capabilities, samples and applications"]
     ctrl["crux-controller (separate repository)<br/>out-of-tree product-shaped reference"]
@@ -223,8 +223,8 @@ The folder and the names are decided. The move is not, and nothing is moved by t
 | --- | --- | --- |
 | 1 | It waits for the first board run of the S2 image (see the [board image profiles](board-image-profiles.md)) | That run |
 | 2 | Eight files under `scripts/` and `.github/workflows/host.yml` name `samples/controller`, and all of them are protected paths | The owner's explicit approval of those changes. Among them, `scripts/check-native-interfaces.py` already treats `applications` as a portable root, so the Host and Zephyr compositions of a moved application need a deliberate classification, as `samples/controller/host` and `samples/controller/zephyr` have today |
-| 3 | Under `docs/evidence/`, 99 files in 36 folders cite `samples/controller`, as of this revision | They stay unchanged, as accepted evidence |
-| 4 | `samples/controller` is the source of the accepted normal board image (the restore image) and of the M7 guard builds | Until the move it stays where it is, and its contents are frozen except for fixes |
+| 3 | Under `docs/evidence/`, 99 files in 36 folders cite `samples/controller`, as of this revision | They stay unchanged, as retained evidence |
+| 4 | Per the owner's decision, `samples/controller` is the source of the accepted normal board image (the restore image) and of the M7 guard builds | Until the move it stays where it is, and its contents are frozen except for fixes |
 
 ### Current capability integration
 
