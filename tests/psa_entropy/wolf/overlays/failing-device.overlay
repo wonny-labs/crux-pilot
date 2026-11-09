@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The device whose reads can fail is the chosen entropy source, as the TRNG is on the RT1060-EVKB. native_sim's
+ * own generator is switched off, so that nothing else can answer a read. */
+/ {
+	chosen {
+		zephyr,entropy = &crux_test_entropy;
+	};
+
+	crux_test_entropy: crux-test-entropy {
+		compatible = "crux,test-entropy";
+	};
+};
+
+&rng {
+	status = "disabled";
+};

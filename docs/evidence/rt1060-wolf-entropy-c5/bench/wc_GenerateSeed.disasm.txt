@@ -1,0 +1,31 @@
+6003a9d8 <wc_GenerateSeed>:
+6003a9d8:	stmdb	sp!, {r3, r4, r5, r6, r7, r8, r9, lr}
+6003a9dc:	mov	r7, r1
+6003a9de:	mov	r5, r2
+6003a9e0:	ldr	r0, [pc, #60]	@ (6003aa20 <wc_GenerateSeed+0x48>)
+6003a9e2:	bl	6007cb74 <z_impl_device_is_ready>
+6003a9e6:	cbnz	r0, 6003aa14 <wc_GenerateSeed+0x3c>
+6003a9e8:	mvn.w	r0, #198	@ 0xc6
+6003a9ec:	ldmia.w	sp!, {r3, r4, r5, r6, r7, r8, r9, pc}
+6003a9f0:	subs	r6, r5, r4
+6003a9f2:	cmp	r6, r8
+6003a9f4:	it	cs
+6003a9f6:	movcs	r6, r8
+6003a9f8:	ldr.w	r3, [r9, #8]
+6003a9fc:	uxth	r2, r6
+6003a9fe:	adds	r1, r7, r4
+6003aa00:	ldr	r0, [pc, #28]	@ (6003aa20 <wc_GenerateSeed+0x48>)
+6003aa02:	ldr	r3, [r3, #0]
+6003aa04:	blx	r3
+6003aa06:	cmp	r0, #0
+6003aa08:	bne.n	6003a9e8 <wc_GenerateSeed+0x10>
+6003aa0a:	add	r4, r6
+6003aa0c:	cmp	r4, r5
+6003aa0e:	bcc.n	6003a9f0 <wc_GenerateSeed+0x18>
+6003aa10:	movs	r0, #0
+6003aa12:	b.n	6003a9ec <wc_GenerateSeed+0x14>
+6003aa14:	movs	r4, #0
+6003aa16:	movw	r8, #65535	@ 0xffff
+6003aa1a:	ldr.w	r9, [pc, #4]	@ 6003aa20 <wc_GenerateSeed+0x48>
+6003aa1e:	b.n	6003aa0c <wc_GenerateSeed+0x34>
+6003aa20:	.word	0x6007dd80

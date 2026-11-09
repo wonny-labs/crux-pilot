@@ -575,8 +575,7 @@ erase, program and verify took 4.0 s. J-Link reports the affected range, 131,072
 | Crux callers | `credential_psa.c:259`, `tls_certificate_psa.c:61`, `access_psa.c:67`, `web_session_psa.c:21` | Each returns success only on `PSA_SUCCESS`. |
 
 So a failed TRNG read **fails closed**: no key, no certificate, no salt and no session identifier is produced. This is a reading of source, plus the resolved `.config` of the vehicle
-(`ENTROPY_MCUX_TRNG`, no `TEST_RANDOM_GENERATOR`, no fake entropy). **It was not run**, on a target or on `native_sim` with a failing device for wolfPSA. The existing
-failure-path tests cover TF-PSA-Crypto only ([`psa-crypto-qualification.md`](psa-crypto-qualification.md#entropy-failure)). A TRNG read on every `psa_generate_random` also has a time cost that is unknown. [C5](#code-changes-and-their-order).
+(`ENTROPY_MCUX_TRNG`, no `TEST_RANDOM_GENERATOR`, no fake entropy). **It was run in C5, on `native_sim` and not on a target**, with a failing device for wolfPSA: the Wolf profile fails closed already, a boot line was added, and the full record is [`rt1060-wolf-entropy.md`](rt1060-wolf-entropy.md). The earlier failure-path tests cover TF-PSA-Crypto only ([`psa-crypto-qualification.md`](psa-crypto-qualification.md#entropy-failure)). A TRNG read on every `psa_generate_random` also has a time cost that is unknown. [C5](#code-changes-and-their-order).
 
 The image's other random consumers are Zephyr's own (TCP initial sequence numbers and ports use the xoshiro generator, which the TRNG seeds): not examined.
 
@@ -632,7 +631,7 @@ Rough effort is agent time for the change and its tests, without the board. Hard
 | 2 | **C2.** A stack watermark and heap line printed on the UART at idle and after each client, the check of the headroom of the HTTP server thread (8,192 B since C1), and a higher value only if the measurement says so. Also the D4 fingerprint line. | none | 0.5 to 1 day | **Done in the C2 PR**: the instrumentation and the host judge. The value stays 8,192 B until a board run says otherwise. |
 | 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day | Not started |
 | 2 | **C4.** The first account of D3, with the password never in the repository or the log | D3 | 0.5 to 1 day | Not started |
-| 2 | **C5.** A native test of the failing-TRNG path on the Wolf profile, and a boot line that says the first random read succeeded | none | 1 day | Not started |
+| 2 | **C5.** A native test of the failing-TRNG path on the Wolf profile, and a boot line that says the first random read succeeded | none | 1 day | **Done in the C5 PR**: [record](rt1060-wolf-entropy.md) |
 | 3 | **C6.** Network buffer counts and the arena for 16 KiB records and an SFTP window, from the measurements of C2 | C2 | 0.5 day, then a board read | Not started |
 | 3 | **C7.** The programmer's limit: raise it, split the commands, test the change | D11 | 0.5 to 1 day | Not started |
 | 3 | **C8.** The image manifest and the plan for the bench image, on the stage 1 pattern. **The approval documents are the main session's, and are not written here.** | C1 to C7 | 1 to 2 days | Not started |
@@ -691,7 +690,7 @@ C1 adds these. The record is [`evidence/.../bench-composition-c1/`](evidence/rt1
 | SDRAM and cache effects on a Cortex-M7 running from QSPI with all data in SDRAM | No run. DCACHE and ICACHE are on. |
 | The microSD provider with this composition | The card is not touched, and `fs_mkfs` behaviour is read from source only |
 | The generated certificate's behaviour on a target, and wolfSSL's time without a clock | Compile only |
-| The entropy failure path, on `native_sim` or on a board | Source read only |
+| The entropy failure path on a board | Not run. On `native_sim` it was run in C5: [record](rt1060-wolf-entropy.md) |
 | Zephyr's own random users, and ENET and PHY behaviour with this load | Not examined |
 | The static chains' accuracy | A heuristic of frame sizes over direct calls, not checked against a debugger or a probe |
 
