@@ -66,22 +66,30 @@ Paths are in Zephyr `dccb09599635bdff17633fa7e9dab014b91dce90`. The label is the
 | 7 | MCUboot module directory and default key | `share/sysbuild/images/bootloader/CMakeLists.txt:6-18`, `share/sysbuild/images/bootloader/Kconfig:197-203` | The bootloader image is built from `ZEPHYR_MCUBOOT_MODULE_DIR`. The ECDSA P-256 key defaults to `<module>/root-ec-p256.pem`. | **Verified by command** for the default: a `--cmake-only` configure without the key argument exits 0 and logs the warning that the default key is for debug use. The one full build passed the same path explicitly and logged the same warning, so a signing build without the key argument is **Inference**. |
 | 8 | Confirmed image for RAM load with revert | `modules/Kconfig.mcuboot:274`, commit `c219dde148e` (1 July 2026, in v4.4.2, not in v4.4.0) | `MCUBOOT_BOOTLOADER_MODE_RAM_LOAD_WITH_REVERT` implies `MCUBOOT_GENERATE_CONFIRMED_IMAGE`. | **Verified by build** that `zephyr.signed.confirmed.bin` is produced (finding F4). |
 
-## 4. Layout of the composition files (open owner question)
+## 4. Layout of the composition files (owner decision)
 
-**Not decided here.** The four files need a home in this repository, and the home is a structure decision for the owner. `docs/architecture.md` holds a pending proposal, "Layout and naming of samples (proposed)", which says that a sample is one folder with a `README.md` and `host/` and `zephyr/` compositions (rules 1 to 5), with `boards/` and overlays under `zephyr/`. A folder of board files alone is not a sample under that proposal. The paths in [the build documentation](../../boot-composition.md) are therefore provisional.
+**Decided by the owner on 9 November 2026: option B.** The four board-level files, the board settings and overlays for MCUboot, live in the Crux module, in a folder that a product passes through the sysbuild per-image arguments. They do not go under `samples/` (options A and C) and not in a new top-level folder (option D). The reason given with the recommendation: the files are a platform part that products consume and not a sample, and the pending samples layout in `docs/architecture.md` ("Layout and naming of samples (proposed)") defines a sample as a small composition that shows one capability. The decision came in the owner's answer in the chat of the Crux Pilot main session and was relayed to this work. It approves no merge and no boot experiment on a board.
 
-What does not depend on the answer: a product selects the files with the per-image arguments (mechanism 1), which take any path, so moving the files later changes only the paths in the documentation. Mechanisms 3 to 5 look only beside the application, so a product repository would have to copy files, and the composition does not use them. No public surface is added by any option: no header, no CMake target, no Kconfig symbol. The files hold a board's memory placement and nothing of an application. The M7 reference composition and `samples/controller/` are untouched under every option.
+**Folder proposed in this pull request:** `zephyr/boot/boards/<board>/`, with `mcuboot.conf`, `mcuboot.overlay`, `app.conf` and `app.overlay`. For the RT1060-EVK Rev B the board folder is `mimxrt1060_evk_mimxrt1062_qspi_B`, the board spelling that this repository's board files use. The reasons for the name, to be reviewed:
 
-| Option | Files | For | Against |
-| --- | --- | --- | --- |
-| A | `samples/boot_composition/boards/<board>/` (the path used in the documentation for now) | `samples/` is where this repository keeps composition files | Not a sample under the pending proposal (no application, no `README.md` of evidence, no `zephyr/` folder). The proposal would have to admit it, or A conflicts with it. |
-| B | A folder of the Crux module, for example `zephyr/boot/<board>/` | Module-owned and not a sample, so the sample proposal does not apply | Puts build inputs in the module root next to `module.yml`, `CMakeLists.txt` and `Kconfig`. Nothing now keeps data files there. |
-| C | A real boot sample, `samples/<name>/` with a `README.md` and `zephyr/boards/`, whose board files a product points at | Fits the proposal | It is a sample application, which is more than WP1a builds. |
-| D | A new top-level folder | Separates build recipes from samples | A new top-level structure, which is the largest decision of the four. |
+- `zephyr/` is where the module keeps its Zephyr-specific integration (`module.yml`, `CMakeLists.txt`, `Kconfig`, `cmake` helpers and the `fs` folder). The files are Zephyr build inputs and no component, so `components/<capability>/ports/<os>/` does not fit.
+- `boot` names the purpose, and `boards/<board>/` follows the folder convention Zephyr uses for per-board files.
+- They hold no code and no public header, so `CONTRIBUTING.md`'s rules on public headers and targets do not apply. Nothing in the module's CMake or Kconfig refers to them: a product names each file in an argument, and the module's build neither compiles nor installs them.
 
-Existing board files in `samples/` are one file per board, for example `samples/storage_emmc/boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay`. This composition needs four files per board (an MCUboot and an application `.conf` and `.overlay`), so a directory per board would be new.
+What does not depend on the folder name: a product selects the files with the per-image arguments (mechanism 1), which take any path, so a rename changes only the paths in the documentation. Mechanisms 3 to 5 look only beside the application, so a product repository would have to copy files, and the composition does not use them. No public surface is added: no header, no CMake target, no Kconfig symbol. The files hold a board's memory placement and nothing of an application. The M7 reference composition and `samples/controller/` are untouched.
 
-Other points, not owner questions: snippets (mechanism 6) could replace the paths with a name, but were not tried. The slot sizes in the overlays are provisional until a product measures its image with the boot loader.
+Options that were put to the owner, kept as the record:
+
+| Option | Files | Outcome |
+| --- | --- | --- |
+| A | `samples/boot_composition/boards/<board>/` | Not chosen. Not a sample under the pending proposal (no application, no `README.md` of evidence, no `zephyr/` folder). |
+| B | A folder of the Crux module | **Chosen.** |
+| C | A real boot sample with a `README.md` and `zephyr/boards/` | Not chosen. It is a sample application, which is more than WP1a builds. |
+| D | A new top-level folder | Not chosen. A new top-level structure. |
+
+Existing board files in `samples/` are one file per board, for example `samples/storage_emmc/boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay`. This composition needs four files per board (an MCUboot and an application `.conf` and `.overlay`), so a folder per board is new.
+
+Other points, not owner questions: snippets (mechanism 6) could replace the paths with a name, but were not tried. The slot sizes in the overlays are provisional until a product measures its image with the boot loader. The files themselves are added by the next WP1a task. This pull request records the layout and adds none of them.
 
 ## 5. Task 1: `mcuboot` in a group `crux-boot` (scratch workspace)
 

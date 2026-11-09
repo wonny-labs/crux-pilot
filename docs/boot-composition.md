@@ -18,7 +18,7 @@ The first composition is RAM load with revert on the RT1060-EVK Rev B (`mimxrt10
 
 ## The argument set
 
-The arguments below are the interface of the composition. The directory of the four files is a provisional path and an **open owner question** ([evidence, section 4](evidence/boot-composition/wp1a-evidence.md#4-layout-of-the-composition-files-open-owner-question)). `<crux>` is the checkout of this repository, `<app>` is the application directory of the product and `<image>` is the **base name of that directory**: sysbuild names the main image after it (`share/sysbuild/cmake/modules/sysbuild_images.cmake:29-30` in the pinned Zephyr), so the controller sample in `samples/controller/zephyr` is the image `zephyr`.
+The arguments below are the interface of the composition. The four files live in the Crux module, in `zephyr/boot/boards/<board>/` ([evidence, section 4](evidence/boot-composition/wp1a-evidence.md#4-layout-of-the-composition-files-owner-decision)). `<crux>` is the checkout of this repository, `<app>` is the application directory of the product and `<image>` is the **base name of that directory**: sysbuild names the main image after it (`share/sysbuild/cmake/modules/sysbuild_images.cmake:29-30` in the pinned Zephyr), so the controller sample in `samples/controller/zephyr` is the image `zephyr`.
 
 ```text
 west build --sysbuild -b 'mimxrt1060_evk@B//qspi' <app> -d <build> -- \
@@ -26,10 +26,10 @@ west build --sysbuild -b 'mimxrt1060_evk@B//qspi' <app> -d <build> -- \
   -DSB_CONFIG_BOOTLOADER_MCUBOOT=y \
   -DSB_CONFIG_MCUBOOT_MODE_RAM_LOAD_WITH_REVERT=y \
   -DSB_CONFIG_BOOT_SIGNATURE_TYPE_ECDSA_P256=y \
-  -Dmcuboot_EXTRA_CONF_FILE=<crux>/samples/boot_composition/boards/mimxrt1060_evk_mimxrt1062_qspi_B/mcuboot.conf \
-  -Dmcuboot_EXTRA_DTC_OVERLAY_FILE=<crux>/samples/boot_composition/boards/mimxrt1060_evk_mimxrt1062_qspi_B/mcuboot.overlay \
-  -D<image>_EXTRA_CONF_FILE=<crux>/samples/boot_composition/boards/mimxrt1060_evk_mimxrt1062_qspi_B/app.conf \
-  -D<image>_EXTRA_DTC_OVERLAY_FILE=<crux>/samples/boot_composition/boards/mimxrt1060_evk_mimxrt1062_qspi_B/app.overlay
+  -Dmcuboot_EXTRA_CONF_FILE=<crux>/zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B/mcuboot.conf \
+  -Dmcuboot_EXTRA_DTC_OVERLAY_FILE=<crux>/zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B/mcuboot.overlay \
+  -D<image>_EXTRA_CONF_FILE=<crux>/zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B/app.conf \
+  -D<image>_EXTRA_DTC_OVERLAY_FILE=<crux>/zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B/app.overlay
 ```
 
 - **Files.** The four files do not exist at these paths yet. They are added by the next WP1a task. Until then the argument set was built with files of identical content, copied from [`evidence/boot-update/trial-inputs/`](evidence/boot-update/trial-inputs/), outside the repository. The `.conf` and `.overlay` files are board-level: they place the boot-information region, move MCUboot's RAM to OCRAM2 and point its executable window at the SDRAM. They hold nothing of an application.
@@ -63,5 +63,5 @@ The M7 configurations of [`scripts/test-controller.sh`](../scripts/test-controll
 - A full build of the published argument set: group route, no key argument, no `-DEXTRA_ZEPHYR_MODULES`.
 - Booting: the ROM accepting the MCUboot layout, the jump into the application, the shared boot information, confirm and revert, and the padded image. They need a board.
 - Rejection of an oversized or misaligned image, and reproducibility of the bootloader and the signed output.
-- The RT1060-EVK Rev B composition with `samples/boot_composition/` files in place, and a build through the `crux-boot` group alone.
+- The RT1060-EVK Rev B composition with the files of `zephyr/boot/` in place, and a build through the `crux-boot` group alone.
 - The RT1170-EVK composition.
