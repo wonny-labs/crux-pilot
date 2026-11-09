@@ -1,0 +1,1 @@
+BENCH file-medium ram-disk %u B in SDRAM, %s, mounted=%d: nothing persists across a reset (accounts, keys, certificate and events are lost)

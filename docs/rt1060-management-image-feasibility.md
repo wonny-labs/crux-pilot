@@ -1,6 +1,6 @@
 # The integrated management image on RT1060-EVKB: a build and feasibility report
 
-Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **and its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)),
+Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)), **and its row C3** ([the file backend](rt1060-bench-file-backend.md)),
 for review in a Draft PR. Refs #197. It authorises no hardware operation, and **nothing here ran on a board**: every result is a compile and link for
 `mimxrt1060_evk@B//qspi`, a host script, a configure-only run, or a reading of source and of the linked image. The owner approved stage 0 in the working
 session on 2026-11-08 ("0 단게 시작해") and took the decisions D1 to D11 the same day ([Owner decisions](#owner-decisions)). **Nothing here reads as an approval of a
@@ -16,6 +16,7 @@ board stage**: the image still refuses to start, and the approval documents are 
 | Biggest risks found | **The HTTP server thread's default 4,096 B stack** runs the TLS handshake, and a static estimate of one handshake path is 4,272 B: **the bench image has 8,192 B from C1** (owner's request, [below](#stage-2-row-c1-the-bench-composition)). **The SSH worker's 16,384 B** leaves about 3 KB over a static 13.3 KB key-exchange chain. Neither is measured on a target. [Stacks](#thread-stacks). |
 | Ready for a board run? | **No.** The eleven owner decisions are taken (2026-11-08) and row C1 is done. Rows C2 to C9, the first account and the approval documents of the main session still come first. [What still blocks a board run](#what-still-blocks-a-board-run), [changes and order](#code-changes-and-their-order). |
 | What did C1 change? | The vehicle is now a **bench composition** under a declaration for RT1060-EVKB rev B, with guards at three levels, a host script that breaks each guard, a manifest, and listeners bound to the bench address. [Stage 2, row C1](#stage-2-row-c1-the-bench-composition). |
+| What did C3 change? | The file backend of the bench image is a **RAM disk**, with no card driver in the image, and the mount rule **never formats a card**: the RAM disk is the only medium that may be formatted. The microSD provider is a second declared form for a later run. [The file backend](rt1060-bench-file-backend.md). |
 
 ```mermaid
 flowchart LR
@@ -162,7 +163,7 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | --- | --- | --- |
 | The refusal in `main()` | A reviewed change after the approval | **Stays** |
 | Stack watermark and heap line on the UART, and the read of the HTTP thread's headroom (the stack itself is 8,192 B since C1) | C2 | Not done |
-| A RAM disk as the file backend, and a mount rule that never formats a card | C3 (D2) | Not done. The image still links the microSD provider and its `fs_mkfs` call. |
+| A RAM disk as the file backend, and a mount rule that never formats a card | C3 (D2) | **Done in the C3 PR**: [the file backend](rt1060-bench-file-backend.md). The image links no card driver and no `fs_mkfs` call outside the RAM disk glue. A card run, and the card's own approval, are a later run. |
 | The first account from an untracked file, hashed into the manifest | C4 (D3) | Not done. The step fails, so the image cannot serve. |
 | A native test of the failing TRNG path, and a boot line for the first random read | C5 | Not done |
 | Network buffer counts and the arena for 16 KiB records and an SFTP window | C6 | Not done, needs C2's measurements |
@@ -221,7 +222,7 @@ flowchart TB
 | TLS certificate | **Generated** by the certificate module and handed to the TLS credentials with `crux_tls_certificate_material_take` ([`docs/tls-certificate.md`](tls-certificate.md), step 6). The declared test certificate is not used. |
 | Host key | **Test form** (D5): the store generates it, and the provider borrows it from a static buffer that is never wiped, as on `native_sim`. **Since C1 it is accepted only under the bench declaration.** |
 | First account | In stage 0: a declared test step with a public password (`crux_native_management.h:34`). **Since C1 that step is not in the image**: the copy of `crux_native_management.c` has no such function, and `bench_first_account.c` is a placeholder that fails until row C4 ([D3](#owner-decisions)). |
-| File service backend | The microSD provider of the board. **Nothing was run on any card.** |
+| File service backend | In stage 0 and C1: the microSD provider of the board. **Since C3: a RAM disk** ([the file backend](rt1060-bench-file-backend.md)), with no card driver in the image. **Nothing was run on any card.** |
 | Network settings | The no-op apply port. The static address comes from `main.c`, as in the M5 image. |
 | Time | No source. The wall clock is Zephyr's realtime clock, which nothing sets. |
 | Frontend | The services image's one-page folder, as on `native_sim` |
@@ -442,7 +443,7 @@ Rough effort is agent time for the change and its tests, without the board. Hard
 | --- | --- | --- | --- | --- |
 | 1 | **C1.** Promote the vehicle to a bench composition: the declaration and guards at three levels, a host script that breaks each guard, and a manifest recording the declaration | D1 | 1.5 to 2 days | **Done in the C1 PR** |
 | 2 | **C2.** A stack watermark and heap line printed on the UART at idle and after each client, the check of the headroom of the HTTP server thread (8,192 B since C1), and a higher value only if the measurement says so | none | 0.5 to 1 day | Not started |
-| 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day | Not started |
+| 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day | **Done in the C3 PR**: [the file backend](rt1060-bench-file-backend.md) |
 | 2 | **C4.** The first account of D3, with the password never in the repository or the log | D3 | 0.5 to 1 day | Not started |
 | 2 | **C5.** A native test of the failing-TRNG path on the Wolf profile, and a boot line that says the first random read succeeded | none | 1 day | **Done in the C5 PR**: [record](rt1060-wolf-entropy.md) |
 | 3 | **C6.** Network buffer counts and the arena for 16 KiB records and an SFTP window, from the measurements of C2 | C2 | 0.5 day, then a board read | Not started |

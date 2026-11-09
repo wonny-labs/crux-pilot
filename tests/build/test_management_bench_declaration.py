@@ -94,7 +94,7 @@ class BenchDeclaration(unittest.TestCase):
 
     def test_the_public_test_password_and_the_native_declaration_are_not_in_the_bench_image(self):
         for path in sorted(BENCH.rglob("*")):
-            if not path.is_file() or path.name in ("check_bench_guard.py",):
+            if not path.is_file() or path.name in ("check_bench_guard.py",) or "__pycache__" in path.parts:
                 continue
             text = path.read_text()
             self.assertNotIn("CRUX_NATIVE_MANAGEMENT_TEST_PASSWORD", text, path.name)

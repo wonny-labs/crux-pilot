@@ -1,0 +1,4 @@
+f_mkfs: fat_fs.c.obj
+fs_mkfs: bench_medium_fs.c.obj
+ok: in the ram image only the expected objects reference a format function
+mkfs callers exit 0
