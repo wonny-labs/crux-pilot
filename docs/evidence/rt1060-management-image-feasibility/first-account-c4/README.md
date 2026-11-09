@@ -29,6 +29,10 @@ The first review (REVISE) found two errors in the documents, and no flaw in the 
 
 The CI `host` job then **failed at `868f393e`**: my tests imported the tool, Python 3.12 wrote a `__pycache__` into the image's folder, and the C1 test `test_the_public_test_password_and_the_native_declaration_are_not_in_the_bench_image` read the bytecode as text (`UnicodeDecodeError`). The host runs did not show it because this Mac sets `PYTHONDONTWRITEBYTECODE=1`, so no bytecode was ever written there, and the container run used a copy of the tree that is mounted read-only. Both of my test files now set `sys.dont_write_bytecode` before the import, and no `__pycache__` is created in the folder. The C1 test is unchanged.
 
+## The merged tree (C4 with C5)
+
+Row C5 merged into `main` while this PR was open (`f4286f6e`), and it changes `main.c` and `management_target.cmake`, which this row's files sit beside. The merge (`a6181ffa`) had one conflict, in the feasibility document's table of rows, which was resolved by keeping both rows' "Done" cells. A fresh configure and build of the merged tree linked: **Flash 602,204 B (7.18 %), RAM 837,932 B (2.50 %)**, 554 steps, the same 3 wolfSSH warnings, 96 Python tests pass in the container, `crux_entropy_boot_check` and `crux_bench_first_account` are both in the image, the manifest says `source_commit` `a6181ffa` and `source_tree_modified: false`, the public test password is 0 times in the ELF, and the scan is clean (`host/merged-scan.txt`, `build/merged-*`). The difference to the C4-only build (601,744 B and 837,804 B) is C5's.
+
 ## Image facts (`build/`)
 
 | Item | Value |
