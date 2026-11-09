@@ -1,0 +1,47 @@
+DoHandShakeMsgType 5136
+DoKexDhInit.constprop.0 3456
+DoKexDhReply.constprop.0 3776
+DoProcessReplyEx 5272
+DoReceive 4648
+DoTls13ClientHello 2336
+DoTls13Finished 1848
+DoTls13HandShakeMsgType 4904
+DoUserAuthRequest not found
+DoUserAuthRequestPublicKey 4384
+ProcessReply 5272
+SendKexDhReply 3408
+SendTls13Certificate 3528
+SendTls13CertificateVerify 2268
+SendTls13Finished 2080
+SendTls13ServerHello 1248
+TLSX_KeyShare_Choose 56
+TLSX_KeyShare_Establish 1688
+TLSX_KeyShare_GenKey 1616
+TLSX_KeyShare_Process 1736
+crux_access_login_password 3104
+crux_access_provision_first_account 2472
+crux_credential_key_ensure 3056
+crux_credential_start 1040
+crux_native_management_start 3128
+crux_ssh_cli_exec 2160
+crux_ssh_cli_shell 2208
+crux_ssh_sftp_entry not found
+crux_thread_entry not found
+crux_tls_certificate_start 3128
+crux_web_session_authenticate 1248
+curve25519_smul_blind 1352
+http_server_thread 2128
+main 3320
+sp_ecc_sign_256 2040
+wc_curve25519_shared_secret_ex 1448
+wc_ecc_sign_hash 2136
+wc_ecc_sign_hash_ex 2080
+wc_ed25519_sign_msg_ex 1208
+web_session_work_once 3864
+wolfSSH_SFTP_accept 4760
+wolfSSH_accept 4664
+wolfSSH_stream_read 4688
+wolfSSH_worker 4672
+wolfSSL_accept 5336
+wolfSSL_accept_TLSv13 5328
+z_thread_entry 136

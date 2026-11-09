@@ -1,0 +1,4 @@
+72c72
+<         "-DZEPHYR_MODULES=$modules" "-DPython3_EXECUTABLE=$(command -v python3)" > "$out/configure.log" 2>&1 ||
+---
+>         "-DZEPHYR_MODULES=$modules" "-DCRUX_SSH_TEST_EXTRA_CONF=/build/no-rsa.conf" "-DPython3_EXECUTABLE=$(command -v python3)" > "$out/configure.log" 2>&1 ||

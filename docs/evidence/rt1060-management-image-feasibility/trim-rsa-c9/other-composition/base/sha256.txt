@@ -1,0 +1,1 @@
+9d8c08f4ef2e1ac9ff93972b5560f8696ee6da130807107398a51f4aa12c2303  /build/other-base/zephyr/zephyr.bin
