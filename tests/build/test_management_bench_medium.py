@@ -22,6 +22,8 @@ HOST = BENCH / "host"
 CC = shutil.which("cc") or shutil.which("gcc")
 NM = shutil.which("nm")
 
+# Importing the checkers must not leave a __pycache__ in the bench directory, which other tests read as text.
+sys.dont_write_bytecode = True
 spec = importlib.util.spec_from_file_location("check_bench_guard", BENCH / "check_bench_guard.py")
 guard = importlib.util.module_from_spec(spec)
 sys.modules["check_bench_guard"] = guard
