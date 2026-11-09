@@ -1,0 +1,3 @@
+   text	   data	    bss	    dec	    hex	filename
+ 601784	   4668	 837962	1444414	 160a3e	/build/bench_c2m/zephyr/zephyr.elf
+-rwxr-xr-x 1 root root 606472 Nov  9 00:53 /build/bench_c2m/zephyr/zephyr.bin

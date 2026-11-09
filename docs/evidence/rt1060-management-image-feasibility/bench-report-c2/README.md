@@ -28,3 +28,7 @@ New evidence record of [`docs/rt1060-management-image-feasibility.md`](../../../
 The static chains (`c2-static-chains.json`) follow direct calls only, and the `printk` chain stops at function pointers: 528 B for the printing thread is an estimate and not a measurement. The stack and heap figures of a real run exist only after a board run reads them.
 
 The `native_sim` run's executable never exits by itself: after `BENCH_REPORT_TEST complete` the report thread keeps running, and the driver stops it after 120 s of wall time (exit status 124 in the run's log). The output was complete by then.
+
+## After the merge of C5 (#365)
+
+`origin/main` gained C5 (`f4286f6e`), which adds the entropy boot check to `main.c` and `management_target.cmake`. The branch merged it (`23493da0`) with no conflict, and the merged tree was compiled and linked once more (`build/merged-c5-*`): **FLASH 606,472 B, RAM 842,668 B**, three warnings as before, `source_tree_modified: false`, the public test password 0 times. That is 460 B of Flash and 128 B of RAM more than the C2-only tree (606,012 B, 842,540 B), which is C5's own cost. The C2 deltas in the document are against `a47c1590` and unchanged.
