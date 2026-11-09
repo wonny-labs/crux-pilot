@@ -3,8 +3,8 @@ symbols: 4303 before, 4095 after; gone 212 (31483 B), new 4 (321 B), changed in 
 gone, code: 187 symbols, 30254 B
 gone, data: 1 symbols, 32 B
 gone, read-only data: 24 symbols, 1197 B
-gone with an RSA name (see check_bench_rsa_symbols.py): 147 symbols, 20012 B
-gone without an RSA name: 65 symbols, 11471 B
+gone with an RSA name (see check_bench_rsa_symbols.py): 148 symbols, 20188 B
+gone without an RSA name: 64 symbols, 11295 B
 
 == still in the image with an RSA name
   BEGIN_RSA_PRIV (r, 32 B)
@@ -93,6 +93,7 @@ gone without an RSA name: 65 symbols, 11471 B
   sp_3072_div_word_106 (t, 176 B)
   sp_2048_div_word_72 (t, 176 B)
   sp_2048_div_word_36 (t, 176 B)
+  CreateRSAEncodedSig (T, 176 B)
   sp_3072_from_mp (t, 170 B)
   sp_2048_from_mp (t, 170 B)
   SetRsaPublicKey (t, 168 B)
@@ -211,7 +212,6 @@ gone without an RSA name: 65 symbols, 11471 B
   _CheckProbablePrime (t, 312 B)
   sp_prime_miller_rabin (t, 280 B)
   lower_bound (r, 256 B)
-  CreateRSAEncodedSig (T, 176 B)
   sp_256_from_mp (t, 170 B)
   sp_mulmod (T, 166 B)
   _sp_add_off.constprop.0 (t, 164 B)

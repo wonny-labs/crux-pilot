@@ -26,7 +26,8 @@ RSA_NAMES = ["wc_MakeRsaKey", "wc_RsaPrivateKeyDecode", "_RsaPrivateKeyDecode", 
              "RsaPublicEncryptEx", "RsaSign", "DecodeRsaPssParams", "psa_asymmetric_generate_key_rsa",
              "sp_RsaPrivate_3072", "sp_RsaPublic_2048", "sp_ModExp_3072", "sp_ModExp_2048", "sp_3072_mod_exp_53",
              "sp_2048_div_word_36", "sp_4096_mul_128", "wolfpsa_rsa_import", "rsa_key_table", "wc_InitRsaKey",
-             "WC_RSA_PSS_TABLE", "wolfSSL_RSA_new", "wolfpsa_pk_rsa_verify"]
+             "WC_RSA_PSS_TABLE", "wolfSSL_RSA_new", "wolfpsa_pk_rsa_verify", "wolfSSL_d2i_RSAPublicKey",
+             "wolfSSL_CTX_use_RSAPrivateKey_file", "CreateRSAEncodedSig"]
 
 
 _OBJECTS = {}

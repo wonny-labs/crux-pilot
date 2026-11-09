@@ -1,5 +1,6 @@
-check_bench_rsa_symbols: the bench image links RSA code (D11, row C9), 149 symbols:
+check_bench_rsa_symbols: the bench image links RSA code (D11, row C9), 150 symbols:
   CONFIG_WOLFSSL_RSA (A, 0 B)
+  CreateRSAEncodedSig (T, 176 B)
   DecodeRsaPssParams (t, 360 B)
   RsaDec (T, 114 B)
   RsaEnc (T, 40 B)

@@ -18,6 +18,6 @@ test_every_weakened_rule_is_caught (tests.build.test_management_bench_rsa_symbol
 test_the_check_passes_a_clean_image_and_refuses_each_rsa_name (tests.build.test_management_bench_rsa_symbols.RsaSymbolCheck) ... ok
 
 ----------------------------------------------------------------------
-Ran 18 tests in 68.603s
+Ran 18 tests in 69.283s
 
 OK

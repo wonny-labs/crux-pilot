@@ -29,6 +29,7 @@ import sys
 DENY = (
     r"Rsa(?![a-z])",
     r"(?<![A-Z])RSA(?![A-Z])",
+    r"(?<![A-Z])RSA[A-Z][a-z]",
     r"(?<![A-Za-z])rsa(?![a-z])",
     r"^sp_(?:ModExp|RsaPrivate|RsaPublic)_",
     r"^sp_(?:2048|3072|4096)_",

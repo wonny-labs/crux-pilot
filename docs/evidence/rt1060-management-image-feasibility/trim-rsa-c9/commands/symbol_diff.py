@@ -6,7 +6,7 @@ usage: symbol_diff.py BEFORE-nm.txt AFTER-nm.txt
 import re
 import sys
 
-RSA = re.compile(r"Rsa(?![a-z])|(?<![A-Z])RSA(?![A-Z])|(?<![A-Za-z])rsa(?![a-z])|^sp_(?:ModExp|RsaPrivate|RsaPublic)_|^sp_(?:2048|3072|4096)_")
+RSA = re.compile(r"Rsa(?![a-z])|(?<![A-Z])RSA(?![A-Z])|(?<![A-Z])RSA[A-Z][a-z]|(?<![A-Za-z])rsa(?![a-z])|^sp_(?:ModExp|RsaPrivate|RsaPublic)_|^sp_(?:2048|3072|4096)_")
 
 
 def read(path):
