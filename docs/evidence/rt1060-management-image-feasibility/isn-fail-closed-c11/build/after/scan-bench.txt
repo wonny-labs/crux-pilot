@@ -1,0 +1,2 @@
+no plaintext of the password, or an encoding of it, in 3 scanned tree(s) (image files may hold it)
+exit 0

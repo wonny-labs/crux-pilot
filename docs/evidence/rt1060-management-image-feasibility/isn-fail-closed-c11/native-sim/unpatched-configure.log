@@ -1,0 +1,41 @@
+Loading Zephyr default modules (Zephyr base).
+-- Application: /ws/crux-pilot/tests/native/isn_fail_closed
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.2 (/ws/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found BOARD.dts: /ws/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Found devicetree overlay: /ws/crux-pilot/tests/native/isn_fail_closed/boards/native_sim_native_64.overlay
+-- Generated zephyr.dts: /build/out/isn/unpatched/zephyr/zephyr.dts
+-- Generated pickled edt: /build/out/isn/unpatched/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /build/out/isn/unpatched/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing /ws/crux-pilot/tests/native/isn_fail_closed/Kconfig
+Loaded configuration '/ws/zephyr/boards/native/native_sim/native_sim_64_defconfig'
+Merged configuration '/ws/crux-pilot/tests/native/isn_fail_closed/prj.conf'
+Configuration saved to '/build/out/isn/unpatched/zephyr/.config'
+Kconfig header saved to '/build/out/isn/unpatched/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /usr/bin/ld.bfd (found version "2.42") 
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/bin/gcc
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found version "3.12.3") found components: Interpreter 
+-- Could NOT find Threads (missing: Threads_FOUND) 
+-- Could NOT find Threads (missing: Threads_FOUND) 
+-- Performing Test C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS
+-- Performing Test C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS - Success
+-- Found gen_kobject_list: /ws/zephyr/scripts/build/gen_kobject_list.py
+CMake Warning at /ws/zephyr/CMakeLists.txt:1081 (message):
+  No SOURCES given to Zephyr library: drivers__entropy
+
+  Excluding target from build.
+
+
+-- Configuring done (58.9s)
+-- Generating done (0.2s)
+-- Build files have been written to: /build/out/isn/unpatched

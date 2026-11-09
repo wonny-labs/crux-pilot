@@ -1,0 +1,82 @@
+60023894 <tcp_init_isn>:
+60023894:	stmdb	sp!, {r4, r5, r6, r7, r8, lr}
+60023898:	ldr.w	r8, [pc, #184]	@ 60023954 <tcp_init_isn+0xc0>
+6002389c:	sub	sp, #72	@ 0x48
+6002389e:	mov	r5, r0
+600238a0:	mov	r7, r1
+600238a2:	ldrb.w	r3, [r8]
+600238a6:	mov	r6, r2
+600238a8:	cbnz	r3, 600238d8 <tcp_init_isn+0x44>
+600238aa:	movs	r1, #16
+600238ac:	add	r0, sp, #40	@ 0x28
+600238ae:	bl	6001d880 <z_impl_sys_csrand_get>
+600238b2:	subs	r4, r0, #0
+600238b4:	blt.n	60023934 <tcp_init_isn+0xa0>
+600238b6:	add	r3, sp, #40	@ 0x28
+600238b8:	ldr	r2, [pc, #156]	@ (60023958 <tcp_init_isn+0xc4>)
+600238ba:	add.w	ip, sp, #56	@ 0x38
+600238be:	mov	r4, r3
+600238c0:	adds	r2, #8
+600238c2:	ldmia	r4!, {r0, r1}
+600238c4:	cmp	r4, ip
+600238c6:	str.w	r0, [r2, #-8]
+600238ca:	str.w	r1, [r2, #-4]
+600238ce:	mov	r3, r4
+600238d0:	bne.n	600238be <tcp_init_isn+0x2a>
+600238d2:	movs	r3, #1
+600238d4:	strb.w	r3, [r8]
+600238d8:	ldrh	r3, [r5, #0]
+600238da:	cmp	r3, #1
+600238dc:	bne.n	60023942 <tcp_init_isn+0xae>
+600238de:	ldrh	r3, [r7, #2]
+600238e0:	ldrh	r2, [r5, #2]
+600238e2:	strh.w	r3, [sp, #38]	@ 0x26
+600238e6:	ldr	r3, [pc, #112]	@ (60023958 <tcp_init_isn+0xc4>)
+600238e8:	ldr	r0, [r5, #4]
+600238ea:	ldr	r1, [r7, #4]
+600238ec:	add.w	r5, r3, #16
+600238f0:	strh.w	r2, [sp, #36]	@ 0x24
+600238f4:	add	r2, sp, #12
+600238f6:	strd	r0, r1, [sp, #28]
+600238fa:	ldr	r0, [r3, #0]
+600238fc:	adds	r3, #8
+600238fe:	ldr.w	r1, [r3, #-4]
+60023902:	mov	r4, r2
+60023904:	cmp	r3, r5
+60023906:	stmia	r4!, {r0, r1}
+60023908:	mov	r2, r4
+6002390a:	bne.n	600238fa <tcp_init_isn+0x66>
+6002390c:	add	r3, sp, #8
+6002390e:	movs	r2, #28
+60023910:	add	r1, sp, #12
+60023912:	ldr	r0, [pc, #72]	@ (6002395c <tcp_init_isn+0xc8>)
+60023914:	str	r3, [sp, #4]
+60023916:	movs	r3, #32
+60023918:	str	r3, [sp, #0]
+6002391a:	add	r3, sp, #40	@ 0x28
+6002391c:	bl	60072ee6 <psa_hash_compute>
+60023920:	mov	r4, r0
+60023922:	cbnz	r0, 6002393c <tcp_init_isn+0xa8>
+60023924:	ldr	r5, [sp, #40]	@ 0x28
+60023926:	bl	6007425a <z_impl_k_uptime_ticks>
+6002392a:	ldr	r3, [pc, #52]	@ (60023960 <tcp_init_isn+0xcc>)
+6002392c:	muls	r0, r3
+6002392e:	add.w	r5, r5, r0, lsr #6
+60023932:	str	r5, [r6, #0]
+60023934:	mov	r0, r4
+60023936:	add	sp, #72	@ 0x48
+60023938:	ldmia.w	sp!, {r4, r5, r6, r7, r8, pc}
+6002393c:	mvn.w	r4, #4
+60023940:	b.n	60023934 <tcp_init_isn+0xa0>
+60023942:	movs	r1, #4
+60023944:	add	r0, sp, #40	@ 0x28
+60023946:	bl	6001d7dc <z_impl_sys_rand_get>
+6002394a:	ldr	r3, [sp, #40]	@ 0x28
+6002394c:	movs	r4, #0
+6002394e:	str	r3, [r6, #0]
+60023950:	b.n	60023934 <tcp_init_isn+0xa0>
+60023952:	nop
+60023954:	.word	0x8002146d
+60023958:	.word	0x8002146e
+6002395c:	.word	0x02000009
+60023960:	.word	0x000186a0

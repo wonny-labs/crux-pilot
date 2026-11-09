@@ -1,0 +1,60 @@
+60023894 <tcp_init_isn>:
+60023894:	stmdb	sp!, {r4, r5, r6, r7, r8, lr}
+60023898:	ldrh	r5, [r0, #0]
+6002389a:	sub	sp, #56	@ 0x38
+6002389c:	cmp	r5, #1
+6002389e:	bne.n	60023914 <tcp_init_isn+0x80>
+600238a0:	ldrh	r4, [r1, #2]
+600238a2:	movs	r2, #16
+600238a4:	ldrh	r6, [r0, #2]
+600238a6:	ldr.w	r8, [r0, #4]
+600238aa:	add	r0, sp, #28
+600238ac:	ldr	r7, [r1, #4]
+600238ae:	movs	r1, #0
+600238b0:	bl	600745aa <memset>
+600238b4:	strh.w	r4, [sp, #54]	@ 0x36
+600238b8:	ldr	r4, [pc, #100]	@ (60023920 <tcp_init_isn+0x8c>)
+600238ba:	strh.w	r6, [sp, #52]	@ 0x34
+600238be:	ldrb	r3, [r4, #0]
+600238c0:	strd	r8, r7, [sp, #44]	@ 0x2c
+600238c4:	cbnz	r3, 600238d0 <tcp_init_isn+0x3c>
+600238c6:	movs	r1, #16
+600238c8:	ldr	r0, [pc, #88]	@ (60023924 <tcp_init_isn+0x90>)
+600238ca:	bl	6001d880 <z_impl_sys_csrand_get>
+600238ce:	strb	r5, [r4, #0]
+600238d0:	ldr	r3, [pc, #80]	@ (60023924 <tcp_init_isn+0x90>)
+600238d2:	add	r4, sp, #28
+600238d4:	add.w	r5, r3, #16
+600238d8:	ldr	r0, [r3, #0]
+600238da:	adds	r3, #8
+600238dc:	ldr.w	r1, [r3, #-4]
+600238e0:	mov	r2, r4
+600238e2:	cmp	r3, r5
+600238e4:	stmia	r2!, {r0, r1}
+600238e6:	mov	r4, r2
+600238e8:	bne.n	600238d8 <tcp_init_isn+0x44>
+600238ea:	add	r3, sp, #8
+600238ec:	movs	r2, #28
+600238ee:	ldr	r0, [pc, #56]	@ (60023928 <tcp_init_isn+0x94>)
+600238f0:	str	r3, [sp, #4]
+600238f2:	movs	r3, #16
+600238f4:	add.w	r1, sp, r2
+600238f8:	str	r3, [sp, #0]
+600238fa:	add	r3, sp, #12
+600238fc:	bl	60072e92 <psa_hash_compute>
+60023900:	ldr	r4, [sp, #12]
+60023902:	bl	60074206 <z_impl_k_uptime_ticks>
+60023906:	ldr	r3, [pc, #36]	@ (6002392c <tcp_init_isn+0x98>)
+60023908:	muls	r0, r3
+6002390a:	add.w	r0, r4, r0, lsr #6
+6002390e:	add	sp, #56	@ 0x38
+60023910:	ldmia.w	sp!, {r4, r5, r6, r7, r8, pc}
+60023914:	movs	r1, #4
+60023916:	add	r0, sp, #28
+60023918:	bl	6001d7dc <z_impl_sys_rand_get>
+6002391c:	ldr	r0, [sp, #28]
+6002391e:	b.n	6002390e <tcp_init_isn+0x7a>
+60023920:	.word	0x8002146d
+60023924:	.word	0x8002146e
+60023928:	.word	0x02000009
+6002392c:	.word	0x000186a0
