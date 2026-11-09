@@ -42,7 +42,7 @@ class Case(unittest.TestCase):
         self.m5, self.entry, self.normal = (str(self.root / name) for name in ('m5.bin', 'entry.bin', 'normal.bin'))
         for path in (self.m5, self.entry, self.normal):
             Path(path).write_bytes(path.encode())
-        self.commands, self.checks, self.responses, self.events, self.limits = [], [], [], [], []
+        self.commands, self.checks, self.responses, self.events, self.limits, self.guard_limits = [], [], [], [], [], []
         self.now, self.reverified, self.port = 1000., [], Port()
         self.guard_error = None
 
@@ -59,8 +59,9 @@ class Case(unittest.TestCase):
         Path(output).write_text(response)
         return response
 
-    def preconditions(self, directory, label):
+    def preconditions(self, directory, label, seconds):
         self.checks.append(label)
+        self.guard_limits.append(seconds)
         self.now += getattr(self, 'check_seconds', 0)
         if self.guard_error:
             raise self.guard_error
@@ -426,7 +427,7 @@ class Inputs(Case):
 class RealParts(Case):
     """The real wiring with every host call faked: ownership before and after this process holds the UART."""
 
-    def wired(self):
+    def wired(self, session=None):
         import os
         from types import ModuleType
         import capture_m3_network as m3net
@@ -460,7 +461,9 @@ class RealParts(Case):
         self.inventories['lsof-tty'] = host_fixtures.completed('lsof_tty_unopened')          # real: exit 1, nothing printed
         self.inventories['ps'] = host_fixtures.completed('ps_axo_system_processes')
         self.directory.mkdir()
-        return program.real_parts(SimpleNamespace(evidence=self.directory), {}), port
+        if session is None:                             # a guard that runs for two more hours, the guard's default lifetime
+            session = dict(deadline=program.m3_clock.monotonic() + 7200)
+        return program.real_parts(SimpleNamespace(evidence=self.directory), session), port
 
     def test_unowned_before_and_self_owned_after_acquisition(self):
         (preconditions, probe, acquire), port = self.wired()

@@ -49,7 +49,8 @@ MODES = ('identify', 'program', 'restore')
 OBSERVE_SECONDS = 15
 RESERVE_BEFORE, RESERVE_AFTER = 120, 45        # the accepted wrappers' whole-series reserves before and after the guard
 COMMAND_SECONDS = capture_m3.COMMAND_SECONDS   # the default limit of one Commander run (30 s)
-GUARD_SECONDS = 90                             # the mount guard must run at least this long after each check
+GUARD_SECONDS = 90                             # guard time left at each check before a 30 s run; grows with the limit
+GUARD_RUN_MARGIN = 2                           # just before the run: the 1 s reap and 1 s for the tool hash check
 # Limit of one run that loads or reads back an image. J-Link programs the flash in 128 KiB ranges. The real stage 1
 # runs (fixtures/programmer-split) took at most 4.52 s per range for compare, erase, program and the loader's verify,
 # 2.49 s fixed (prepare, restore), and at most about 4.9 s per 128 KiB for a read-back: 10 s each keeps twice that.
@@ -78,16 +79,31 @@ def image_seconds(path):
     return command_seconds(Path(path).stat().st_size)
 
 
+def guard_seconds(seconds):
+    """Guard time that must be left at the check before a run of ``seconds``: 90 s for 30 s, plus what a run exceeds 30 s
+    (as the series reserves grow). 120 s for a 60 s run, 140 s at the 80 s ceiling; the guard lives at least 300 s."""
+    return GUARD_SECONDS + max(0, seconds - COMMAND_SECONDS)
+
+
+_SECONDS = r'\d+(?:\.\d+)?'
+
+
 def flash_download(text):
-    """The J-Link flash loader's own report of a ``loadfile``, recorded as evidence; it decides nothing."""
+    """The J-Link flash loader's own report of a ``loadfile``, recorded as evidence; it decides nothing.
+
+    Any other format, including a malformed number, gives None: a report can never stop the mode."""
     if re.search(r'(?m)^J-Link: Flash download: Bank 0 @ 0x60000000: Skipped\. Contents already match', text):
         return dict(skipped=True)
-    affected = re.search(r'(?m)^J-Link: Flash download: Bank 0 @ 0x60000000: (\d+) ranges? affected \((\d+) bytes\)', text)
-    total = re.search(r'(?m)^J-Link: Flash download: Total: ([\d.]+)s \(([^)]*)\)', text)
+    affected = re.search(r'(?m)^J-Link: Flash download: Bank 0 @ 0x60000000: (\d+) ranges? affected \((\d+) bytes\)$', text)
+    part = r'\w+: %ss' % _SECONDS
+    total = re.search(r'(?m)^J-Link: Flash download: Total: (%s)s \((%s(?:, %s)*)\)$' % (_SECONDS, part, part), text)
     if not affected or not total:
         return None
-    return dict(skipped=False, affected_ranges=int(affected[1]), affected_bytes=int(affected[2]), total_seconds=float(total[1]),
-                parts={name: float(value) for name, value in re.findall(r'(\w+): ([\d.]+)s', total[2])})
+    try:
+        return dict(skipped=False, affected_ranges=int(affected[1]), affected_bytes=int(affected[2]), total_seconds=float(total[1]),
+                    parts={name: float(value) for name, value in re.findall(r'(\w+): (%s)s' % _SECONDS, total[2])})
+    except ValueError:
+        return None
 
 
 def check_identity(text):
@@ -173,7 +189,7 @@ class Driver:
         label = '%02d-%s' % (self.step, label)
         require(self.clock() + RESERVE_BEFORE + extra < self.end, 'Insufficient series budget for the next probe command')
         self.note(step=label, commands=commands, state='checks', limit_seconds=seconds)
-        self.preconditions(self.directory, label)
+        self.preconditions(self.directory, label, seconds)   # the guard time it requires grows with the limit
         require(self.clock() + RESERVE_AFTER + extra < self.end, 'Series budget exhausted by the guard and ownership checks')
         for path in images:                            # the bytes about to be loaded or compared are the approved ones
             require(path in self.pinned and sha(path) == self.pinned[path], 'Image changed since approval: ' + str(path))
@@ -215,15 +231,25 @@ class Driver:
         self.program_runs(m5_binary, seconds)
         return dict(status='M5_PROGRAMMED_VERIFIED_STARTED', entry_image_verified=True)
 
-    def program_runs(self, binary, seconds, *, before_load=None, before_start=None, phase=None):
+    def program_runs(self, binary, seconds, *, before_load=None, before_start=None, phase=None, window=0):
         """Load, full read-back, then reset and go: three bounded runs, each started once, in that order only.
 
         The start runs only after the read-back reported ``Verify successful``. A failed run ends the mode, as every
         failed command does. ``phase`` (a one-item list) names the run in progress for the capture's abort reason.
+        Before the load command the series budget must cover the load run, the reserves that the read-back and start
+        steps check before their own checks, and the capture window: a later budget refusal then needs a step whose
+        checks overran its own reserve.
         """
         phase = phase if phase is not None else [None]
+
+        def before():
+            needed = seconds + RESERVE_BEFORE + max(0, seconds - COMMAND_SECONDS) + RESERVE_BEFORE + window
+            require(self.clock() + needed < self.end,
+                    'Series budget does not cover the load, read-back and start runs and the capture window; no load')
+            if before_load:
+                before_load()
         phase[0] = 'load step failed'
-        self.run('program-m5-load', 'loadfile "%s", 0x%X\nq\n' % (binary, BASE), images=[binary], before=before_load, seconds=seconds)
+        self.run('program-m5-load', 'loadfile "%s", 0x%X\nq\n' % (binary, BASE), images=[binary], before=before, seconds=seconds)
         phase[0] = 'verify step failed'
         text = self.run('program-m5-verify', self.verify_command(binary), images=[binary], seconds=seconds)
         phase[0] = 'complete image verification absent'
@@ -244,7 +270,6 @@ class Driver:
         def open_capture():
             label = '%02d-program-m5-load' % self.step
             require(self.port is not None, 'UART port not owned; no capture and no probe command')
-            require(self.clock() + 2 * seconds + COMMAND_SECONDS + spec.seconds < self.end, 'Capture window does not fit the series budget')
             try:
                 opened.append(spec.open(self.port, self.directory / 'capture'))
             except Exception as error:
@@ -264,7 +289,7 @@ class Driver:
                     error.capture_failure = repr(secondary)
 
         try:
-            self.program_runs(binary, seconds, before_load=open_capture, before_start=reader_alive, phase=phase)
+            self.program_runs(binary, seconds, before_load=open_capture, before_start=reader_alive, phase=phase, window=spec.seconds)
         except BaseException as error:
             abort(error, phase[0])
             raise
@@ -395,8 +420,8 @@ def real_parts(args, guard_session):
     state = dict(owned=False)
     uart, tty = BENCH['uart'], BENCH['uart'].replace('/dev/cu.', '/dev/tty.')
 
-    def preconditions(directory, label):
-        m3net.guard_check(guard_session, directory, label, GUARD_SECONDS, uart=uart)
+    def preconditions(directory, label, seconds=COMMAND_SECONDS):
+        m3net.guard_check(guard_session, directory, label, guard_seconds(seconds), uart=uart)
         if not state['owned']:
             capture_m3.check_owners(uart, directory / (label + '-owners.txt'))
         else:                                          # this process is the only accepted owner; no debugger may run
@@ -415,6 +440,11 @@ def real_parts(args, guard_session):
         check_nic_identity(directory, label, m3net.run_checked)
 
     def probe(commands, output, seconds):
+        # The guard was checked at the start of this step's checks; they, the hashes and a capture open took time since.
+        # Check its deadline again, as the very last thing before the run: the run and its reap must end before it.
+        deadline = guard_session.get('deadline')
+        require(type(deadline) in (int, float) and m3_clock.monotonic() + seconds + GUARD_RUN_MARGIN < deadline,
+                'Guard deadline would lapse during the run; no probe command')
         try:
             return capture_m3.commander(runner.PROBE, commands, output, seconds)
         except HardwareStop as error:

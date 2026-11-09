@@ -44,7 +44,7 @@ def verify_jlink_tools(manifest=None):
 
 
 COMMAND_SECONDS = 30            # the limit of one Commander run unless a caller passes a longer one
-MAX_COMMAND_SECONDS = 80        # hard ceiling; with the 1 s reap it stays inside the 90 s the guard must have left
+MAX_COMMAND_SECONDS = 80        # hard ceiling; a caller that holds a guard requires its time left to grow with the limit
 
 
 def _commander(probe, commands, output, seconds=COMMAND_SECONDS):

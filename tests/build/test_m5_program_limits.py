@@ -79,10 +79,70 @@ class CommanderLimit(unittest.TestCase):
                     capture_m3.commander('602003106', 'q\n', Path(d) / 'probe.log', seconds=bad)
                 self.assertEqual(create.call_count, 0)
 
-    def test_the_ceiling_and_its_reap_fit_inside_the_guard_time_required_before_each_command(self):
-        # guard_check requires the mount guard to run at least GUARD_SECONDS more at the check before every command.
+
+
+class GuardTime(unittest.TestCase):
+    """The guard time required at each check grows with the run, as the series reserves do (blocking finding B-1)."""
+
+    def test_a_30_s_run_still_requires_exactly_90_s(self):
         self.assertEqual(program.GUARD_SECONDS, 90)
-        self.assertLess(capture_m3.MAX_COMMAND_SECONDS + 1, program.GUARD_SECONDS)
+        self.assertEqual(program.guard_seconds(30), 90)
+
+    def test_a_longer_run_requires_90_s_plus_what_it_exceeds_30_s(self):
+        self.assertEqual(program.guard_seconds(60), 120)
+        self.assertGreater(program.guard_seconds(60), 90)
+        self.assertEqual(program.guard_seconds(capture_m3.MAX_COMMAND_SECONDS), 140)
+
+    def test_m5_s2_and_the_normal_image_require_the_same_90_s_as_before(self):
+        for size in (97544, 103180, 107872):
+            self.assertEqual(program.guard_seconds(program.command_seconds(size)), 90)
+
+    def test_the_largest_requirement_is_within_the_shortest_guard_lifetime(self):
+        import m5_mount_guard
+        self.assertLess(program.guard_seconds(capture_m3.MAX_COMMAND_SECONDS), m5_mount_guard.MIN_LIFETIME)
+
+
+class GuardWiring(base.Case):
+    def test_the_driver_passes_each_run_s_limit_to_the_checks(self):
+        Path(self.m5).write_bytes(b'\xff' * BENCH_BYTES)
+        self.responses = [GOOD, OK, GOOD, OK, GOOD]
+        with self.driver() as driver:
+            driver.program(self.m5, self.entry)
+        self.assertEqual(self.guard_limits, [30, 30, 60, 60, 30])
+
+    def test_the_real_checks_ask_the_guard_for_90_s_plus_the_extra_of_the_run(self):
+        import capture_m3_network as m3net
+        rp = base.RealParts('test_the_real_lsof_answers_are_recorded_as_evidence_files')
+        rp.setUp()
+        self.addCleanup(rp.doCleanups)
+        (preconditions, probe, acquire), _ = rp.wired()
+        asked = []
+        with patch.object(m3net, 'guard_check', lambda session, directory, label, remaining, **k: asked.append(remaining)):
+            preconditions(rp.directory, 'a', 30)
+            preconditions(rp.directory, 'b', 60)
+            preconditions(rp.directory, 'c', capture_m3.MAX_COMMAND_SECONDS)
+        self.assertEqual(asked, [90, 120, 140])
+
+    def test_the_deadline_is_checked_again_just_before_the_probe_command(self):
+        seen = []
+        def commander(probe_id, given, output, seconds):
+            seen.append(seconds)
+            return GOOD
+        for deadline_in, allowed in ((62.5, True), (62, False), (61, False), (-5, False)):  # the run, its 1 s reap, 1 s for the tool hash
+            with self.subTest(deadline_in=deadline_in):
+                rp = base.RealParts('test_the_real_lsof_answers_are_recorded_as_evidence_files')
+                rp.setUp()
+                self.addCleanup(rp.doCleanups)
+                with patch.object(program.m3_clock, 'monotonic', lambda: 1000.0):
+                    (preconditions, probe, acquire), _ = rp.wired(dict(deadline=1000.0 + deadline_in))
+                    seen.clear()
+                    with patch.object(capture_m3, 'commander', commander):
+                        if allowed:
+                            probe('q\n', rp.directory / 'p.log', 60)
+                        else:
+                            with self.assertRaisesRegex(HardwareStop, 'Guard deadline'):
+                                probe('q\n', rp.directory / 'p.log', 60)
+                self.assertEqual(seen, [60] if allowed else [])
 
 
 class Formula(unittest.TestCase):
@@ -210,7 +270,7 @@ class Split(base.Case):
         for refused, ran in (('04-program-m5-verify', 3), ('05-program-m5-start', 4)):
             with self.subTest(refused):
                 self.setUp()
-                def guard(directory, label, refused=refused):
+                def guard(directory, label, limit, refused=refused):
                     self.checks.append(label)
                     if label == refused:
                         raise HardwareStop('Current mount protection unverified')
@@ -234,6 +294,51 @@ class Split(base.Case):
                     else:
                         driver.run('x', 'q\n', seconds=seconds)
                 self.assertEqual(len(self.commands), 0 if pattern else 1)
+
+
+    def test_the_whole_three_run_budget_is_checked_before_the_load(self):
+        # After the load step's checks: the 30 s load, then the read-back and start reserves (120 s each): 270 s.
+        for series, ran in ((265, 2), (275, 5)):
+            with self.subTest(series=series):
+                self.setUp()
+                self.responses = [GOOD, OK, GOOD, OK, GOOD]
+                if ran == 2:
+                    with self.assertRaisesRegex(HardwareStop, 'Series budget does not cover the load, read-back and start'):
+                        with self.driver(series_seconds=series) as driver:
+                            driver.program(self.m5, self.entry)
+                else:
+                    with self.driver(series_seconds=series) as driver:
+                        driver.program(self.m5, self.entry)
+                self.assertEqual(len(self.commands), ran)
+                self.assertFalse(ran == 2 and any('loadfile' in c for c in self.commands))
+
+    def test_identify_refuses_a_candidate_beyond_the_ceiling_before_any_command(self):
+        self.bench(7 * 131072 + 1)
+        with self.assertRaisesRegex(HardwareStop, 'ceiling'), self.driver('identify') as driver:
+            driver.identify([('integrated-normal', self.normal), ('big', self.m5)])
+        self.assertEqual((self.commands, self.checks), ([], []))
+
+    def test_identify_gives_each_candidate_its_size_limit(self):
+        self.bench()
+        self.responses = [GOOD, OK, OK]
+        with self.driver('identify') as driver:
+            driver.identify([('integrated-normal', self.normal), ('bench', self.m5)])
+        self.assertEqual(self.limits, [30, 30, 60])
+
+
+class Diagnostics(unittest.TestCase):
+    def test_the_real_disconnect_diagnostic_after_a_load_only_run_is_refused(self):
+        import host_fixtures
+        real = (host_fixtures.DIRECTORY / 'jlink-loadfile-verifybin-quit-diagnostic.log').read_text()
+        self.assertTrue(program.accepted_disconnect_diagnostic(real, 'loadfile "<image>.bin", 0x60000000\nverifybin "<image>.bin", 0x60000000\nq\n'))
+        self.assertFalse(program.accepted_disconnect_diagnostic(real, 'loadfile "<image>.bin", 0x60000000\nq\n'))
+
+    def test_an_odd_flash_report_after_a_load_is_recorded_as_unparsed_and_never_raises(self):
+        real = fixture('run3-program-03-program-m5.log')
+        for odd in (real.replace('Total: 6.531s', 'Total: 6.5.31s'), real.replace('(131072 bytes)', '(131,072 bytes)'),
+                    real.replace('Prepare: 1.609s', 'Prepare: 1..609s')):
+            with self.subTest(odd=odd[-40:]):
+                self.assertIsNone(program.flash_download(odd))
 
 
 class RestoreLimits(base.Restore):

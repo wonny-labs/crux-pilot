@@ -66,9 +66,9 @@ class FakeSpec:
 
 
 class Case(base.Case):
-    def preconditions(self, directory, label):
+    def preconditions(self, directory, label, seconds):
         self.events.append('check ' + label)
-        super().preconditions(directory, label)
+        super().preconditions(directory, label, seconds)
 
     def reverify(self):
         self.reverified.append(1)
@@ -152,8 +152,8 @@ class Refusals(Case):
     def test_a_failing_guard_or_ownership_check_at_the_load_step(self):
         spec = self.spec()
         original = self.preconditions
-        def guard(directory, label):
-            original(directory, label)
+        def guard(directory, label, limit):
+            original(directory, label, limit)
             if label.endswith('program-m5-load'):
                 raise HardwareStop('Current mount protection unverified')
         self.preconditions = guard
@@ -168,8 +168,8 @@ class Refusals(Case):
                 self.setUp()
                 spec = self.spec()
                 seconds = {'02-entry-image': 100, '03-program-m5-load': 0} if series == 200 else {'03-program-m5-load': 90}
-                def timed(directory, label, seconds=seconds):
-                    Case.preconditions(self, directory, label)
+                def timed(directory, label, limit, seconds=seconds):
+                    Case.preconditions(self, directory, label, limit)
                     self.now += seconds.get(label, 0)
                 self.preconditions = timed
                 with self.assertRaisesRegex(HardwareStop, pattern):
@@ -215,14 +215,16 @@ class Refusals(Case):
 
     def test_a_window_that_does_not_fit_the_series_budget_is_refused_before_the_load(self):
         spec = self.spec(seconds=300)
-        with self.assertRaisesRegex(HardwareStop, 'Capture window does not fit the series budget'):
-            self.program(spec, series_seconds=385)                        # 3 x 30 s (load, read-back, start) + 300 s = 390 s
+        # Needed after the load step's checks: the 30 s load run, the read-back and start steps' reserves before their
+        # checks (120 s each), and the 300 s window: 570 s.
+        with self.assertRaisesRegex(HardwareStop, 'Series budget does not cover the load, read-back and start'):
+            self.program(spec, series_seconds=565)
         self.assertNoCapture(spec)
         self.assertEqual(len(self.commands), 2)
         self.assertFalse(any('loadfile' in c for c in self.commands))
         self.setUp()
         spec = self.spec(seconds=300)
-        self.program(spec, series_seconds=395)                             # the three run limits + 300 s window just fit
+        self.program(spec, series_seconds=575)                             # the three runs and the 300 s window just fit
         self.assertEqual(len(spec.opened), 1)
 
     def test_only_program_mode_may_carry_a_capture(self):
