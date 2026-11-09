@@ -33,6 +33,9 @@ macro(crux_bench_read_declaration)
     string(JSON BENCH_PEER GET "${_bench_json}" network peer)
     string(JSON BENCH_HTTPS_PORT GET "${_bench_json}" listeners https_port)
     string(JSON BENCH_SSH_PORT GET "${_bench_json}" listeners ssh_port)
+    string(JSON BENCH_FIRST_ACCOUNT_USER GET "${_bench_json}" first_account user)
+    string(JSON BENCH_FIRST_ACCOUNT_ROLE GET "${_bench_json}" first_account role)
+    string(JSON BENCH_FIRST_ACCOUNT_ENV GET "${_bench_json}" first_account password_file_env)
     string(JSON BENCH_ZEPHYR_PIN GET "${_bench_json}" patched_zephyr zephyr_pin)
     string(JSON BENCH_PATCH_NAME GET "${_bench_json}" patched_zephyr patch_name)
     string(JSON BENCH_PATCH_SHA256 GET "${_bench_json}" patched_zephyr patch_sha256)
@@ -139,6 +142,36 @@ function(crux_bench_guard)
             message(FATAL_ERROR "${variable} is a bench test form that bench_declaration.json does not list")
         endif()
     endforeach()
+    # 8b. The file backend (D2, row C3): exactly one, and the provider, the disk drivers and the form agree. The
+    # RAM disk image has no card driver at all, so no card is there to mount or format. The state of each form was
+    # checked above, so a microSD build is possible only after the declaration says so.
+    if(CONFIG_CRUX_BENCH_FILE_RAM_DISK AND CONFIG_CRUX_BENCH_FILE_MICROSD)
+        message(FATAL_ERROR "The bench image has exactly one file backend: the RAM disk and the microSD card "
+                            "forms are both set")
+    endif()
+    if(NOT CONFIG_CRUX_BENCH_FILE_RAM_DISK AND NOT CONFIG_CRUX_BENCH_FILE_MICROSD)
+        message(FATAL_ERROR "The bench image needs a file backend: exactly one of the RAM disk and the microSD "
+                            "card forms")
+    endif()
+    if(CONFIG_CRUX_BENCH_FILE_RAM_DISK)
+        if(NOT CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR NOT CONFIG_DISK_DRIVER_RAM)
+            message(FATAL_ERROR "The RAM disk form needs the RAM disk File provider and the RAM disk driver: "
+                                "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK and CONFIG_DISK_DRIVER_RAM")
+        endif()
+        if(CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_DISK_DRIVER_SDMMC OR CONFIG_IMX_USDHC OR
+           CONFIG_DISK_DRIVER_FLASH)
+            message(FATAL_ERROR "The RAM disk image has no card: the microSD provider, the SD card driver, the "
+                                "USDHC host and the flash disk driver are refused")
+        endif()
+    else()
+        if(NOT CONFIG_CRUX_FILE_FATFS_RT1060 OR NOT CONFIG_DISK_DRIVER_SDMMC)
+            message(FATAL_ERROR "The microSD form needs the microSD File provider and the SD card driver: "
+                                "CONFIG_CRUX_FILE_FATFS_RT1060 and CONFIG_DISK_DRIVER_SDMMC")
+        endif()
+        if(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR CONFIG_DISK_DRIVER_RAM)
+            message(FATAL_ERROR "The microSD image has no RAM disk: the RAM disk provider and driver are refused")
+        endif()
+    endif()
     # 9. The build-local Zephyr copy with the wolfSSL TLS socket patch (D8).
     set(marker "${ZEPHYR_BASE}/${BENCH_PATCH_MARKER}")
     set(patched "${ZEPHYR_BASE}/${BENCH_PATCHED_FILE}")
@@ -164,7 +197,9 @@ function(crux_bench_definitions target)
         "CRUX_BENCH_IMAGE_ID=\"${BENCH_IMAGE_ID}\""
         "CRUX_BENCH_ADDRESS=\"${BENCH_ADDRESS}\""
         "CRUX_BENCH_NETMASK=\"${BENCH_NETMASK}\""
-        CRUX_BENCH_PREFIX_LENGTH=${BENCH_PREFIX_LENGTH})
+        CRUX_BENCH_PREFIX_LENGTH=${BENCH_PREFIX_LENGTH}
+        "CRUX_BENCH_FIRST_ACCOUNT_USER=\"${BENCH_FIRST_ACCOUNT_USER}\""
+        "CRUX_BENCH_FIRST_ACCOUNT_ROLE=\"${BENCH_FIRST_ACCOUNT_ROLE}\"")
 endfunction()
 
 # Writes ${CMAKE_BINARY_DIR}/bench-manifest.json. Call it last, after every source is added. It records what
@@ -202,6 +237,27 @@ function(crux_bench_manifest)
     endforeach()
     string(JSON manifest SET "${manifest}" test_forms "${forms}")
 
+    # The first account (D3, row C4): where its password comes from, and the hash of that file. Never the password.
+    # The plaintext is in the image, as the report says, and so the manifest says it too.
+    if(CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE)
+        get_property(first_account_hash GLOBAL PROPERTY CRUX_BENCH_FIRST_ACCOUNT_SHA256)
+        if("${first_account_hash}" STREQUAL "")
+            message(FATAL_ERROR "The first account's password file was not checked before the manifest: "
+                                "crux_bench_first_account_prepare() must run first")
+        endif()
+        set(first "{}")
+        string(JSON first SET "${first}" decision "\"D3\"")
+        string(JSON first SET "${first}" user "\"${BENCH_FIRST_ACCOUNT_USER}\"")
+        string(JSON first SET "${first}" role "\"${BENCH_FIRST_ACCOUNT_ROLE}\"")
+        string(JSON first SET "${first}" source
+               "\"a file outside the repository, named by the environment variable ${BENCH_FIRST_ACCOUNT_ENV}\"")
+        string(JSON first SET "${first}" file_sha256 "\"${first_account_hash}\"")
+        string(JSON first SET "${first}" plaintext_in_image true)
+        string(JSON first SET "${first}" plaintext_elsewhere
+               "\"none: not in this manifest, the configuration, a generated source, a log or the map\"")
+        string(JSON manifest SET "${manifest}" first_account "${first}")
+    endif()
+
     set(settings "{}")
     get_cmake_property(all_variables VARIABLES)
     list(SORT all_variables)
@@ -214,6 +270,35 @@ function(crux_bench_manifest)
         endif()
     endforeach()
     string(JSON manifest SET "${manifest}" settings "${settings}")
+
+    # The file backend (row C3, D2): what persists and what does not, which the owner reads before a run.
+    set(backend "{}")
+    if(CONFIG_CRUX_BENCH_FILE_RAM_DISK)
+        set(ram_overlay "${CRUX_BENCH_DIR}/ram_disk.overlay")
+        file(READ "${ram_overlay}" ram_overlay_text)
+        string(REGEX MATCH "sector-size = <([0-9]+)>" _unused "${ram_overlay_text}")
+        set(ram_sector_size "${CMAKE_MATCH_1}")
+        string(REGEX MATCH "sector-count = <([0-9]+)>" _unused "${ram_overlay_text}")
+        set(ram_sector_count "${CMAKE_MATCH_1}")
+        math(EXPR ram_bytes "${ram_sector_size} * ${ram_sector_count}")
+        string(JSON backend SET "${backend}" kind "\"ram_disk\"")
+        string(JSON backend SET "${backend}" disk_name "\"RAM\"")
+        string(JSON backend SET "${backend}" size_bytes "${ram_bytes}")
+        string(JSON backend SET "${backend}" sector_size "${ram_sector_size}")
+        string(JSON backend SET "${backend}" sector_count "${ram_sector_count}")
+        string(JSON backend SET "${backend}" memory "\"SDRAM, the .bss of the RAM disk driver\"")
+        string(JSON backend SET "${backend}" persists_across_reset false)
+        string(JSON backend SET "${backend}" formatted_by_the_image "\"the RAM disk only, at every boot\"")
+        string(JSON backend SET "${backend}" card_in_image false)
+        string(JSON backend SET "${backend}" lost_at_reset "[\"accounts\", \"keys\", \"certificate\", \"events\", \"files\"]")
+        string(JSON backend SET "${backend}" note "\"Every boot is a first boot. The host key and the certificate are generated again, so a client sees new fingerprints after a reset. That shows that the entropy source varies, and is not a statement on its quality.\"")
+    elseif(CONFIG_CRUX_BENCH_FILE_MICROSD)
+        string(JSON backend SET "${backend}" kind "\"microsd_card\"")
+        string(JSON backend SET "${backend}" persists_across_reset true)
+        string(JSON backend SET "${backend}" formatted_by_the_image "\"never\"")
+        string(JSON backend SET "${backend}" card_in_image true)
+    endif()
+    string(JSON manifest SET "${manifest}" file_backend "${backend}")
 
     set(zephyr "{}")
     string(JSON zephyr SET "${zephyr}" decision "\"D8\"")
@@ -290,6 +375,7 @@ function(crux_bench_manifest)
     set(configuration_files
         "${CRUX_BENCH_DIR}/bench_declaration.json" "${CRUX_BENCH_DIR}/bench_guard.cmake"
         "${CRUX_BENCH_DIR}/management_target.cmake" "${CRUX_BENCH_DIR}/CMakeLists.txt"
+        "${CRUX_BENCH_DIR}/bench_first_account.cmake" "${CRUX_BENCH_DIR}/bench_first_account_file.py"
         "${CRUX_BENCH_DIR}/Kconfig" "${CRUX_BENCH_DIR}/Kconfig.bench" "${CRUX_BENCH_DIR}/prj.conf"
         "${CRUX_BENCH_DIR}/target.conf" "${CRUX_BENCH_DIR}/target.overlay")
     foreach(file IN LISTS configuration_files EXTRA_CONF_FILE DTC_OVERLAY_FILE)

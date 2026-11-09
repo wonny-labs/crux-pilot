@@ -1,0 +1,2 @@
+e43763d577b1638e59c07177f70d4dc74ee14ce1592ab9e5ca86def0426ee466  /build/bench_c3/zephyr/zephyr.bin
+0f905d00cbe2ff5658ce58a9b772fded937590b2597ccecf9afd26b402838854  /build/bench_c3/zephyr/zephyr.elf

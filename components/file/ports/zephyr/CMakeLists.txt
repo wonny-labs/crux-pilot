@@ -12,6 +12,11 @@ endfunction()
 if(CONFIG_CRUX_FILE_FATFS_RT1060 AND CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
   message(FATAL_ERROR "The RT1060 provider and its compile-only check are mutually exclusive")
 endif()
+if(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK AND
+   (CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_RT1060 OR
+    CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK OR CONFIG_CRUX_FILE_RELIANCE_EDGE))
+  message(FATAL_ERROR "The RT1060 RAM disk provider cannot be combined with another File selection")
+endif()
 if(CONFIG_CRUX_FILE_RELIANCE_EDGE AND
    (CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
     CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK))
@@ -54,6 +59,29 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060)
   endif()
   if(NOT CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI OR NOT CONFIG_BOARD_REVISION_B)
     message(FATAL_ERROR "The RT1060 File provider requires the Rev B QSPI board")
+  endif()
+  add_library(crux_file_api INTERFACE)
+  target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
+  target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
+  add_library(crux_file_zephyr STATIC "${CRUX_FILE_COMPONENT_DIR}/src/file.c" file_native.c)
+  target_include_directories(crux_file_zephyr PRIVATE "${CRUX_FILE_COMPONENT_DIR}/src" .)
+  zephyr_append_cmake_library(crux_file_zephyr)
+  target_link_libraries(crux_file_zephyr PRIVATE crux_file_api zephyr_interface)
+  target_compile_options(crux_file_zephyr PRIVATE -Wall -Wextra -Werror)
+  add_library(crux_file INTERFACE)
+  add_library(crux::file ALIAS crux_file)
+  target_link_libraries(crux_file INTERFACE crux_file_api)
+  crux_file_zephyr_composition()
+  return()
+endif()
+
+if(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK)
+  # The RT1060 provider over a RAM disk. The SD card driver must be absent, so that the image has no card
+  # that the composition could mount or format, and the disk drivers are the RAM disk's alone.
+  if(NOT CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI OR NOT CONFIG_BOARD_REVISION_B OR
+     NOT CONFIG_DISK_DRIVER_RAM OR CONFIG_DISK_DRIVER_SDMMC OR CONFIG_IMX_USDHC OR
+     CONFIG_DISK_DRIVER_FLASH OR CONFIG_FS_FATFS_MOUNT_MKFS)
+    message(FATAL_ERROR "The RT1060 RAM disk File provider requires the Rev B QSPI board, the RAM disk as the only disk driver and auto-format disabled")
   endif()
   add_library(crux_file_api INTERFACE)
   target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")

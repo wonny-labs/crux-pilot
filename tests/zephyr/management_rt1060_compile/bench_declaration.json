@@ -21,8 +21,16 @@
   "test_forms": {
     "test_host_key": {"symbol": "CRUX_BENCH_TEST_HOST_KEY", "decision": "D5", "state": "selected"},
     "no_time_source": {"symbol": "CRUX_BENCH_NO_TIME_SOURCE", "decision": "D7", "state": "selected"},
-    "ram_disk": {"symbol": "CRUX_BENCH_FILE_RAM_DISK", "decision": "D2", "state": "reserved", "row": "C3"},
-    "first_account_file": {"symbol": "CRUX_BENCH_FIRST_ACCOUNT_FILE", "decision": "D3", "state": "reserved", "row": "C4"}
+    "ram_disk": {"symbol": "CRUX_BENCH_FILE_RAM_DISK", "decision": "D2", "state": "selected", "row": "C3"},
+    "microsd_card": {"symbol": "CRUX_BENCH_FILE_MICROSD", "decision": "D2", "state": "reserved", "row": "a later run"},
+    "first_account_file": {"symbol": "CRUX_BENCH_FIRST_ACCOUNT_FILE", "decision": "D3", "state": "selected"}
+  },
+  "first_account": {
+    "user": "admin",
+    "role": "administrator",
+    "password_file_env": "CRUX_BENCH_PASSWORD_FILE",
+    "password_length_min": 16,
+    "password_length_max": 128
   },
   "patched_zephyr": {
     "decision": "D8",

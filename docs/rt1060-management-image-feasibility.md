@@ -1,6 +1,6 @@
 # The integrated management image on RT1060-EVKB: a build and feasibility report
 
-Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)) **and its row C2** ([the UART report](#stage-2-row-c2-the-uart-report)),
+Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)), **its row C2** ([the UART report](#stage-2-row-c2-the-uart-report)), **its row C3** ([the file backend](rt1060-bench-file-backend.md)), **and its row C4**, the first account ([own document](rt1060-bench-first-account.md)),
 for review in a Draft PR. Refs #197. It authorises no hardware operation, and **nothing here ran on a board**: every result is a compile and link for
 `mimxrt1060_evk@B//qspi`, a host script, a configure-only run, or a reading of source and of the linked image. The owner approved stage 0 in the working
 session on 2026-11-08 ("0 단게 시작해") and took the decisions D1 to D11 the same day ([Owner decisions](#owner-decisions)). **Nothing here reads as an approval of a
@@ -14,9 +14,10 @@ board stage**: the image still refuses to start, and the approval documents are 
 | Why not the native composition as it is? | It refuses a board at three places on purpose ([guards](#the-guards-the-native-composition-puts-in-the-way)). The vehicle does not edit or relax any of them. |
 | Real size | **Flash 601,172 B of 8 MB (7.2 %), 601,252 B in the committed tree. RAM 833,708 B, all of it in the 32 MB SDRAM** (ITCM, DTCM and OCRAM hold nothing). [Numbers](#sizes-measured-on-the-target-build). |
 | Biggest risks found | **The HTTP server thread's default 4,096 B stack** runs the TLS handshake, and a static estimate of one handshake path is 4,272 B: **the bench image has 8,192 B from C1** (owner's request, [below](#stage-2-row-c1-the-bench-composition)). **The SSH worker's 16,384 B** leaves about 3 KB over a static 13.3 KB key-exchange chain. Neither is measured on a target. [Stacks](#thread-stacks). |
-| Ready for a board run? | **No.** The eleven owner decisions are taken (2026-11-08) and row C1 is done. Rows C2 to C9, the first account and the approval documents of the main session still come first. [What still blocks a board run](#what-still-blocks-a-board-run), [changes and order](#code-changes-and-their-order). |
+| Ready for a board run? | **No.** The eleven owner decisions are taken (2026-11-08) and row C1 is done. Rows C2 to C9 (C4, the first account, is [its own document](rt1060-bench-first-account.md)) and the approval documents of the main session still come first. [What still blocks a board run](#what-still-blocks-a-board-run), [changes and order](#code-changes-and-their-order). |
 | What did C2 change? | The bench image prints the stack watermark of every thread, the heap's in-use and peak, and the listener certificate's fingerprint (D4) on the UART, and a host script judges the capture, with a stated margin for the HTTP server thread's stack. [Stage 2, row C2](#stage-2-row-c2-the-uart-report). |
 | What did C1 change? | The vehicle is now a **bench composition** under a declaration for RT1060-EVKB rev B, with guards at three levels, a host script that breaks each guard, a manifest, and listeners bound to the bench address. [Stage 2, row C1](#stage-2-row-c1-the-bench-composition). |
+| What did C3 change? | The file backend of the bench image is a **RAM disk**, with no card driver in the image, and the mount rule **never formats a card**: the RAM disk is the only medium that may be formatted. The microSD provider is a second declared form for a later run. [The file backend](rt1060-bench-file-backend.md). |
 
 ```mermaid
 flowchart LR
@@ -143,7 +144,7 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | --- | --- | --- |
 | C2 (stack watermark and heap line) | `target.conf` (`CONFIG_HTTP_SERVER_STACK_SIZE`, already 8,192 B), `src/main.c` or a new `src/bench_stats.c` listed in `CMakeLists.txt` | No guard pins a stack size, so C2 may raise it. The starting value is 8,192 B (see [the HTTP server stack](#the-http-server-stack-in-c1)). The manifest records `CONFIG_HTTP_SERVER_STACK_SIZE` and `CONFIG_MAIN_STACK_SIZE`. A new source includes `bench_guard.h` as the first project header. |
 | C3 (RAM disk) | `zephyr/Kconfig` and the file provider's CMake for the backend, a mount rule in a copy of `medium_ready()`, `target.conf` | `CONFIG_CRUX_BENCH_FILE_RAM_DISK` is declared in `Kconfig.bench`, **reserved**, and refused by `bench_guard.cmake` until `bench_declaration.json` says `"state": "selected"` for `ram_disk`. The declaration test and the host script then require it to be set in `target.conf`. `medium_ready()` in `src/mgmt_start.c` still calls `fs_mkfs` after a failed mount, which formats a card: the copy test pins that line, so C3 changes the copy and its declared edit together. |
-| C4 (first account) | `src/bench_first_account.c`, `target.conf`, `bench_declaration.json` | `crux_bench_first_account()` is called from `main()` on an empty store and returns false today. The public test password is not in the image and the copy test pins that. Flip `first_account_file` to `selected` when it is implemented. |
+| C4 (first account) | `src/bench_first_account.c`, `target.conf`, `bench_declaration.json` | **Done**: [document](rt1060-bench-first-account.md). `crux_bench_first_account()` is called from `main()` on an empty store. The public test password is not in the image and the copy test pins that. |
 | C5 (TRNG failure path) | A native test, `src/` for a boot line | Needs nothing from C1 beyond `bench_guard.h`. |
 | every row | `check_bench_guard.py`, `tests/build/test_management_bench_declaration.py` | Run both. A new source in `src/` must include `bench_guard.h`, or the script says so. A new `CRUX_BENCH_` symbol must be listed in `bench_declaration.json` and sit under the declaration in `Kconfig.bench`. |
 
@@ -163,8 +164,8 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | --- | --- | --- |
 | The refusal in `main()` | A reviewed change after the approval | **Stays** |
 | Stack watermark and heap line on the UART, and the read of the HTTP thread's headroom (the stack itself is 8,192 B since C1) | C2 | **Done in the C2 PR**, as code and a host judge. No figure was read: that needs the board run. [Row C2](#stage-2-row-c2-the-uart-report) |
-| A RAM disk as the file backend, and a mount rule that never formats a card | C3 (D2) | Not done. The image still links the microSD provider and its `fs_mkfs` call. |
-| The first account from an untracked file, hashed into the manifest | C4 (D3) | Not done. The step fails, so the image cannot serve. |
+| A RAM disk as the file backend, and a mount rule that never formats a card | C3 (D2) | **Done in the C3 PR**: [the file backend](rt1060-bench-file-backend.md). The image links no card driver and no `fs_mkfs` call outside the RAM disk glue. A card run, and the card's own approval, are a later run. |
+| The first account from an untracked file, hashed into the manifest | C4 (D3) | **Done in the C4 PR**: [document](rt1060-bench-first-account.md). The plaintext is in the bench image's read-only data. |
 | A native test of the failing TRNG path, and a boot line for the first random read | C5 | Not done |
 | Network buffer counts and the arena for 16 KiB records and an SFTP window | C6 | Not done, needs C2's measurements |
 | The programmer's limit raised and `loadfile` split from `verifybin` | C7 (D11) | Not done. `tests/target/` is not touched here. |
@@ -369,6 +370,19 @@ Taken without the owner, each the narrower choice. The owner's decisions are rec
 | C2-12 | The thread walk runs with the scheduler locked | A worker that ends and whose slot starts the next connection during the walk would make the iterator follow a reused thread object. It costs a few milliseconds every 5 s at most, at a quiet moment. |
 | C2-13 | Two threads with one name and different stack sizes are judged apart (`name/size`) and only warn, except for the HTTP thread's name, which fails | Names are cut to 23 characters and drivers may name two threads alike. A good run must not fail for that. |
 
+## Stage 2, row C4: the first account
+
+Row C4 gives the bench image its first account by decision D3: a password in a file **outside the repository**, hashed into the manifest, never in the repository, a log, the UART or the evidence. Everything about it is in [its own document](rt1060-bench-first-account.md). In short:
+
+| Question | Answer |
+| --- | --- |
+| Account | `admin`, role `administrator`, created by `crux_access_provision_first_account` on an empty store (every boot, because the RAM disk of row C3 keeps nothing) |
+| Input | The file named by `CRUX_BENCH_PASSWORD_FILE`: private, outside every git work tree, 16 to 128 printable characters. A missing, empty or short file stops the configuration. |
+| In the linked image | **The plaintext, in read-only data**, embedded by `.incbin`: Access takes a plaintext password and has no entry for a derived record. A bench-only test form under the C1 declaration. A derived-record entry in Access is proposed in the document, not built. |
+| Everywhere else | A host scan (`bench_first_account_file.py scan`) fails on the password or an encoding of it in any log, listing, map, `.config`, generated file, manifest, capture or evidence |
+| The manifest | The file's SHA-256, the account's name and role, and the statement that the plaintext is in the image |
+| Public test password | 0 times in the ELF, as in C1 |
+
 ## What the vehicle is and is not
 
 This section and the ones below it are the report of stage 0. Where C1 changed a statement, the row says so, and [Stage 2, row C1](#stage-2-row-c1-the-bench-composition) is the current state. The word "vehicle" is the same image, now under the bench declaration.
@@ -407,13 +421,13 @@ flowchart TB
 | Entropy | **The TRNG driver**, with no test generator and no fake entropy. The vehicle's CMake refuses both. |
 | TLS certificate | **Generated** by the certificate module and handed to the TLS credentials with `crux_tls_certificate_material_take` ([`docs/tls-certificate.md`](tls-certificate.md), step 6). The declared test certificate is not used. |
 | Host key | **Test form** (D5): the store generates it, and the provider borrows it from a static buffer that is never wiped, as on `native_sim`. **Since C1 it is accepted only under the bench declaration.** |
-| First account | In stage 0: a declared test step with a public password (`crux_native_management.h:34`). **Since C1 that step is not in the image**: the copy of `crux_native_management.c` has no such function, and `bench_first_account.c` is a placeholder that fails until row C4 ([D3](#owner-decisions)). |
-| File service backend | The microSD provider of the board. **Nothing was run on any card.** |
+| First account | In stage 0: a declared test step with a public password (`crux_native_management.h:34`). **Since C1 that step is not in the image**: the copy of `crux_native_management.c` has no such function. **Since C4** `bench_first_account.c` creates `admin`, role `administrator`, from a password in a file outside the repository ([D3](#owner-decisions)), **embedded as plaintext in this image only**, because Access takes a plaintext password: [the document](rt1060-bench-first-account.md). |
+| File service backend | In stage 0 and C1: the microSD provider of the board. **Since C3: a RAM disk** ([the file backend](rt1060-bench-file-backend.md)), with no card driver in the image. **Nothing was run on any card.** |
 | Network settings | The no-op apply port. The static address comes from `main.c`, as in the M5 image. |
 | Time | No source. The wall clock is Zephyr's realtime clock, which nothing sets. |
 | Frontend | The services image's one-page folder, as on `native_sim` |
 | Refusal | In stage 0, `main()` printed `MGMT_RT1060 compile-only vehicle: refusing to start` and returned. **Since C1** it prints the bench banner and `BENCH refusing to start: this image is not approved to run`. The check reads a `volatile const` flag that `CRUX_BENCH_RUN_REFUSED` in `CMakeLists.txt` sets, so all the code stays linked. The clean rebuild of the stage 0 tree was 80 B larger in Flash and identical in RAM ([rebuild](evidence/rt1060-management-image-feasibility/rebuild-of-committed-tree/README.md)). |
-| Not built | A product composition, a product host key rule, a serial console, a board run, and since C1 also a first account, a RAM disk and the stack and heap lines (rows C2 to C4) |
+| Not built | A product composition, a product host key rule, a serial console, a board run, and since C1 also a RAM disk and the stack and heap lines (rows C2 and C3). The first account is row C4. |
 
 ## The guards the native composition puts in the way
 
@@ -593,7 +607,7 @@ guards are code, so it needs review as code.
 | Entropy | Test entropy is allowed, a test random generator is not | The TRNG driver is required, and both test sources are refused, as the vehicle's CMake already does | Done. |
 | Certificate | The declared test certificate, whose header refuses a board | **Unchanged**: the header stays native only. The bench uses the generated certificate. | As proposed. The generated certificate names the bench address. |
 | Host key | Test form, static buffer, never wiped | Test form is accepted **only under the bench declaration**, generated on the board by the store from the TRNG, so it is not public. Its fingerprint is printed on the UART. | Accepted only under the declaration, by `CONFIG_CRUX_BENCH_TEST_HOST_KEY`. The fingerprint line existed already (`SSH-HOST-KEY`). |
-| First account | A public password | The public password is refused. The password comes from an untracked input or from the serial step: [D3](#owner-decisions). | The public password is **not in the image**. The step is a placeholder that fails until row C4. |
+| First account | A public password | The public password is refused. The password comes from an untracked input or from the serial step: [D3](#owner-decisions). | The public password is **not in the image**. Row C4 creates the account from a password file outside the repository: [document](rt1060-bench-first-account.md). |
 | Network | The host's loopback | The listeners answer on the bench address only: a refusal of DHCP and of any other interface address | Done: both listeners are bound to the bench address, DHCP, IPv6 and automatic configuration are refused, and `main()` checks at run time that the interface has no other IPv4 address. |
 | Evidence | The test image's output | The banner and the image manifest name the declaration, so that a bench image cannot be mistaken for a product | Done: the banner and `bench-manifest.json`. |
 | Where it is refused | CMake, C, and a host script that compiles the guards with each setting (`check_ssh_guard.py`) | The same three levels, with a script that breaks each guard on purpose | Done: `check_bench_guard.py`, with mutation checks. |
@@ -607,7 +621,7 @@ The column *Taken* records that, and what it means for the row that implements i
 | --- | --- | --- | --- | --- |
 | D1 | Adopt a bench declaration and tripwire for RT1060-EVKB rev B | [As above](#the-test-image-declaration-for-a-bench-board); or keep the vehicle compile-only and run nothing | **Adopt**, as the condition for any board run | **Taken** 2026-11-08, "추천대로 진행해주고". Implemented in C1. |
 | D2 | File backend of the bench image | microSD (the existing provider, persistent, the card is touched and `fs_mkfs` can format it); a RAM disk (needs a small change, nothing persists, no card) | **RAM disk for the first board run**: no card and no format risk. SD in a later run, with the M4 microSD tools. | **Taken** 2026-11-08, same quote. Row C3 implements it. C1 reserves `CONFIG_CRUX_BENCH_FILE_RAM_DISK`. |
-| D3 | The first account on a reachable board | A password in an untracked file, hashed into the manifest; the serial setup step (not composed, more work); the public test password (refused) | **An untracked file** for the first run, a serial step later | **Taken** 2026-11-08, same quote. Row C4 implements it. C1 removed the public password from the image and reserved `CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE`. |
+| D3 | The first account on a reachable board | A password in an untracked file, hashed into the manifest; the serial setup step (not composed, more work); the public test password (refused) | **An untracked file** for the first run, a serial step later | **Taken** 2026-11-08, same quote. **Implemented in C4** ([document](rt1060-bench-first-account.md)). C1 removed the public password from the image and reserved `CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE`. |
 | D4 | The listener certificate | Generated by the certificate module (what the vehicle does); the declared test certificate (refused on a board) | **Generated**, with the fingerprint on the UART | **Taken** 2026-11-08, same quote. The image already generates the certificate. The fingerprint line on the UART was in no row until the main session gave it to C2, which implements it: [row C2](#stage-2-row-c2-the-uart-report). |
 | D5 | The host key's hold and wipe rule | Static buffer, never wiped, bench only; a rule like the TLS key's hand-off | **Static buffer under the bench declaration only** for the first run. A product rule stays open ([`ssh-integrated-image.md`](ssh-integrated-image.md#decisions-for-review)). | **Taken** 2026-11-08, same quote. Implemented in C1 as `CONFIG_CRUX_BENCH_TEST_HOST_KEY`. |
 | D6 | Network settings apply | The M5 static address in `main` and no apply port; a Zephyr apply port | **The M5 address in `main`.** The network routes then show no running values. | **Taken** 2026-11-08, same quote. C1 keeps the M5 address in `main()` and adds the one-address check. |
@@ -629,8 +643,8 @@ Rough effort is agent time for the change and its tests, without the board. Hard
 | --- | --- | --- | --- | --- |
 | 1 | **C1.** Promote the vehicle to a bench composition: the declaration and guards at three levels, a host script that breaks each guard, and a manifest recording the declaration | D1 | 1.5 to 2 days | **Done in the C1 PR** |
 | 2 | **C2.** A stack watermark and heap line printed on the UART at idle and after each client, the check of the headroom of the HTTP server thread (8,192 B since C1), and a higher value only if the measurement says so. Also the D4 fingerprint line. | none | 0.5 to 1 day | **Done in the C2 PR**: the instrumentation and the host judge. The value stays 8,192 B until a board run says otherwise. |
-| 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day | Not started |
-| 2 | **C4.** The first account of D3, with the password never in the repository or the log | D3 | 0.5 to 1 day | Not started |
+| 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day | **Done in the C3 PR**: [the file backend](rt1060-bench-file-backend.md) |
+| 2 | **C4.** The first account of D3, with the password never in the repository or the log | D3 | 0.5 to 1 day | **Done in the C4 PR** ([document](rt1060-bench-first-account.md)) |
 | 2 | **C5.** A native test of the failing-TRNG path on the Wolf profile, and a boot line that says the first random read succeeded | none | 1 day | **Done in the C5 PR**: [record](rt1060-wolf-entropy.md) |
 | 3 | **C6.** Network buffer counts and the arena for 16 KiB records and an SFTP window, from the measurements of C2 | C2 | 0.5 day, then a board read | Not started |
 | 3 | **C7.** The programmer's limit: raise it, split the commands, test the change | D11 | 0.5 to 1 day | Not started |

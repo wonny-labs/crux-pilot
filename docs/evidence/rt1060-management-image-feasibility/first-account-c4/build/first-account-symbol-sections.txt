@@ -1,0 +1,3 @@
+6007f7b1 l       rodata	00000000 crux_bench_first_account_password_end
+6007f798 g     O rodata	00000019 crux_bench_first_account_password
+6007f7b4 g     O rodata	00000004 crux_bench_first_account_password_size

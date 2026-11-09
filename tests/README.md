@@ -788,6 +788,8 @@ a project cannot reach the adapter header, and a service that links the adapter 
 No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
 [Access contract](../docs/access-contract.md).
 
+The first account of the RT1060-EVKB bench image (row C4, [document](../docs/rt1060-bench-first-account.md)) has its own Host suite, `tests/bench_first_account`, as `BenchFirstAccount.provision` in CTest, on the same fake ports. Its password file rules, the scan for the password in build outputs and the CMake level are Python tests in `tests/build/test_bench_first_account_file.py` and `test_bench_first_account_build.py`, and every password in them is made at run time. Nothing there runs on a board.
+
 ## Portable command line
 
 Command line (Issue #181): the root Host suite runs `tests/cli` as `Cli.*` in CTest, with a scripted transport, a recording event port, a scripted Serial, and either a scripted access control or the real `crux_access` on its fake ports. These fakes are a test composition: they exist only when Crux builds its own tests.

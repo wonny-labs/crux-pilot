@@ -5,7 +5,7 @@
 # (bench_guard.cmake, src/bench_guard.h, Kconfig.bench). The directory keeps its name because the evidence of
 # stage 0 names it. IT REFUSES TO START: CRUX_BENCH_RUN_REFUSED below is the switch, and nothing here is approved
 # to run on a board. Its test certificate is not used (the certificate is generated), its SSH host key is held in
-# test form (D5), and its first account has no implementation until row C4.
+# test form (D5), and its first account comes from a password file outside the repository (D3, row C4).
 # It needs the crux-secure-management west group, and a ZEPHYR_BASE with the TLS socket patch
 # (scripts/prepare-wolf-tls-zephyr.sh), which the guard checks. It reuses the source lists of
 # tests/native/management_composition, which refuses a board on purpose, so those lists are repeated in
@@ -21,7 +21,8 @@ set(EXTRA_CONF_FILE
     "${CMAKE_CURRENT_LIST_DIR}/target.conf")
 set(DTC_OVERLAY_FILE
     "${CRUX_ROOT}/samples/controller/zephyr/m3-network.overlay"
-    "${CMAKE_CURRENT_LIST_DIR}/target.overlay")
+    "${CMAKE_CURRENT_LIST_DIR}/target.overlay"
+    "${CMAKE_CURRENT_LIST_DIR}/ram_disk.overlay")
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 # The declaration, which no native image sets. bench_guard.cmake refuses a build without it.
@@ -36,6 +37,8 @@ include(${CRUX_ROOT}/cmake/CruxWebRoutes.cmake)
 set(route_sources ${CRUX_WEB_SESSION_ROUTES} ${CRUX_WEB_MANAGEMENT_ROUTES}
     ${CRUX_WEB_MANAGEMENT_NETWORK_ROUTES})
 target_sources(app PRIVATE src/main.c src/ssh_target.c src/bench_first_account.c ${route_sources})
+# The file medium of row C3: the decision and its Zephyr glue, the only sources that mount it or format a RAM disk.
+target_sources(app PRIVATE src/bench_medium.c src/bench_medium_fs.c)
 if(CRUX_BENCH_RUN_REFUSED)
     target_compile_definitions(app PRIVATE CRUX_BENCH_RUN_REFUSED=1)
 else()
@@ -49,4 +52,10 @@ target_sources(app PRIVATE src/bench_report.c report/bench_report_core.c report/
 target_include_directories(app PRIVATE report)
 crux_web_assets(app FOLDER ${services_dir}/site STYLE strict)
 crux_web_routes(app SOURCES ${route_sources} ZEPHYR_RESOURCES REVIEWED ${services_dir}/reviewed-routes.txt)
+# Row C4 (D3): the first account's step, and its password file, which is checked here and whose bytes are embedded
+# (bench_first_account.cmake). A missing, empty or short file stops the configuration.
+include("${CMAKE_CURRENT_LIST_DIR}/bench_first_account.cmake")
+target_sources(app PRIVATE first_account/bench_first_account_provision.c)
+target_include_directories(app PRIVATE first_account)
+crux_bench_first_account_prepare()
 crux_bench_manifest()

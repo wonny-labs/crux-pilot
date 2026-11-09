@@ -204,6 +204,23 @@ config CRUX_FILE_FATFS_RT1060
       formats nothing by itself; the project composition owns mount order and recovery.
       No physical-board result exists for this selection.
 
+config CRUX_FILE_FATFS_RT1060_RAM_DISK
+    bool "Crux File FatFs provider on a RAM disk of the RT1060-EVKB"
+    depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
+    depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION_B
+    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
+    depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    help
+      Link the File provider into an RT1060-EVKB image whose only disk is a RAM disk, so that no
+      card can be reached by it and nothing persists across a reset. Off by default. It needs the
+      SD card driver to be absent: a build that has both is refused here and by the provider's
+      CMake. It mounts and formats nothing by itself; the composition owns the mount, and may
+      format a RAM disk because it is memory. Used by the bench image of the integrated
+      management composition (tests/zephyr/management_rt1060_compile, which declares it).
+      No physical-board result exists for this selection.
+
 config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
     bool "Compile-only Crux File FatFs RT1060 SDHC check"
     depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
@@ -222,6 +239,7 @@ config CRUX_FILE_RELIANCE_EDGE
     depends on CRUX_PILOT_MODULE && CRUX_FS_RELIANCE_EDGE
     depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
     depends on !CRUX_FILE_FATFS_RT1060 && !CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+    depends on !CRUX_FILE_FATFS_RT1060_RAM_DISK
     help
       Link the File provider over the Reliance Edge file system of the Zephyr VFS. It
       works on any board that has the file system, and names are stored as they are, with no
