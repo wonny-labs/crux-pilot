@@ -88,9 +88,9 @@ static void banner(void)
 static int bench_main(void)
 {
     banner();
-    /* The first random read, before anything makes a key and before the refusal, so that the refused
-     * image prints the line too: it prints one CRUX-ENTROPY line that says which device answered, and
-     * a failed read stops the image here, with no key, certificate or listener made.
+    /* The first random read, before anything makes a key and before the refusal, so that the
+     * refused image prints the line too: it prints one CRUX-ENTROPY line that says which device
+     * answered, and a failed read stops the image here, with no key, certificate or listener made.
      * tests/zephyr/entropy_boot, docs/rt1060-wolf-entropy.md. */
     if (!crux_entropy_boot_check()) {
         printk("BENCH refusing to start: the first random read failed, no key or listener made\n");
