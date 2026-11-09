@@ -22,14 +22,14 @@ The record is [`docs/rt1060-bench-image-plan.md`](../../../rt1060-bench-image-pl
 | File | What |
 | --- | --- |
 | `build/bench-manifest.json` | The manifest as the build wrote it |
-| `build/sha256.txt`, `build/sha256-run1.txt`, `build/file-sizes.txt` | Hashes and sizes of the BIN and the ELF, both runs |
+| `build/sha256.txt`, `build/sha256-run1.txt`, `build/file-sizes.txt`, `build/manifest-sha256.txt` | Hashes and sizes of the BIN and the ELF, both runs, and the SHA-256 of both runs' manifests (equal) |
 | `build/size.txt`, `build/size-sections.txt`, `build/size-run1.txt`, `build/memory-report.txt` | `size`, section sizes, the linker's memory report |
 | `build/config.txt`, `build/zephyr.map.gz` | The resolved configuration, the link map (compressed). They hold no password. |
 | `build/configure.log`, `build/build.log` | Whole logs of the second run (container paths only) |
 | `build/dts-chosen.txt`, `build/dts-trng.txt` | The device tree's chosen nodes and the TRNG node, from which the first-read line's `source` and `compatible` come |
 | `build/stack-symbols.txt` | The stack objects of the linked image (`nm -S`) |
 | `build/source-snapshot.json`, `build/firmware-identity.json` | The recorder's source snapshot and firmware identity |
-| `commands/` | The container, the build script and the runner, with the host's paths replaced by `<workspace>` and `<scratch>` |
+| `commands/` | The container, the build script and the runner, with the host's paths replaced by `<workspace>` and `<scratch>`. The script ran under the name `build2.sh` (the second run; the first was the same script without the lines that keep the BIN and the device tree). |
 | `host/` | The probe, its output, the client checks, the first run's false positive |
 
 ## Which values are illustrative
