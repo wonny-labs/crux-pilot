@@ -9,7 +9,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/bench_guard.cmake",
-      "sha256" : "5f45e6ccc89a5b99732005eba5cb6a7ca65ad9b56ab26da8067291f4888e9ff3"
+      "sha256" : "5420c4a6fd828267b3c5f208c7c011d48ccabfa824788b950010ef5e1b4010a6"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/management_target.cmake",
@@ -75,7 +75,7 @@
     "disk_name" : "RAM",
     "formatted_by_the_image" : "the RAM disk only, at every boot",
     "kind" : "ram_disk",
-    "lost_at_reset" : [ "accounts", "keys", "certificate", "events" ],
+    "lost_at_reset" : [ "accounts", "keys", "certificate", "events", "files" ],
     "memory" : "SDRAM, the .bss of the RAM disk driver",
     "note" : "Every boot is a first boot. The host key and the certificate are generated again, so a client sees new fingerprints after a reset. That shows that the entropy source varies, and is not a statement on its quality.",
     "persists_across_reset" : false,
@@ -146,7 +146,7 @@
     "CONFIG_NET_MAX_ROUTERS" : "1",
     "CONFIG_NET_SOCKETS_TLS_MAX_CONTEXTS" : "6"
   },
-  "source_commit" : "052a772d697122a374599d4bd478cb3f88a4a4c1",
+  "source_commit" : "7c22a9ec2e094e557d0ebd71abee137e832daec1",
   "source_tree_modified" : "false",
   "sources" : 
   [

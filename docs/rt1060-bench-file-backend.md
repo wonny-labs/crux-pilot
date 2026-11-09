@@ -153,7 +153,7 @@ The method: the pinned FatFs (`modules/fs/fatfs` at the `west.yml` pin) with the
 
 ### The target build
 
-The same method as C1 (`commands/tbuild.sh`: the Dev Container under emulation, 2 CPUs, 2 GB, `-j2`, one build; the pinned Zephyr v4.4.2 copy with the wolfSSL TLS socket patch of the C1 build, mounted read-only, which the bench guard checks by marker, pin and hash; the crypto modules of the C1 build, read-only), on the **committed tree `052a772d`**. The manifest says `source_tree_modified: false`. The bench guards ran inside the real configure and passed.
+The same method as C1 (`commands/tbuild.sh`: the Dev Container under emulation, 2 CPUs, 2 GB, `-j2`, one build; the pinned Zephyr v4.4.2 copy with the wolfSSL TLS socket patch of the C1 build, mounted read-only, which the bench guard checks by marker, pin and hash; the crypto modules of the C1 build, read-only), on the **committed tree `7c22a9ec`** (the head of the review fixes, after `origin/main` was merged). The manifest says `source_tree_modified: false`. An earlier build of the branch at `052a772d`, before the merge and the review fixes, gave the same sizes and byte-identical `zephyr.bin` and `zephyr.elf`. The bench guards ran inside the real configure and passed.
 
 | Item | C1 | C3 |
 | --- | ---: | ---: |
