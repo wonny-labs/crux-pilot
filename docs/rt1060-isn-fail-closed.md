@@ -19,7 +19,7 @@ Decision D-c was open in [the image plan](rt1060-bench-image-plan.md#what-blocks
 | What does the patch do? | A missing key or a failed hash makes `tcp_init_isn` return an error. A SYN to a listening port gets a **RST**; `net_context_connect()` returns **`-EIO`** and sends no SYN. The next attempt reads the key again. When the read works, the number is the hash of the key and the tuple plus the uptime, as the code means. | [Behaviour](#what-the-stack-does-now) |
 | Is it unchanged when the read succeeds? | **No, on purpose, in two ways.** The formula and the call order are as upstream intends, but (a) the numbers change: they are now made from the key, where they were a constant or stack plus the uptime; and (b) a failed `psa_hash_compute` now refuses the connection, which upstream ignored. **The main availability risk of the patch is wolfPSA's hash at run time on the board**: it was never run, and if `psa_hash_compute` fails there (for example `PSA_ERROR_BAD_STATE` before PSA is initialised), every new HTTPS and SSH connection is refused. This departs from "Zephyr behaviour unchanged when the read succeeds" and needs the owner's explicit acceptance ([decision 2](#decisions-for-review)). | [Patch](#the-patch), [Not covered](#not-covered) |
 | Was it proved? | Three ways, below. | [Proof](#proof) |
-| Does it change the web, SSH or serial behaviour? | Only when the read fails: new TCP connections to the board are refused (HTTPS and SSH clients see a reset), established ones are untouched, the serial line and UDP do not use TCP. | [Behaviour](#what-the-stack-does-now) |
+| Does it change the web, SSH or serial behaviour? | New TCP connections to the board are refused when the key read or the hash fails (HTTPS and SSH clients see a reset). With a working read nothing is refused, and the visible change is that the initial sequence numbers are made from the key. Established connections are untouched, and the serial line and UDP do not use TCP. | [Behaviour](#what-the-stack-does-now) |
 
 ## The two defects
 
@@ -168,7 +168,7 @@ Two builds of the bench image for `mimxrt1060_evk@B//qspi` from clean detached c
 | The guards in the configure | passed | passed, including the new ones; the manifest records `patched_zephyr.isn_fail_closed` and `CONFIG_NET_TCP_ISN_RFC6528=y` |
 | Flash (`text` + `data`) | 562,212 B (557,864 + 4,348) | **562,296 B** (557,948 + 4,348): **+84 B** |
 | RAM (`data` + `bss`, all SDRAM) | 2,171,998 B (4,348 + 2,167,650) | 2,171,998 B: **unchanged** |
-| `zephyr.bin` SHA-256 | `e9af5b81…` | `5aa5fa23…` (one run of each; each build embeds its own throwaway password, so these hashes are not comparable with another build's) |
+| `zephyr.bin` SHA-256 | `e9af5b81…` | `5aa5fa23…` (one run of each; both builds embed the same throwaway password, manifest `first_account.file_sha256` `aa3a5d96…` in both, so these hashes are not comparable with a build that uses another password) |
 | Warnings | 4 (wolfSSH `wolfsftp.c`, wolfPSA `psa_key_storage.c`) | the same 4, none in `tcp.c` |
 | C4's scan for the throwaway password | clean | clean |
 | Negative control: the real configure of the after tree on the copy with the TLS patch only | | **refused**: `.crux-isn-fail-closed is missing` ([log](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/copy/control-tls-only-configure.log)) |
