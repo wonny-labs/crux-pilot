@@ -1,8 +1,9 @@
 """The boot check of the random source is wired into the RT1060-EVKB bench image where it must be (Row C5).
 
 tests/zephyr/entropy_boot makes the first random read and prints one line in a fixed format. The bench image
-cannot run, so the order in its main() is pinned here: the banner, then the refusal that stands in the image, then the
-check, then everything that makes a key or opens a listener. The check's own behaviour is tested on native_sim by
+cannot run, so the order in its main() is pinned here: the banner, then the check, then the refusal that stands in the
+image, then everything that makes a key or opens a listener. The check comes first (decision D-a of the image plan, row
+C10), so that even the refused image prints the line. The check's own behaviour is tested on native_sim by
 scripts/test-wolf-entropy.sh. Nothing here touches a board.
 """
 import re
@@ -31,15 +32,26 @@ def strip_comments(text):
 
 
 class BenchWiring(unittest.TestCase):
-    def test_the_check_follows_the_refusal_and_precedes_every_key_and_listener(self):
+    def test_the_check_follows_the_banner_and_precedes_the_refusal_and_every_key_and_listener(self):
         body = strip_comments(main_body())
-        order = ["banner();", "if (run_refused)", "crux_entropy_boot_check()", "static_address_up()",
+        order = ["banner();", "crux_entropy_boot_check()", "if (run_refused)", "static_address_up()",
                  "crux_native_management_start()", "crux_native_management_services_start()",
                  "crux_mgmt_rt1060_ssh_start()"]
         positions = [body.find(item) for item in order]
         self.assertTrue(all(position >= 0 for position in positions), dict(zip(order, positions)))
-        self.assertEqual(positions, sorted(positions), "the boot check must come before anything that makes a key")
+        self.assertEqual(positions, sorted(positions), "the boot check must come before the refusal and anything that makes a key")
         self.assertEqual(body.count("crux_entropy_boot_check()"), 1, "printed once at boot")
+
+    def test_the_check_and_the_refusal_are_unconditional_and_adjacent_to_the_banner(self):
+        # The refused image must print the line: the check may not sit inside a branch of the refusal, and nothing
+        # (an early return spelled another way) may stand between the banner, the check and the refusal.
+        body = strip_comments(main_body())
+        self.assertRegex(
+            body,
+            r"banner\(\);\s*if \(!crux_entropy_boot_check\(\)\) \{[^{}]*return 1;\s*\}\s*if \(run_refused\) \{[^{}]*return 1;\s*\}",
+            "banner, then the check and its refusal, then the refusal of the image, with nothing between",
+        )
+        self.assertEqual(body.count("run_refused"), 1, "the refusal switch is read once, in the refusal")
 
     def test_a_failed_read_prints_a_line_and_stops(self):
         body = strip_comments(main_body())

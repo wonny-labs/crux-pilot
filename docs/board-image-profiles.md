@@ -283,7 +283,7 @@ The configuration of the bench sets `LOG`, `FILE_SYSTEM`, `DISK_ACCESS` and `WAT
 | D-e | The loaded scope: the reachable subset (one account, three sessions) or a second row | The scope of the run | Owner |
 | D-f | The reset mechanism (B5) and whether a commit tag goes into the banner | A reset mode; no tag recommended (a tag would make `commit_tag` true and change the BIN at every commit) | Owner |
 
-The plan's other blockers (B3, the refusal in `main()`, B6, B7, B9) and its decision D-a (the place of the entropy line) do not concern the profile itself; B3 matters only for the board run and is listed below for that reason.
+The plan's other blockers (B3, the refusal in `main()`, B6, B7, B9) and its decision D-a (the place of the entropy line, taken on 2026-11-09 and done in row C10) do not concern the profile itself; B3 matters only for the board run and is listed below for that reason.
 
 **What registering needs.** All of: B2 settled and its freeze script written; B4 settled, with `capture_seconds` set to the decided value and the limits changed in their own review; B5 and B1 settled if the board run needs them; D-b to D-f decided and recorded; the profile added to `PROFILES` (one reviewed line, plus the freeze script in `tool_scripts`), with a freeze test on a real build; the lifted image (B3) built, since the image of the record refuses to start; and the approval of the board stage, which this document is not.
 

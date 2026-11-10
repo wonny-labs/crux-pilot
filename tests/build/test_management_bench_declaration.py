@@ -160,7 +160,14 @@ class BenchDeclaration(unittest.TestCase):
         self.assertIn("set(CRUX_BENCH_RUN_REFUSED ON)", (BENCH / "CMakeLists.txt").read_text())
         main = (BENCH / "src/main.c").read_text()
         self.assertIn("if (run_refused)", main)
-        self.assertLess(main.index("if (run_refused)"), main.index("static_address_up()"))
+        # The refusal stops everything but the banner and the entropy line (row C10): no address, store, listener.
+        body = main[main.index("static int bench_main(void)"):]
+        refusal = body.index("if (run_refused)")
+        for later in ("static_address_up()", "crux_native_management_start()", "crux_bench_first_account()",
+                      "crux_native_management_services_start()", "crux_mgmt_rt1060_ssh_start()", "crux_bench_report_start()"):
+            self.assertLess(refusal, body.index(later), later)
+        refused = body[refusal:body.index("}", refusal)]
+        self.assertIn("return 1;", refused)
 
     def test_both_listeners_are_bound_by_the_product_code_only_when_asked(self):
         web = (ROOT / "components/web/ports/zephyr/web_http_server.c").read_text()

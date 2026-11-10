@@ -11,7 +11,7 @@ The Mbed profile has [fail-closed entropy](psa-crypto-qualification.md#entropy-f
 | --- | --- | --- |
 | Does the Wolf profile fail closed today, before any change? | **Yes.** With the stub boot check still in place (red run), the three cases of the consumers passed: with a failing device every Crux random and key consumer fails, and no output is written. | [`evidence/rt1060-wolf-entropy-c5/red/`](evidence/rt1060-wolf-entropy-c5/red/runtime-run.txt) |
 | Is a fix needed in the seed path? | **No.** No script, patch or Zephyr change was made. `scripts/prepare-mbedtls-entropy.py` is the precedent for a fix and it was not needed. | The red run, and [the table of fallbacks](#every-place-that-could-fall-back) |
-| Is there a boot line? | **Yes**, one line of a fixed format, printed once before any key, and a refusal path that prints a line and stops. | [format](#the-boot-line), [order in `main()`](#where-it-runs-in-the-bench-image) |
+| Is there a boot line? | **Yes**, one line of a fixed format, printed once before any key, **and in the refused image too since row C10**, and a refusal path that prints a line and stops. | [format](#the-boot-line), [order in `main()`](#where-it-runs-in-the-bench-image) |
 | Does a composition that would use `sys_rand_get()` compile? | **No.** The boot check refuses it at build time, and a control shows what such an image does. | [controls](#what-was-proved) |
 | Reseed after a successful start | **Partly.** A read that fails after a successful start is exercised, for every consumer. wolfCrypt's reseed inside one generator is **not covered**. | [reseed](#reseed) |
 
@@ -83,16 +83,26 @@ CRUX-ENTROPY first-read=failed source=crux-test-entropy compatible=crux,test-ent
 
 ## Where it runs in the bench image
 
-The bench image still refuses to start (C1). The check is wired to run after that refusal and before everything that makes a key or opens a listener. `tests/build/test_wolf_entropy_boot.py` pins the order.
+The bench image still refuses to start (C1). **Since row C10 the check runs before that refusal**, so the refused image prints the banner and the `CRUX-ENTROPY` line and then refuses. The owner decided this on 2026-11-09 (quote: "1-8까지 너의 추천대로 진행해줘"), which supersedes the placement that C5 recommended ([decision 5](#decisions-for-review), D-a of [the image plan](rt1060-bench-image-plan.md)). `tests/build/test_wolf_entropy_boot.py` pins the order.
 
 | Step in `main()` | |
 | --- | --- |
-| 1 | `banner()` |
-| 2 | the refusal that stands in the image (`CRUX_BENCH_RUN_REFUSED`) |
-| 3 | **`crux_entropy_boot_check()`**: one `CRUX-ENTROPY` line. If false: `BENCH refusing to start: the first random read failed, no key or listener made`, and `return 1` |
-| 4 | the bench address, then `crux_native_management_start()` (the store and its keys), the services (HTTPS), the first account, SSH (host key) |
+| 1 | `banner()`: two `BENCH` lines |
+| 2 | **`crux_entropy_boot_check()`**: one `CRUX-ENTROPY` line. If false: `BENCH refusing to start: the first random read failed, no key or listener made`, and `return 1` |
+| 3 | the refusal that stands in the image (`CRUX_BENCH_RUN_REFUSED`): `BENCH refusing to start: this image is not approved to run`, and `return 1` |
+| 4 | the bench address, then `crux_native_management_start()` (the store and its keys), the first account, the services (HTTPS), SSH (host key), the report |
 
-No guard of C1 was weakened: the CMake, C and Kconfig guards, their mutation script and the unit tests pass unchanged (below).
+What each image prints, by the source:
+
+| Image | UART, in order |
+| --- | --- |
+| Refused, first read ok (the image as merged) | banner (2 lines), `CRUX-ENTROPY first-read=ok ...`, `BENCH refusing to start: this image is not approved to run` |
+| Refused, first read failed | banner, `CRUX-ENTROPY first-read=failed ...`, `BENCH refusing to start: the first random read failed, no key or listener made` (the refusal of the switch is not reached) |
+| Lifted, first read ok | banner, `CRUX-ENTROPY first-read=ok ...`, then the address, store, services and SSH lines |
+
+The refused image is as inert as C1 made it: the read is `psa_crypto_init` and one `psa_generate_random` of 32 bytes, which makes no key, no certificate, no address and no listener. It does start the PSA crypto and read the TRNG, which the refused image of C1 did not.
+
+No guard of C1 was weakened: the CMake, C and Kconfig guards and their mutation script pass unchanged (below). C10 made the unit test of the refusal stricter and changed the order that `test_wolf_entropy_boot.py` pins.
 
 ## What was proved
 
@@ -108,7 +118,7 @@ No guard of C1 was weakened: the CMake, C and Kconfig guards, their mutation scr
 | 8 | Control: the boot check in that composition does not compile, for its reason | Wolf | `native_sim` | Build refused, as designed |
 | 9 | The bench image links with the check wired in, the same three wolfSSH warnings as C1 | Wolf, TRNG driver | `mimxrt1060_evk@B//qspi`, **compile only** | Flash 601,464 B (C1: 601,004 B), RAM 837,932 B |
 | 10 | In the linked bench image `wc_GenerateSeed` makes one call (`device_is_ready`) and one indirect call through the driver's function table (`blx r3`), and no call to `sys_rand_get`. Every branch to `z_impl_sys_rand_get` and `z_impl_sys_csrand_get` is listed. | Wolf, TRNG driver | Disassembly of the ELF | [`call-sites.txt`](evidence/rt1060-wolf-entropy-c5/bench/call-sites.txt), [`wc_GenerateSeed.disasm.txt`](evidence/rt1060-wolf-entropy-c5/bench/wc_GenerateSeed.disasm.txt) |
-| 11 | The order in `main()`, and the check's own rules (no side door, the format, the build refusals) | | Host | 6 tests pass |
+| 11 | The order in `main()`, and the check's own rules (no side door, the format, the build refusals) | | Host | 6 tests pass (C5); 7 since C10 |
 | 12 | C1's guards: 37 of 37 mutants killed, 14 tests | | Host | Pass, unchanged |
 
 Cases 1 to 8 are one test ([`tests/psa_entropy/wolf`](../tests/psa_entropy/wolf/src/main.c)) built as four images by [`scripts/test-wolf-entropy.sh`](../scripts/test-wolf-entropy.sh): `runtime` (1 to 5), `init-fails` (6), `fallback` (7) and `guard` (8).
@@ -154,7 +164,7 @@ It uses the real `access_psa.c`, `credential_psa.c`, `tls_certificate_psa.c` and
 | 2 | The check is a build refusal, not a patch: `entropy_boot.c` does not compile where wolfCrypt would use `sys_rand_get()` | It is the one state where a failed read does not fail, and a refusal is the least invasive mechanism |
 | 3 | The source named in the line is the chosen `zephyr,entropy` node | It is the only device wolfCrypt reads |
 | 4 | The check lives in `tests/zephyr/entropy_boot/` and is not a component | No public interface is adopted, and the bench image is under `tests/` |
-| 5 | The check runs after the bench image's refusal | The refused image stays as inert as C1 made it. The next row that lifts the refusal gets the line. |
+| 5 | The check runs **before** the bench image's refusal (**changed in row C10**, owner decision of 2026-11-09, "1-8까지 너의 추천대로 진행해줘"; row C5 had placed it after) | The refused image now prints the line, so that a host can read the entropy source from the image that is built and refused, and a failed first read stops the image before the refusal. Nothing that makes a key or opens a listener moved. |
 | 6 | `scripts/test-wolf-entropy.sh` is a **new** file in a protected directory, and no existing protected file is changed | A new check script may be added within a task. It stays out of default CI like the other wolfSSL tests. |
 
 ## Reproduce
