@@ -667,7 +667,7 @@ The owner took these in the working chat of the session that manages stage 2, af
 
 | Decision | State |
 | --- | --- |
-| Board order: Crux CODESYS B10 first (postponed by the owner later on 2026-11-09), then the crux-controller S2 run (done on 2026-11-09), then this image's stage 3 once its prerequisites are done | An ordering only |
+| Board order: a board stage of another project first (postponed by the owner later on 2026-11-09), then the crux-controller S2 run (done on 2026-11-09), then this image's stage 3 once its prerequisites are done | An ordering only |
 | C7 (D11): draft PR by the `Crux Pilot` session, reviewed by the owner first | Not a merge; a measured load needs its own approval document |
 | D-a, the entropy line before the C1 refusal | Done in row C10 (#375) |
 | D-b: plaintext first password for the first run (option C), an Access entry for a derived record later (option A) | Option A is a later row, not started |
@@ -690,8 +690,8 @@ Rough effort is agent time for the change and its tests, without the board. Hard
 | 3 | **C7.** The programmer's limit: raise it, split the commands, test the change | D11 | 0.5 to 1 day | **Open.** Approved 2026-11-09 to proceed to a draft PR (the `Crux Pilot` session, the owner reviews first); not merged |
 | 3 | **C8.** The image manifest and the plan for the bench image, on the stage 1 pattern. **The approval documents are the main session's, and are not written here.** | C1 to C7 | 1 to 2 days | **Done in the C8 PR as documents**: [record](rt1060-bench-image-plan.md). C7 is still open, so the plan lists it as a blocker. |
 | 4 | **C9.** Trim RSA from the wolfSSL settings and re-measure | D11 | 0.5 day | **Done in the C9 PR**: [record](rt1060-bench-trim-rsa.md) |
-| 5 | **C10.** The refused image prints the entropy line before the refusal | D-a (2026-11-09) | | **Merged** (#375) |
-| 5 | **C11.** The TCP initial sequence number fails closed, as a second patch of the build-local Zephyr copy | D-c (2026-11-09) | | **Merged** (#376): [record](rt1060-isn-fail-closed.md) |
+| 5 | **C10.** The refused image prints the entropy line before the refusal | D-a (2026-11-09) | not estimated | **Merged** (#375) |
+| 5 | **C11.** The TCP initial sequence number fails closed, as a second patch of the build-local Zephyr copy | D-c (2026-11-09) | not estimated | **Merged** (#376): [record](rt1060-isn-fail-closed.md) |
 
 Order: decisions D1 to D11 (taken 2026-11-08), then C1 (done), then C2 to C5, which touch different files and may run in parallel, then C6 and C7, then C8, then the approval, then the board. About 7 to 10 working days if all of it is done in sequence, less if C2 to C5 run in parallel. A
 Zephyr apply port for the network settings (2 to 3 days) is not needed for the first run and is not in this list.
