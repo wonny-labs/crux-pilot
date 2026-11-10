@@ -163,6 +163,8 @@ class Bench:
         self.out_number = 0
         self.rebuild_copy()
         self.write_compile_commands()
+        self.workspace = self.root / 'ws'
+        self.write_inputs()
         self.block = self.declare()
         self.write_manifest()
         self.recapture()
@@ -186,6 +188,14 @@ class Bench:
         entries = [dict(directory=build, command='cc -c ' + f, file=f) for f in files]
         self.compile_commands = self.build / 'compile_commands.json'
         self.compile_commands.write_text(json.dumps(entries))
+
+    def write_inputs(self, projects=None):
+        """The inputs file of ``record-build-provenance.py --capture-inputs`` (west projects only): the stock checkout is the west
+        ``zephyr`` project at ``ws/zephyr``, and the copy is not a project."""
+        if projects is None:
+            projects = [dict(name='zephyr', path='zephyr', revision=self.pin, git_commit=self.pin, dirty=False)]
+        self.inputs = self.build / 'inputs.json'
+        self.inputs.write_text(json.dumps(dict(west_projects=projects)))
 
     # declaration ---------------------------------------------------------------------------------------------------
     def declare(self):
@@ -224,7 +234,8 @@ class Bench:
 
     def freeze(self, **override):
         arguments = dict(copy=self.copy, zephyr=self.stock, patches=self.patches, manifest=self.manifest,
-                         compile_commands=self.compile_commands, pre=self.pre, out=self.out())
+                         compile_commands=self.compile_commands, pre=self.pre, out=self.out(), inputs=self.inputs,
+                         workspace=self.workspace)
         arguments.update(override)
         return patched_zephyr.freeze(**arguments)
 

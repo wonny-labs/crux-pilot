@@ -216,6 +216,19 @@ class SensitivityAndRefusals(Base):
         os.symlink('../dir/b.bin', self.root / 'dir' / 'ok-link')            # leaves its directory, not the tree
         self.digest()
 
+    def test_a_link_whose_text_looks_inside_but_that_resolves_outside_through_another_link_is_refused(self):
+        (self.root / 'a' / 'b').mkdir(parents=True)
+        os.symlink('..', self.root / 'a' / 'b' / 's2')                      # resolves to a: inside
+        self.digest()
+        os.symlink('s2/../..', self.root / 'a' / 'b' / 'x')                 # lexically a, really the parent of the root
+        with self.assertRaisesRegex(ValueError, 'resolves outside'):
+            self.digest()
+
+    def test_a_link_to_a_link_that_stays_inside_is_accepted(self):
+        os.symlink('link', self.root / 'dir' / 'chain')
+        os.symlink('dir/chain', self.root / 'chain2')
+        self.digest()
+
     def test_a_dangling_link_that_stays_inside_the_tree_is_an_entry(self):
         os.symlink('no/such/file', self.root / 'dangling')
         self.assertIn('dangling', [e['path'] for e in subject.tree_digest(self.root)['entries']])
@@ -228,7 +241,7 @@ class SensitivityAndRefusals(Base):
     def test_a_dot_git_entry_anywhere_is_refused(self):
         for label, make in (('directory', lambda p: p.mkdir()), ('file', lambda p: p.write_bytes(b'gitdir: x')),
                             ('link', lambda p: os.symlink('a.txt', p))):
-            for where in ('.git', 'dir/.git'):
+            for where in ('.git', 'dir/.git', '.GIT', 'dir/.Git'):
                 with self.subTest(label=label, where=where):
                     make(self.root / where)
                     with self.assertRaisesRegex(ValueError, r'\.git'):
@@ -367,8 +380,42 @@ class PatchParsing(unittest.TestCase):
         self.assertEqual(got, [('b/mod.c', 'modified'), ('add.c', 'added'), ('gone.c', 'deleted')])
 
     def test_text_before_the_first_header_is_ignored(self):
-        mail = 'From abc\nSubject: [PATCH] x\n\ndiff --git is mentioned here but is no header\n---\n'
+        mail = 'From abc\nSubject: [PATCH] x\n\nA commit message that talks about diffs.\n---\n x.c | 2 +-\n'
         self.assertEqual(self.parse(diff('x.c'), prefix=mail), [('x.c', 'modified')])
+
+    def test_a_diff_git_line_that_is_not_a_well_formed_header_is_refused_wherever_it_is(self):
+        valid = diff('x.c')
+        for label, bad in dict(quoted='diff --git "a/x y.c" "b/x y.c"\n', spaces='diff --git a/x y.c b/x y.c\n',
+                               mention='diff --git is mentioned here\n', one_name='diff --git a/x.c\n',
+                               extra='diff --git a/x.c b/x.c extra\n').items():
+            with self.subTest(label, where='before'), self.assertRaisesRegex(ValueError, 'diff --git'):
+                self.parse(bad, valid)
+            with self.subTest(label, where='after'), self.assertRaisesRegex(ValueError, 'diff --git'):
+                self.parse(valid, bad)
+            with self.subTest(label, where='alone'), self.assertRaisesRegex(ValueError, 'diff --git'):
+                self.parse(bad)
+
+    def test_a_plain_unified_diff_section_is_refused_before_and_after_the_git_sections(self):
+        plain = '--- a/p.c\n+++ b/p.c\n@@ -1 +1 @@\n-a\n+b\n'
+        with self.assertRaisesRegex(ValueError, 'plain'):
+            self.parse(plain, diff('x.c'))
+        with self.assertRaisesRegex(ValueError, 'plain'):
+            self.parse(diff('x.c'), plain)
+        with self.assertRaisesRegex(ValueError, 'plain'):
+            self.parse(diff('x.c', 'added'), plain)
+
+    def test_lines_that_look_like_a_plain_section_inside_a_hunk_are_content(self):
+        content = ('diff --git a/x.c b/x.c\nindex 1111111..2222222 100644\n--- a/x.c\n+++ b/x.c\n@@ -1,2 +1,2 @@\n'
+                   '--- a/other.c\n+++ b/other.c\n ctx\n-old\n+new\n')
+        self.assertEqual(self.parse(content), [('x.c', 'modified')])
+
+    def test_the_trailer_of_a_mail_after_the_last_hunk_is_accepted(self):
+        self.assertEqual(self.parse(diff('x.c'), '-- \n2.39.0\n'), [('x.c', 'modified')])
+
+    def test_a_hunk_that_is_shorter_than_its_header_is_refused(self):
+        short = 'diff --git a/x.c b/x.c\nindex 1111111..2222222 100644\n--- a/x.c\n+++ b/x.c\n@@ -1,3 +1,3 @@\n-a\n+b\n'
+        with self.assertRaises(ValueError):
+            self.parse(short + 'diff --git a/y.c b/y.c\n' + diff('y.c').split('\n', 1)[1])
 
     def test_a_rename_a_copy_a_mode_change_and_a_binary_hunk_are_refused(self):
         rename = ('diff --git a/old.c b/new.c\nsimilarity index 100%\nrename from old.c\nrename to new.c\n')
@@ -390,7 +437,8 @@ class PatchParsing(unittest.TestCase):
                 self.parse(text)
 
     def test_unsafe_or_quoted_paths_are_refused(self):
-        for path in ('/abs.c', '../up.c', 'a/../b.c', 'a//b.c', 'a\\b.c', './x.c', '"quoted name".c', 'tab\tname.c', ''):
+        for path in ('/abs.c', '../up.c', 'a/../b.c', 'a//b.c', 'a\\b.c', './x.c', '"quoted name".c', 'tab\tname.c', '', '.git/config',
+                     'a/.GIT/config', '.Git'):
             with self.subTest(path), self.assertRaises(ValueError):
                 self.parse(diff(path))
 

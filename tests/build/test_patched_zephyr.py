@@ -369,26 +369,81 @@ class FreezeRefusals(Base):
         pre.write_text(json.dumps(data))
         return pre
 
-    def test_the_copy_may_not_overlap_a_west_project_of_the_inputs(self):
-        workspace = self.bench.root / 'ws'
-        inputs = self.bench.build / 'inputs.json'
-        projects = lambda path: dict(west_projects=[dict(name='zephyr', path='zephyr', revision=self.bench.pin, git_commit=self.bench.pin, dirty=False),
-                                                     dict(name='other', path=path, revision='1' * 40, git_commit='1' * 40, dirty=False)])
-        for label, path in dict(same='zephyr-wolf', parent='.', sibling_inside='zephyr-wolf/sub').items():
+    def projects(self, path):
+        return [dict(name='zephyr', path='zephyr', revision=self.bench.pin, git_commit=self.bench.pin, dirty=False),
+                dict(name='other', path=path, revision='1' * 40, git_commit='1' * 40, dirty=False)]
+
+    def test_the_west_project_list_is_required_and_a_freeze_without_it_is_refused(self):
+        arguments = dict(copy=self.bench.copy, zephyr=self.bench.stock, patches=self.bench.patches, manifest=self.bench.manifest,
+                         compile_commands=self.bench.compile_commands, pre=self.bench.pre)
+        for label, extra in dict(neither={}, inputs_only=dict(inputs=self.bench.inputs), workspace_only=dict(workspace=self.bench.workspace),
+                                 none=dict(inputs=None, workspace=None)).items():
             with self.subTest(label):
-                inputs.write_text(json.dumps(projects(path)))
+                out = self.bench.out()
+                with self.assertRaises((TypeError, ValueError)):
+                    subject.freeze(out=out, **arguments, **extra)
+                self.assertFalse(out.exists())
+
+    def test_the_copy_may_not_overlap_a_west_project_of_the_inputs(self):
+        for label, path in dict(same='zephyr-wolf', parent='.', sibling_inside='zephyr-wolf/sub', inside_it='zephyr-wolf/../zephyr-wolf').items():
+            with self.subTest(label):
+                self.bench.write_inputs(self.projects(path))
+                out = self.bench.out()
                 with self.assertRaisesRegex(ValueError, 'west project'):
-                    self.bench.freeze(inputs=inputs, workspace=workspace, out=self.bench.out())
-        inputs.write_text(json.dumps(projects('modules/hal/nxp')))
-        self.bench.freeze(inputs=inputs, workspace=workspace)
+                    self.bench.freeze(out=out)
+                self.assertFalse(out.exists())
+        self.bench.write_inputs(self.projects('modules/hal/nxp'))
+        self.bench.freeze()
+
+    def test_the_copy_inside_a_west_project_is_refused(self):
+        self.bench.write_inputs(self.projects('.'))                                  # a project at the workspace root contains the copy
+        with self.assertRaisesRegex(ValueError, 'west project'):
+            self.bench.freeze()
+        copy_inside = self.bench.root / 'ws' / 'other' / 'copy'
+        copy_inside.parent.mkdir()
+        shutil.copytree(self.bench.copy, copy_inside, symlinks=True)
+        self.bench.write_inputs(self.projects('other'))
+        data = json.loads(self.bench.pre.read_text())
+        data['copy'] = str(copy_inside)
+        self.bench.pre = self.bench.build / 'pre-inside.json'
+        self.bench.pre.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, 'west project'):
+            self.bench.freeze(copy=copy_inside)
 
     def test_the_copy_registered_as_the_zephyr_project_is_refused(self):
-        workspace = self.bench.root / 'ws'
-        inputs = self.bench.build / 'inputs.json'
-        inputs.write_text(json.dumps(dict(west_projects=[dict(name='zephyr', path='zephyr-wolf', revision=self.bench.pin,
-                                                              git_commit=self.bench.pin, dirty=False)])))
+        self.bench.write_inputs([dict(name='zephyr', path='zephyr-wolf', revision=self.bench.pin, git_commit=self.bench.pin, dirty=False)])
         with self.assertRaisesRegex(ValueError, 'west project'):
-            self.bench.freeze(inputs=inputs, workspace=workspace)
+            self.bench.freeze()
+
+    def test_the_stock_checkout_must_be_the_west_zephyr_project(self):
+        for label, projects in dict(
+                other_path=[dict(name='zephyr', path='elsewhere', revision=self.bench.pin, git_commit=self.bench.pin, dirty=False)],
+                no_zephyr=[dict(name='other', path='modules/hal/nxp', revision='1' * 40, git_commit='1' * 40, dirty=False)],
+                empty=[]).items():
+            with self.subTest(label):
+                self.bench.write_inputs(projects)
+                out = self.bench.out()
+                with self.assertRaisesRegex(ValueError, 'not the west project zephyr|no west project zephyr'):
+                    self.bench.freeze(out=out)
+                self.assertFalse(out.exists())
+
+    def test_a_malformed_inputs_file_is_a_refusal_not_a_crash(self):
+        for label, text in dict(not_json='nope', list='[]', no_projects='{}', projects_string='{"west_projects": "x"}',
+                                entry_string='{"west_projects": ["x"]}', entry_none='{"west_projects": [null]}',
+                                entry_without_path='{"west_projects": [{"name": "zephyr"}]}').items():
+            with self.subTest(label):
+                self.bench.inputs.write_text(text)
+                with self.assertRaises(ValueError):
+                    self.bench.freeze(out=self.bench.out())
+        self.bench.inputs.unlink()
+        with self.assertRaises(ValueError):
+            self.bench.freeze(out=self.bench.out())
+
+    def test_the_manifest_context_project_of_the_inputs_is_not_a_conflict(self):
+        # the inputs file of a real build lists the manifest checkout too; it lives beside the workspace and does not overlap
+        self.bench.write_inputs(self.projects('modules/hal/nxp') + [dict(name='manifest', path='crux-pilot', revision='HEAD',
+                                                                       git_commit='e' * 40, dirty=False)])
+        self.bench.freeze()
 
 
 @NEEDS_PROGRAMS
@@ -567,9 +622,14 @@ class CommandLine(unittest.TestCase):
         parser = subject.build_parser()
         capture = parser.parse_args(['capture', '--copy', 'c', '--out', 'o'])
         self.assertEqual((capture.action, capture.marker_file), ('capture', '.crux-wolf-tls'))
-        freeze = parser.parse_args(['freeze', '--copy', 'c', '--zephyr', 'z', '--patches', 'p', '--manifest', 'm', '--compile-commands', 'cc',
-                                    '--pre', 'pre', '--out', 'o'])
-        self.assertEqual((freeze.action, freeze.inputs, freeze.workspace), ('freeze', None, None))
+        complete = ['--copy', 'c', '--zephyr', 'z', '--patches', 'p', '--manifest', 'm', '--compile-commands', 'cc', '--pre', 'pre',
+                    '--out', 'o', '--inputs', 'i', '--workspace', 'w']
+        freeze = parser.parse_args(['freeze'] + complete)
+        self.assertEqual((freeze.action, freeze.inputs, freeze.workspace), ('freeze', Path('i'), Path('w')))
+        for missing in ('--inputs', '--workspace'):
+            arguments = ['freeze'] + [a for pair in zip(*[iter(complete)] * 2) for a in pair if pair[0] != missing]
+            with self.subTest(missing), self.assertRaises(SystemExit), unittest.mock.patch('sys.stderr'):
+                parser.parse_args(arguments)
         with self.assertRaises(SystemExit), unittest.mock.patch('sys.stderr'):
             parser.parse_args(['freeze', '--copy', 'c'])
 
@@ -584,13 +644,15 @@ class CommandLine(unittest.TestCase):
             with unittest.mock.patch('sys.stdout'):
                 self.assertEqual(subject.main(['freeze', '--copy', str(bench.copy), '--zephyr', str(bench.stock), '--patches', str(bench.patches),
                                            '--manifest', str(bench.manifest), '--compile-commands', str(bench.compile_commands),
-                                               '--pre', str(pre), '--out', str(out)]), 0)
+                                               '--pre', str(pre), '--out', str(out), '--inputs', str(bench.inputs),
+                                               '--workspace', str(bench.workspace)]), 0)
             self.assertTrue((out / 'patched-zephyr.json').is_file())
             (bench.patches / 'first-1.patch').write_bytes(b'tampered')
             with unittest.mock.patch('sys.stderr'):
                 self.assertEqual(subject.main(['freeze', '--copy', str(bench.copy), '--zephyr', str(bench.stock), '--patches', str(bench.patches),
                                                '--manifest', str(bench.manifest), '--compile-commands', str(bench.compile_commands),
-                                               '--pre', str(pre), '--out', str(bench.build / 'cli-frozen-2')]), 1)
+                                               '--pre', str(pre), '--out', str(bench.build / 'cli-frozen-2'), '--inputs', str(bench.inputs),
+                                               '--workspace', str(bench.workspace)]), 1)
             self.assertFalse((bench.build / 'cli-frozen-2').exists())                # a refusal leaves no partial folder
 
 

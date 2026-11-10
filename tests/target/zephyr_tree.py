@@ -51,11 +51,15 @@ def _excluded(name, directory):
     return name in EXCLUDED['names'] or name.endswith(EXCLUDED['suffixes'])
 
 
-def _symlink_entry(relative, target_raw):
+def _symlink_entry(relative, target_raw, path, root_real):
     target = relative_name(target_raw)
     inside = posixpath.normpath(posixpath.join(posixpath.dirname(relative), target)) if target else '..'
     if not target or target.startswith('/') or inside == '..' or inside.startswith('../') or inside.startswith('/'):
         _refuse('Symlink %s leaves the tree or is absolute: %s' % (relative, target))
+    # The text can look harmless and still lead out through another link (a/s -> .., a/x -> s/../..): resolve it for real.
+    real = os.path.realpath(path)
+    if os.path.commonpath([real, root_real]) != root_real:
+        _refuse('Symlink %s resolves outside the tree: %s' % (relative, real))
     return hashlib.sha256(target_raw).hexdigest()
 
 
@@ -70,7 +74,7 @@ def _file_hash(path):
     return digest.hexdigest()
 
 
-def _walk(directory, prefix, entries):
+def _walk(directory, prefix, entries, root_real):
     try:
         listing = list(os.scandir(directory))
     except OSError as error:
@@ -78,7 +82,7 @@ def _walk(directory, prefix, entries):
     for item in listing:
         raw = os.fsencode(item.name)
         relative = prefix + relative_name(raw)
-        if raw == b'.git':
+        if raw.lower() == b'.git':
             _refuse('A .git entry in the tree: %s' % relative)
         try:
             link = item.is_symlink()
@@ -89,10 +93,10 @@ def _walk(directory, prefix, entries):
         if _excluded(item.name, directory_entry):
             continue
         if directory_entry:
-            _walk(item.path, relative + '/', entries)
+            _walk(item.path, relative + '/', entries, root_real)
         elif link:
             entries.append(dict(path=relative, kind='symlink', flag='plain',
-                                sha256=_symlink_entry(relative, os.readlink(os.fsencode(item.path)))))
+                                sha256=_symlink_entry(relative, os.readlink(os.fsencode(item.path)), item.path, root_real)))
         elif stat.S_ISREG(status.st_mode):
             flag = 'exec' if status.st_mode & stat.S_IXUSR else 'plain'
             entries.append(dict(path=relative, kind='file', flag=flag, sha256=_file_hash(item.path)))
@@ -110,7 +114,7 @@ def tree_digest(root):
     if not stat.S_ISDIR(status.st_mode):
         _refuse('Tree root is not a directory (a symlink is refused too): %s' % root)
     entries = []
-    _walk(root, '', entries)
+    _walk(root, '', entries, os.path.realpath(root))
     entries.sort(key=lambda entry: entry['path'].encode('utf-8'))
     check_names([entry['path'] for entry in entries])
     digest = hashlib.sha256()
@@ -169,7 +173,7 @@ def check_patch_name(name):
 def check_patch_path(path):
     """A path that a patch touches: relative, POSIX, no empty, ``.`` or ``..`` part, no quote, no control character, no .git."""
     parts = path.split('/')
-    if (not path or '\\' in path or '"' in path or any(p in ('', '.', '..', '.git') for p in parts) or
+    if (not path or '\\' in path or '"' in path or any(p in ('', '.', '..') or p.lower() == '.git' for p in parts) or
             any(ord(c) < 0x20 or ord(c) == 0x7f for c in path)):
         _refuse('Unsafe path in a patch: %r' % path)
 
@@ -215,35 +219,68 @@ def _section_change(path, lines):
     return 'modified'
 
 
+_HUNK = re.compile(rb'@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@')
+
+
 def patch_touched_files(data):
     """``[(path, change)]`` in patch order from a git-style unified diff, ``change`` being added, modified or deleted.
 
     Only text additions, modifications and deletions are understood. A rename, a copy, a mode change and a binary hunk are
-    refused, and so is a patch that touches nothing. Text before the first well-formed ``diff --git a/x b/x`` line (a mail
-    header, a commit message) is ignored. After it, every line that begins ``diff --git `` must be well-formed."""
+    refused, and so is a patch that touches nothing. Text before the first section (a mail header, a commit message) and
+    after the last hunk (a mail trailer) is ignored. Every line that begins ``diff --git `` must be a well-formed
+    ``diff --git a/x b/x`` header, wherever it is, and a plain unified-diff section (``--- ``, ``+++ `` lines without a git header,
+    before the first section or after a hunk) is refused: a section that this parser skipped would be a patched file that the
+    declared list does not name. Hunks are read with their line counts, so a content line that looks like a header is content."""
     sections = []
-    for raw in data.split(b'\n'):
+    old = new = 0                                        # lines still owed by the open hunk
+    lines = data.split(b'\n')
+    for index, raw in enumerate(lines):
+        if old or new:
+            if raw[:1] in (b' ', b'') :
+                old, new = old - 1, new - 1
+            elif raw[:1] == b'-':
+                old -= 1
+            elif raw[:1] == b'+':
+                new -= 1
+            elif raw[:1] != b'\\':
+                _refuse('A hunk of %s is shorter than its header says' % sections[-1][0])
+            if old < 0 or new < 0:
+                _refuse('A hunk of %s is longer than its header says' % sections[-1][0])
+            sections[-1][1].append(raw)
+            continue
         if raw.startswith(b'diff --git '):
             try:
                 text = raw.decode('utf-8')
             except UnicodeDecodeError:
                 _refuse('A diff --git line is not UTF-8')
             match = _HEADER.match(text)
-            if match is None and not sections:
-                continue
             if match is None or match.group(1) != match.group(2):
-                _refuse('Malformed or renaming diff --git header: %r' % text)
-            sections.append((match.group(1), []))
-        elif sections:
-            sections[-1][1].append(raw)
+                _refuse('Malformed or renaming diff --git header (quoted names and names with spaces are not understood): %r' % text)
+            sections.append((match.group(1), [], False))
+            continue
+        if raw.startswith(b'--- ') and index + 1 < len(lines) and lines[index + 1].startswith(b'+++ ') and \
+                (not sections or sections[-1][2]):
+            _refuse('A plain unified-diff section (no diff --git header) is not understood: %r' % raw[:80])
+        if not sections:
+            continue
+        if raw.startswith(b'@@'):
+            match = _HUNK.match(raw)
+            if match is None:
+                _refuse('Malformed hunk header in %s: %r' % (sections[-1][0], raw[:80]))
+            old = int(match.group(1) if match.group(1) is not None else 1)
+            new = int(match.group(2) if match.group(2) is not None else 1)
+            sections[-1] = (sections[-1][0], sections[-1][1], True)
+        sections[-1][1].append(raw)
+    if old or new:
+        _refuse('The last hunk is shorter than its header says')
     touched = []
     seen = set()
-    for path, lines in sections:
+    for path, section, _ in sections:
         check_patch_path(path)
         if path in seen:
             _refuse('A patch touches %s twice' % path)
         seen.add(path)
-        touched.append((path, _section_change(path, lines)))
+        touched.append((path, _section_change(path, section)))
     if not touched:
         _refuse('The patch touches no file that this parser understands (no git-style diff --git header)')
     return touched

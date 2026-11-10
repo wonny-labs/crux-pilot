@@ -19,7 +19,7 @@ Command line (the wrapper is scripts/freeze-patched-zephyr.sh)::
 
     patched_zephyr.py capture --copy DIR --out FILE [--marker-file NAME]
     patched_zephyr.py freeze  --copy DIR --zephyr DIR --patches DIR --manifest FILE --compile-commands FILE --pre FILE --out DIR
-                              [--inputs FILE --workspace DIR]
+                              --inputs FILE --workspace DIR
 """
 import argparse
 import hashlib
@@ -275,25 +275,30 @@ def _west_projects(inputs, workspace, copy, zephyr):
     """The copy may not be, contain or sit inside a west project, and the stock checkout must be the west ``zephyr`` project."""
     data = _load_json(inputs, 'The inputs file')
     projects = data.get('west_projects') if isinstance(data, dict) else None
-    if not isinstance(projects, list):
-        refuse('The inputs file has no west_projects list')
+    if not isinstance(projects, list) or any(not isinstance(p, dict) or not isinstance(p.get('path'), str) for p in projects):
+        refuse('The inputs file has no west_projects list of objects with a path')
+    found = False
     for project in projects:
-        where = posixpath.normpath(posixpath.join(os.fspath(workspace), str(project.get('path'))))
+        where = posixpath.normpath(posixpath.join(os.fspath(workspace), project['path']))
         if _overlap(copy, where):
-            refuse('The copy is, contains or sits inside the west project %s (%s)' % (project.get('name'), project.get('path')))
-        if project.get('name') == 'zephyr' and where != zephyr:
-            refuse('The stock checkout is not the west project zephyr (%s)' % project.get('path'))
+            refuse('The copy is, contains or sits inside the west project %s (%s)' % (project.get('name'), project['path']))
+        if project.get('name') == 'zephyr':
+            found = True
+            if where != zephyr:
+                refuse('The stock checkout is not the west project zephyr (%s)' % project['path'])
+    if not found:
+        refuse('The inputs file lists no west project zephyr: the stock checkout cannot be confirmed as that project')
 
 
-def freeze(copy, zephyr, patches, manifest, compile_commands, pre, out, inputs=None, workspace=None):
+def freeze(copy, zephyr, patches, manifest, compile_commands, pre, out, inputs, workspace):
     """Step 4, after the build. Checks everything in the design's list (a to f), then copies what it names into ``out`` and
     writes ``patched-zephyr.json`` there. Raises ValueError on any refusal, before ``out`` is created; returns the record."""
     copy, zephyr = os.path.abspath(os.fspath(copy)), os.path.abspath(os.fspath(zephyr))
     out, patches = Path(out), Path(patches)
     if out.exists():
         raise FileExistsError(out)
-    if (inputs is None) != (workspace is None):
-        refuse('--inputs and --workspace go together')
+    if inputs is None or workspace is None:
+        refuse('--inputs and --workspace are required: the copy is checked against the west projects')
     manifest_data = _load_json(manifest, 'The bench manifest')
     block = validate_block(manifest_data.get('patched_zephyr') if isinstance(manifest_data, dict) else None)
     marker_file = block['marker_file']
@@ -305,8 +310,7 @@ def freeze(copy, zephyr, patches, manifest, compile_commands, pre, out, inputs=N
         refuse('The pre-build capture was made for another copy path: %r, not %r' % (captured.get('copy'), copy))
     if _overlap(copy, zephyr):
         refuse('The copy and the stock checkout overlap: the copy may not be, contain or sit inside the stock project')
-    if inputs is not None:
-        _west_projects(inputs, workspace, copy, zephyr)
+    _west_projects(inputs, workspace, copy, zephyr)
     # The stock project keeps its own refusal: at the pin and clean, by the same checks as the build provenance.
     head = _git(zephyr, 'rev-parse', 'HEAD')
     if head != block['pin']:
@@ -453,6 +457,8 @@ def _check(block, record, folder, expected_pin):
     if not isinstance(record, dict) or set(record) != RECORD_KEYS or not _is_int(record['schema']) or record['schema'] != 1 or \
             record['algorithm'] != ALGORITHM or block['tree']['algorithm'] != ALGORITHM:
         refuse('record and manifest differ: the record is missing, has another shape, schema or algorithm')
+    if record['excluded'] != {key: list(value) for key, value in EXCLUDED.items()}:
+        refuse('record and manifest differ: the record excluded other names than the algorithm does')
     if record['manifest_block_sha256'] != block_sha256(block):
         refuse('record and manifest differ: the record was made for another manifest block')
     declared = {p['name']: p['sha256'] for p in block['patches']}
@@ -515,7 +521,10 @@ def _check(block, record, folder, expected_pin):
         if item['path'] not in in_record:
             refuse('tree is not patched: the patched file %s is missing from the record' % item['path'])
     for item in record['patched_files']:
-        if item['change'] == 'modified' and item['sha256'] is not None and item['sha256'] == item['stock_sha256']:
+        stock = item['stock_sha256']
+        if (stock is None) != (item['change'] == 'added') or (stock is not None and (not isinstance(stock, str) or _SHA.match(stock) is None)):
+            refuse('patched file differs: %s has a stock hash that does not fit its change (null exactly for an added file)' % item['path'])
+        if item['change'] == 'modified' and item['sha256'] is not None and item['sha256'] == stock:
             refuse('tree is not patched: %s equals its stock hash' % item['path'])
     wanted = {f['path']: f for f in block['patched_files']}
     for path in in_record:
@@ -582,8 +591,8 @@ def build_parser():
     second = actions.add_parser('freeze', help='after the build: check everything, then freeze the evidence')
     for name in ('copy', 'zephyr', 'patches', 'manifest', 'compile-commands', 'pre', 'out'):
         second.add_argument('--' + name, type=Path, required=True)
-    second.add_argument('--inputs', type=Path, default=None, help='the inputs file of record-build-provenance.py --capture-inputs')
-    second.add_argument('--workspace', type=Path, default=None, help='the west workspace that the inputs file names its projects in')
+    second.add_argument('--inputs', type=Path, required=True, help='the inputs file of record-build-provenance.py --capture-inputs (step 1)')
+    second.add_argument('--workspace', type=Path, required=True, help='the west workspace that the inputs file names its projects in')
     return parser
 
 

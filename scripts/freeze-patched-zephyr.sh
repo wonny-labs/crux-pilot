@@ -7,8 +7,9 @@
 #   scripts/freeze-patched-zephyr.sh capture --copy DIR --out FILE [--marker-file NAME]
 #       before the build: the marker text and the tree digest of the copy
 #   scripts/freeze-patched-zephyr.sh freeze --copy DIR --zephyr DIR --patches DIR --manifest FILE \
-#       --compile-commands FILE --pre FILE --out DIR [--inputs FILE --workspace DIR]
-#       after the build: checks the copy against the declared block, re-derives it from the stock checkout, and writes
+#       --compile-commands FILE --pre FILE --out DIR --inputs FILE --workspace DIR
+#       after the build: checks the copy against the declared block and the west projects of the inputs file (step 1,
+#       record-build-provenance.py --capture-inputs; both options are required), re-derives it from the stock checkout, and writes
 #       DIR/patched-zephyr.json with the files it names (DIR is <build>/patched-zephyr)
 #
 # `freeze` needs git, tar and patch (the commands of scripts/prepare-wolf-tls-zephyr.sh) and is meant for the Linux

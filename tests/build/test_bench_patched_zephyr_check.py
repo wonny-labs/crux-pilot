@@ -156,6 +156,15 @@ class Row2RecordAndManifestDiffer(Base):
                 self.frozen.edit_record(change)
                 self.refuses(self.pattern)
 
+    def test_an_exclusion_list_that_differs_from_the_algorithm(self):
+        for label, change in dict(names=lambda r: r['excluded'].update(names=[]), directories=lambda r: r['excluded'].update(directories=['x']),
+                                  suffixes=lambda r: r['excluded'].update(suffixes=['.pyc']), extra=lambda r: r['excluded'].update(more=[]),
+                                  none=lambda r: r.update(excluded=None)).items():
+            with self.subTest(label):
+                self.setUp()
+                self.frozen.edit_record(change)
+                self.refuses(self.pattern)
+
     def test_a_manifest_block_hash_that_differs(self):
         self.frozen.edit_record(lambda r: r.update(manifest_block_sha256='0' * 64))
         self.refuses(self.pattern)
@@ -333,6 +342,16 @@ class Row10PatchedFile(Base):
     def test_a_change_or_patch_list_that_differs(self):
         for label, change in dict(change=lambda r: r['patched_files'][0].update(change='added'),
                                   patches=lambda r: r['patched_files'][0].update(patches=['first-1.patch'])).items():
+            with self.subTest(label):
+                self.setUp()
+                self.frozen.edit_record(change)
+                self.refuses(self.pattern)
+
+    def test_the_stock_hash_of_an_added_file_must_be_null_and_of_the_others_a_hash(self):
+        for label, change in dict(
+                added_with_stock=lambda r: r['patched_files'][2].update(stock_sha256='1' * 64),
+                modified_without_stock=lambda r: r['patched_files'][0].update(stock_sha256=None),
+                modified_bad_stock=lambda r: r['patched_files'][0].update(stock_sha256='nothex')).items():
             with self.subTest(label):
                 self.setUp()
                 self.frozen.edit_record(change)
