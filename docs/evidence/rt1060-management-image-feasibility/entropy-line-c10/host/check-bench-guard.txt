@@ -1,0 +1,3 @@
+CMake: ok; C: ok; Kconfig: ok; mutants: 104 of 104 killed
+control ok: the bench image refuses every build that is not the declared RT1060-EVKB bench, in CMake, in C and in Kconfig
+exit 0

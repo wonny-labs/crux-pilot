@@ -1,0 +1,43 @@
+*** Booting Zephyr OS build v4.4.2 ***
+Running TESTSUITE isn_fail_closed
+===================================================================
+START - test_scenario
+ISN-REPORT phase=A-read-fails path=passive sent=SYN|ACK isn=unkeyed connect=-
+
+    Expectation failed at CMAKE_SOURCE_DIR/src/main.c:409: isn_fail_closed_test_scenario: (out.replied && (out.flags & TCP_RST) != 0 && (out.flags & TCP_SYN) == 0 is false)
+A passive: the SYN must be refused with a RST, not answered with a SYN|ACK (sent SYN|ACK)
+
+    Expectation failed at CMAKE_SOURCE_DIR/src/main.c:413: isn_fail_closed_test_scenario: (out.kind not equal to ISN_NONE)
+A passive: no initial sequence number without a key (got unkeyed)
+ISN-REPORT phase=A-read-fails path=active sent=SYN isn=unkeyed connect=-115
+
+    Expectation failed at CMAKE_SOURCE_DIR/src/main.c:419: isn_fail_closed_test_scenario: (connect_result < 0 && connect_result != -EINPROGRESS is false)
+A active: net_context_connect() must return the error of the read, not -115
+
+    Expectation failed at CMAKE_SOURCE_DIR/src/main.c:422: isn_fail_closed_test_scenario: (out.replied is true)
+A active: no SYN must be sent (sent SYN)
+
+    Expectation failed at CMAKE_SOURCE_DIR/src/main.c:424: isn_fail_closed_test_scenario: (out.kind not equal to ISN_NONE)
+A active: no initial sequence number without a key (got unkeyed)
+ISN-REPORT phase=B-read-works path=passive sent=SYN|ACK isn=unkeyed connect=-
+
+    Expectation failed at CMAKE_SOURCE_DIR/src/main.c:434: isn_fail_closed_test_scenario: (out.kind not equal to ISN_KEYED)
+B passive: the initial sequence number must be made from the key that was read (got unkeyed)
+ISN-REPORT phase=B-read-works path=active sent=SYN isn=unkeyed connect=-115
+
+    Expectation failed at CMAKE_SOURCE_DIR/src/main.c:444: isn_fail_closed_test_scenario: (out.kind not equal to ISN_KEYED)
+B active: the initial sequence number must be made from the key that was read (got unkeyed)
+ISN-REPORT entropy-reads=4 accepted=0
+ FAIL - test_scenario in 0.120 seconds
+===================================================================
+TESTSUITE isn_fail_closed failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [isn_fail_closed]: pass = 0, fail = 1, skip = 0, total = 1 duration = 0.120 seconds
+ - FAIL - [isn_fail_closed.test_scenario] duration = 0.120 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED

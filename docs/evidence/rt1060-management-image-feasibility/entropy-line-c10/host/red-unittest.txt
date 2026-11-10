@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "tests/build/test_wolf_entropy_boot.py", line 42, in test_the_check_follows_the_banner_and_precedes_the_refusal_and_every_key_and_listener
+    self.assertEqual(positions, sorted(positions), "the boot check must come before the refusal and anything that makes a key")
+AssertionError: Lists differ: [34, 185, 48, 347, 469, 819, 1167] != [34, 48, 185, 347, 469, 819, 1167]
+
+First differing element 1:
+185
+48
+
+- [34, 185, 48, 347, 469, 819, 1167]
+?           ----
+
++ [34, 48, 185, 347, 469, 819, 1167]
+?      ++++
+ : the boot check must come before the refusal and anything that makes a key
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.001s
+
+FAILED (failures=1)

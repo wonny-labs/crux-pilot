@@ -56,6 +56,32 @@ class BenchDeclaration(unittest.TestCase):
         west = (ROOT / "west.yml").read_text()
         self.assertIn(f"revision: {patched['zephyr_pin']}", west)
 
+    def test_the_fail_closed_initial_sequence_number_patch_matches_its_script_and_its_file(self):
+        """Row C11, D-c: the second patch of the build-local copy. The declaration, the script, the patch file and the
+        three guard levels name the same patch, hashes and setting."""
+        import hashlib
+        isn = DECLARATION["patched_zephyr"]["isn_fail_closed"]
+        script = (ROOT / "scripts/prepare-isn-fail-closed.py").read_text()
+        patch = ROOT / "patches/zephyr" / isn["patch_name"]
+        self.assertEqual(isn["patch_sha256"], hashlib.sha256(patch.read_bytes()).hexdigest())
+        self.assertIn(f'PATCH_SHA256 = "{isn["patch_sha256"]}"', script)
+        self.assertIn(f'BASE_SHA256 = "{isn["original_file_sha256"]}"', script)
+        self.assertIn(f'PATCHED_SHA256 = "{isn["patched_file_sha256"]}"', script)
+        self.assertIn(f'MARKER = "{isn["marker_file"]}"', script)
+        self.assertIn(f'RELATIVE_SOURCE = Path("{isn["patched_file"]}")', script)
+        self.assertEqual(isn["patched_file"], "subsys/net/ip/tcp.c")
+        self.assertEqual(isn["requires_setting"], "NET_TCP_ISN_RFC6528")
+        # The patch changes this one file, and it is not the first patch's file or marker.
+        self.assertEqual(re.findall(r"^\+\+\+ b/(.*)$", patch.read_text(), re.MULTILINE), [isn["patched_file"]])
+        first = DECLARATION["patched_zephyr"]
+        self.assertNotEqual(isn["marker_file"], first["marker_file"])
+        self.assertNotEqual(isn["patched_file"], first["patched_file"])
+        # The three levels require the setting, and the image sets it.
+        self.assertIn(f"CONFIG_{isn['requires_setting']}=y", (BENCH / "target.conf").read_text())
+        self.assertIn(f"depends on {isn['requires_setting']}", (BENCH / "Kconfig.bench").read_text())
+        self.assertIn(f"CONFIG_{isn['requires_setting']}", (BENCH / "src/bench_guard.h").read_text())
+        self.assertIn("BENCH_ISN_REQUIRES_SETTING", (BENCH / "bench_guard.cmake").read_text())
+
     def test_target_conf_carries_the_declaration(self):
         values = settings(BENCH / "target.conf")
         net = DECLARATION["network"]
@@ -160,7 +186,14 @@ class BenchDeclaration(unittest.TestCase):
         self.assertIn("set(CRUX_BENCH_RUN_REFUSED ON)", (BENCH / "CMakeLists.txt").read_text())
         main = (BENCH / "src/main.c").read_text()
         self.assertIn("if (run_refused)", main)
-        self.assertLess(main.index("if (run_refused)"), main.index("static_address_up()"))
+        # The refusal stops everything but the banner and the entropy line (row C10): no address, store, listener.
+        body = main[main.index("static int bench_main(void)"):]
+        refusal = body.index("if (run_refused)")
+        for later in ("static_address_up()", "crux_native_management_start()", "crux_bench_first_account()",
+                      "crux_native_management_services_start()", "crux_mgmt_rt1060_ssh_start()", "crux_bench_report_start()"):
+            self.assertLess(refusal, body.index(later), later)
+        refused = body[refusal:body.index("}", refusal)]
+        self.assertIn("return 1;", refused)
 
     def test_both_listeners_are_bound_by_the_product_code_only_when_asked(self):
         web = (ROOT / "components/web/ports/zephyr/web_http_server.c").read_text()

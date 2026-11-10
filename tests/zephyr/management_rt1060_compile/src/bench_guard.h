@@ -35,6 +35,17 @@
 #if defined(CONFIG_WOLFSSL_HAS_SETTINGS_FILE)
 #error "The bench image takes wolfSSL's settings from the module's Kconfig options only"
 #endif
+/* D-c, row C11: the TCP initial sequence number is the keyed one (RFC 6528), which the second patch
+ * of the build-local Zephyr copy makes fail closed. Without the setting Zephyr takes the number
+ * from sys_rand32_get(), and a test configuration skips tcp_init_isn() altogether. */
+#if !defined(CONFIG_NET_TCP_ISN_RFC6528)
+#error                                                                                             \
+    "The bench image needs the RFC 6528 initial sequence number: CONFIG_NET_TCP_ISN_RFC6528 is required"
+#endif
+#if defined(CONFIG_NET_TEST) || defined(CONFIG_NET_TEST_PROTOCOL)
+#error                                                                                             \
+    "The bench image makes its initial sequence numbers: CONFIG_NET_TEST and CONFIG_NET_TEST_PROTOCOL are refused"
+#endif
 #if !defined(CRUX_BENCH_ADDRESS) || !defined(CRUX_BENCH_NETMASK) || !defined(CRUX_BENCH_IMAGE_ID)
 #error "The bench declaration did not reach the compiler: address, netmask and image identity"
 #endif

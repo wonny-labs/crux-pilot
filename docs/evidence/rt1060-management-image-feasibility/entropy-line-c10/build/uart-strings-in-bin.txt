@@ -1,0 +1,6 @@
+CRUX-ENTROPY first-read=failed source=unknown compatible=unknown bytes=32 status=-1 device-ready=0
+CRUX-ENTROPY first-read=%s source=%s compatible=%s bytes=%u status=%d device-ready=%d
+BENCH image=%s declaration=CRUX_MANAGEMENT_BENCH_IMAGE board=%s address=%s/%d
+BENCH test forms: host_key=%d no_time_source=%d ram_disk=%d first_account_file=%d
+BENCH refusing to start: the first random read failed, no key or listener made
+BENCH refusing to start: this image is not approved to run

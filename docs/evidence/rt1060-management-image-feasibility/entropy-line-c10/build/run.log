@@ -1,0 +1,56 @@
+start 2026-11-09T18:37:05Z free 14Gi
+source: d051ccf564b2db344fcb7e31e36580a44aa49c6d
+0
+configured
+[555/556] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      562232 B         8 MB      6.70%
+             RAM:     2172076 B        32 MB      6.47%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /build/out/c10/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi
+[556/556] Checking the linked bench image for RSA code (D11, row C9)
+check_bench_rsa_symbols: 5554 defined symbols, none of them RSA code
+   text	   data	    bss	    dec	    hex	filename
+ 557864	   4348	2167650	2729862	 29a786	/build/out/c10/zephyr/zephyr.elf
+60018744 T crux_bench_first_account
+60019990 T crux_bench_report_start
+600184b4 T crux_entropy_boot_check
+600186ac T crux_mgmt_rt1060_ssh_start
+6000de34 T crux_native_management_services_start
+60054310 T crux_native_management_start
+60018554 T main
+60018554 <main>:
+bl	60057aba <printk>
+bl	60057aba <printk>
+bl	600184b4 <crux_entropy_boot_check>
+bl	60057aba <printk>
+bl	6001999c <crux_bench_report_main_exit>
+bl	600215cc <net_if_get_default>
+bl	60021e4c <z_impl_net_addr_pton>
+bl	60021e4c <z_impl_net_addr_pton>
+bl	6005a1ea <net_if_ipv4_addr_add>
+bl	6005a19a <net_if_ipv4_set_netmask_by_addr>
+bl	6005a652 <net_if_up>
+bl	600215cc <net_if_get_default>
+bl	60021e4c <z_impl_net_addr_pton>
+bl	60021634 <net_if_config_ipv4_get>
+bl	6000ddf0 <crux_native_management_store_state_at_start>
+bl	60018744 <crux_bench_first_account>
+bl	6000de34 <crux_native_management_services_start>
+bl	6000df20 <crux_native_management_services_certificate_generated>
+bl	600199d0 <crux_bench_report_certificate>
+bl	600186ac <crux_mgmt_rt1060_ssh_start>
+bl	60019990 <crux_bench_report_start>
+bl	60057aba <printk>
+bl	60054310 <crux_native_management_start>
+public test password in zephyr.elf: 0
+public test password in zephyr.bin: 0
+CRUX-ENTROPY format string in zephyr.bin: 2
+no plaintext of the password, or an encoding of it, in 3 scanned tree(s) (image files may hold it)
+exit 0
+BUILD-DONE
+container exit 0 at 2026-11-09T18:42:02Z free 14Gi

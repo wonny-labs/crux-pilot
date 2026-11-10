@@ -12,7 +12,7 @@ So that the list means what it says, this reads the source rather than matching 
 - CRUX_CLI_SESSION_ONLY anywhere other than as that access argument, such as in an alias
 - CRUX_CLI_ACCESS_SESSION outside the contract's own files, such as in a raw table entry
 
-It does not run the preprocessor. It sees Crux's own components and samples, and not a project's code,
+It does not run the preprocessor. It sees Crux's own components, samples and templates, and not a project's code,
 which keeps its own review. A raw entry whose class is a bare number or a cast is not found, and
 scripts/check-cli-boundary.py does not look for one either.
 """
@@ -22,7 +22,7 @@ import re
 import sys
 
 REPO = Path(__file__).resolve().parents[1]
-ROOTS = ("components", "samples")
+ROOTS = ("components", "samples", "templates")
 SOURCE_SUFFIXES = {".c", ".cc", ".cpp", ".h", ".hpp", ".inc"}
 CONTRACT = "components/cli/include/crux/cli.h"
 # The registry's validator has to name the class to accept it.

@@ -1,0 +1,13 @@
+mainmenu "Fail-closed TCP initial sequence number test"
+
+source "Kconfig.zephyr"
+
+config CRUX_TEST_ENTROPY
+	bool "Entropy device for tests, whose reads can be made to fail at run time"
+	default y
+	depends on DT_HAS_CRUX_TEST_ENTROPY_ENABLED
+	select ENTROPY_HAS_DRIVER
+	# As the RT1060 TRNG driver does.
+	select ENTROPY_NEEDS_PRNG
+	help
+	  A test-only driver. It is not a source of entropy.

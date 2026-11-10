@@ -180,3 +180,24 @@ separate gates.
 
 The upstream change is the intended end state and needs its own approval. The patch is removed when the correction is
 available at the pinned Zephyr.
+
+# TCP initial sequence number that fails closed
+
+`zephyr-isn-fail-closed.patch` changes one file, `subsys/net/ip/tcp.c`, of Zephyr `dccb09599635bdff17633fa7e9dab014b91dce90`
+(SHA-256 `393b940e…`, and `94642fe2…` after the patch). The file is Intel Corporation copyright, Apache-2.0
+licensed, and its notices remain. Owner decision D-c of 9 November 2026, row C11 of the RT1060-EVKB bench image:
+[`docs/rt1060-isn-fail-closed.md`](../../docs/rt1060-isn-fail-closed.md).
+
+At the pin, `tcp_init_isn()` (RFC 6528, `CONFIG_NET_TCP_ISN_RFC6528`, Zephyr's default) has two defects:
+
+- It ignores the result of `sys_csrand_get()` for its 16-byte key and marks the key as read, so after one failed read the key stays all zero for the rest of the boot.
+- It hashes with SHA-256 into a 16-byte buffer. PSA refuses that with `PSA_ERROR_BUFFER_TOO_SMALL`, which is ignored too, so the hash is never produced (wolfPSA leaves the buffer as it was, Mbed TLS fills it with `'!'`) and the key is never used.
+
+With the patch, a missing key (the read failed) or a failed hash makes `tcp_init_isn()` return an error. A SYN to a listening port then gets a RST
+(a refused connection, as a failed bind does), and `net_context_connect()` returns the error and sends nothing. The key is read again at the next
+attempt. When the read works, the number is the hash of the key and the tuple plus the uptime, as the code intends.
+
+`scripts/prepare-isn-fail-closed.py` applies it to a **build-local copy** of the pinned tree (it refuses a Git checkout), after
+`scripts/prepare-wolf-tls-zephyr.sh` has made the copy and applied the TLS socket patch, and checks the hash of the original, the patch and the result.
+It writes the marker `.crux-isn-fail-closed`. The bench guards check the marker and the patched file's hash. The patch is the intended end
+state only until Zephyr fixes the two defects upstream; the upstream status was not checked.

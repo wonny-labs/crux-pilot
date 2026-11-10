@@ -88,15 +88,17 @@ static void banner(void)
 static int bench_main(void)
 {
     banner();
-    if (run_refused) {
-        printk("BENCH refusing to start: this image is not approved to run\n");
-        return 1;
-    }
-    /* The first random read, before anything makes a key: it prints one CRUX-ENTROPY line that says
-     * which device answered, and a failed read stops the image here, with no key, certificate or
-     * listener made. tests/zephyr/entropy_boot, docs/rt1060-wolf-entropy.md. */
+    /* The first random read, before anything makes a key and before the refusal, so that the
+     * refused image prints the line too: it prints one CRUX-ENTROPY line that says which device
+     * answered, and a failed read stops the image here, with no key, certificate or listener made.
+     * tests/zephyr/entropy_boot, docs/rt1060-wolf-entropy.md. */
     if (!crux_entropy_boot_check()) {
         printk("BENCH refusing to start: the first random read failed, no key or listener made\n");
+        return 1;
+    }
+    /* The refusal stops everything else: no address, store, key, certificate or listener. */
+    if (run_refused) {
+        printk("BENCH refusing to start: this image is not approved to run\n");
         return 1;
     }
     if (!static_address_up() || !only_bench_address()) {
