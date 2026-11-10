@@ -44,7 +44,7 @@ FORBIDDEN_TOKEN = re.compile(
 ACCESS_TOKEN = re.compile(r"\b(?:crux_access\w*|CRUX_ACCESS\w*)\b")
 INCLUDE = re.compile(r'^\s*#\s*include\s*[<"]([^>"\n]+)[>"]', re.MULTILINE)
 # Places that a project or a portable consumer builds from. A project never includes the interface.
-CONSUMER_ROOTS = ("samples", "applications", "runtime", "tests/external_application")
+CONSUMER_ROOTS = ("samples", "templates", "applications", "runtime", "tests/external_application")
 SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".hxx", ".inc"}
 SSH_WOLF_MARKERS = ("crux-secure-management", "ssh_wolf_probe", "test-ssh-wolf-settings")
 

@@ -134,6 +134,29 @@ class SshBoundaryTests(unittest.TestCase):
         sample.write_text("target_link_libraries(app PRIVATE crux_ssh_provider)\n", encoding="utf-8")
         self.assert_rejected("a consumer must not link an SSH target")
 
+    def test_template_includes_the_interface(self):
+        source = self.root / "templates/product/app/src/main.c"
+        source.parent.mkdir(parents=True)
+        source.write_text('#include "crux_ssh_provider.h"\n', encoding="utf-8")
+        self.assert_rejected("templates/product/app/src/main.c: a consumer must not include the interface")
+
+    def test_template_includes_the_accessor(self):
+        source = self.root / "templates/product/app/src/main.c"
+        source.parent.mkdir(parents=True)
+        source.write_text('#include "crux_ssh_attachment.h"\n', encoding="utf-8")
+        self.assert_rejected("templates/product/app/src/main.c: a consumer must not include the interface")
+
+    def test_template_links_an_ssh_target(self):
+        build = self.root / "templates/product/app/CMakeLists.txt"
+        build.parent.mkdir(parents=True)
+        build.write_text("target_link_libraries(app PRIVATE crux_ssh_provider)\n", encoding="utf-8")
+        self.assert_rejected("templates/product/app/CMakeLists.txt: a consumer must not link an SSH target")
+
+    def test_product_template_passes(self):
+        shutil.copytree(ROOT / "templates", self.root / "templates")
+        result = self.run_check()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_component_passes_the_interface_on(self):
         build = self.root / "components/web/CMakeLists.txt"
         build.parent.mkdir(parents=True)
