@@ -17,6 +17,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / 'target'))
 import test_m5_program as base
+import test_m5_program_capture as cap
 import capture_m3
 import program_m5_image as program
 from capture_m3 import HardwareStop
@@ -208,8 +209,42 @@ class FlashDownload(unittest.TestCase):
         self.assertIsNone(program.flash_download(fixture('run3-restore-03-verify-normal.log')))
 
 
+class Paths(base.Case):
+    """Owner decision of 2026-11-10: an image whose limit is 30 s keeps main's single run; only a larger one is split."""
+
+    def program(self, size):
+        Path(self.m5).write_bytes(b'\xff' * size)
+        self.responses = [GOOD, OK, OK] if size <= 2 * 131072 else [GOOD, OK, GOOD, OK, GOOD]
+        with self.driver() as driver:
+            return driver.program(self.m5, self.entry)
+
+    def test_m5_s2_and_normal_sizes_take_main_s_single_run(self):
+        for size in (97544, 103180, 107872, 2 * 131072):        # real M5, S2, normal sizes, and the largest 30 s image
+            with self.subTest(size=size):
+                self.setUp()
+                self.program(size)
+                self.assertEqual(self.commands, ['q\n', 'verifybin "%s", 0x60000000\nIsHalted\nq\n' % self.entry,
+                                                 'loadfile "%s", 0x60000000\nverifybin "%s", 0x60000000\nr\ng\nq\n' % (self.m5, self.m5)])
+                self.assertEqual(self.checks, ['01-identity-only', '02-entry-image', '03-program-m5'])
+                self.assertEqual((self.limits, self.guard_limits, self.reverified), ([30] * 3, [30] * 3, [1, 1]))
+
+    def test_the_bench_size_takes_the_split(self):
+        self.program(BENCH_BYTES)
+        self.assertEqual(self.checks, ['01-identity-only', '02-entry-image', '03-program-m5-load', '04-program-m5-verify',
+                                       '05-program-m5-start'])
+        self.assertEqual(self.limits, [30, 30, 60, 60, 30])
+
+    def test_the_smallest_split_image_is_one_byte_over_the_30_s_limit(self):
+        self.program(2 * 131072 + 1)
+        self.assertEqual(self.limits, [30, 30, 40, 40, 30])
+
+
 class Split(base.Case):
-    """The program step is three runs: load, read-back verify, reset and go. Each has its own limit; none is retried."""
+    """The split image step is three runs: load, read-back verify, reset and go. Each has its own limit; none is retried."""
+
+    def setUp(self):
+        super().setUp()
+        self.bench()
 
     def bench(self, size=BENCH_BYTES):
         Path(self.m5).write_bytes(b'\xff' * size)
@@ -234,10 +269,6 @@ class Split(base.Case):
         self.assertEqual([r['limit_seconds'] for r in rows if r['state'] == 'checks'], [30, 30, 60, 60, 30])
         done = [r for r in rows if r['step'] == '03-program-m5-load' and r['state'] == 'done'][0]
         self.assertEqual(done['flash_download']['affected_bytes'], 131072)   # recorded from the run's own report (a real M5 one)
-
-    def test_m5_size_gets_30_s_for_every_run(self):
-        self.program([GOOD, OK, GOOD, OK, GOOD])
-        self.assertEqual(self.limits, [30] * 5)
 
     def test_an_image_beyond_the_ceiling_is_refused_before_the_first_probe_command(self):
         self.bench(7 * 131072 + 1)
@@ -297,8 +328,8 @@ class Split(base.Case):
 
 
     def test_the_whole_three_run_budget_is_checked_before_the_load(self):
-        # After the load step's checks: the 30 s load, then the read-back and start reserves (120 s each): 270 s.
-        for series, ran in ((265, 2), (275, 5)):
+        # After the load step's checks: the 60 s load, the read-back reserve (150 s) and the start reserve (120 s): 330 s.
+        for series, ran in ((325, 2), (335, 5)):
             with self.subTest(series=series):
                 self.setUp()
                 self.responses = [GOOD, OK, GOOD, OK, GOOD]
@@ -324,6 +355,74 @@ class Split(base.Case):
         with self.driver('identify') as driver:
             driver.identify([('integrated-normal', self.normal), ('bench', self.m5)])
         self.assertEqual(self.limits, [30, 30, 60])
+
+
+class SplitCapture(cap.Case):
+    """The profile's capture on the split path: opened before the load, kept through read-back and start."""
+
+    def setUp(self):
+        super().setUp()
+        Path(self.m5).write_bytes(b'\xff' * BENCH_BYTES)
+        reader = patch.object(cap.FakeCapture, 'failure', None, create=True)   # the real capture's reader state
+        reader.start()
+        self.addCleanup(reader.stop)
+
+    def program(self, spec=None, responses=None, **options):
+        return super().program(spec, responses or [GOOD, OK, GOOD, OK, GOOD], **options)
+
+    def window_seen_start_done(self, spec):
+        rows = json.loads((self.directory / 'operations.json').read_text())
+        return any(r['step'] == '05-program-m5-start' and r['state'] == 'done' for r in rows)
+
+    def test_opens_after_the_load_checks_before_the_load_and_the_window_follows_the_start(self):
+        spec = self.spec()
+        self.program(spec)
+        opened = self.events.index('capture-open')
+        probes = [i for i, e in enumerate(self.events) if e == 'probe']
+        self.assertGreater(opened, self.events.index('check 03-program-m5-load'))
+        self.assertEqual(probes[2], opened + 1)
+        self.assertEqual(self.events.count('capture-open'), 1)
+        self.assertEqual(self.events.index('window'), probes[-1] + 1)
+        self.assertTrue(self.window_seen_start_done(spec))
+        self.assertIn(('05-program-m5-start', 'capture-closed'), self.states())
+
+    def test_a_failing_step_aborts_with_its_name_and_nothing_runs_after_it(self):
+        timeout = HardwareStop('Probe timeout; state uncertain; no further hardware changes')
+        for responses, reason in (([GOOD, OK, timeout], 'load step failed'), ([GOOD, OK, GOOD, timeout], 'verify step failed'),
+                                  ([GOOD, OK, GOOD, GOOD], 'complete image verification absent'),
+                                  ([GOOD, OK, GOOD, OK, timeout], 'start step failed')):
+            with self.subTest(reason):
+                self.setUp()
+                spec = self.spec()
+                with self.assertRaises(HardwareStop):
+                    self.program(spec, responses=responses)
+                self.assertEqual(len(self.commands), len(responses))
+                self.assertEqual(spec.capture.calls, [('abort', reason)])
+
+    def test_a_reader_that_failed_before_the_start_stops_before_the_reset(self):
+        spec = self.spec()
+        original = self.probe
+        def probe(commands, output, seconds):
+            text = original(commands, output, seconds)
+            if commands.startswith('verifybin') and 'IsHalted' not in commands:
+                spec.capture.failure = "OSError('device disconnected')"
+            return text
+        with self.assertRaisesRegex(HardwareStop, 'UART capture reader failed before the start'):
+            self.program(spec, probe=probe)
+        self.assertEqual(len(self.commands), 4)
+        self.assertEqual(spec.capture.calls, [('abort', 'reader failed before the start')])
+
+    def test_the_window_budget_covers_the_whole_sequence(self):
+        # 60 s load + 150 s read-back reserve + 120 s start reserve + 300 s window = 630 s, checked before the load.
+        spec = self.spec(seconds=300)
+        with self.assertRaisesRegex(HardwareStop, 'Series budget does not cover the load, read-back and start'):
+            self.program(spec, series_seconds=625)
+        self.assertEqual(spec.opened, [])
+        self.assertEqual(len(self.commands), 2)
+        self.setUp()
+        spec = self.spec(seconds=300)
+        self.program(spec, series_seconds=635)
+        self.assertEqual(len(spec.opened), 1)
 
 
 class Diagnostics(unittest.TestCase):

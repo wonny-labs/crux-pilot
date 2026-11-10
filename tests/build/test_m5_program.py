@@ -125,7 +125,7 @@ class Identity(Case):
 
 class Ownership(Case):
     def test_lock_and_uart_are_taken_before_the_first_probe_command_and_released(self):
-        self.responses = [GOOD, OK, GOOD, OK, GOOD]
+        self.responses = [GOOD, OK, OK]
         with self.driver() as driver:
             driver.program(self.m5, self.entry)
         self.assertEqual(self.events[0], 'acquire')
@@ -157,18 +157,16 @@ class Ownership(Case):
 
 class Program(Case):
     def test_exact_sequence_with_preconditions_before_every_probe_command(self):
-        self.responses = [GOOD, OK, GOOD, OK, GOOD]
+        self.responses = [GOOD, OK, OK]
         with self.driver() as driver:
             result = driver.program(self.m5, self.entry)
         self.assertEqual(self.commands, ['q\n', 'verifybin "%s", 0x60000000\nIsHalted\nq\n' % self.entry,
-                                         'loadfile "%s", 0x60000000\nq\n' % self.m5, 'verifybin "%s", 0x60000000\nq\n' % self.m5,
-                                         'r\ng\nq\n'])
-        self.assertEqual(self.checks, ['01-identity-only', '02-entry-image', '03-program-m5-load', '04-program-m5-verify',
-                                       '05-program-m5-start'])
+                                         'loadfile "%s", 0x60000000\nverifybin "%s", 0x60000000\nr\ng\nq\n' % (self.m5, self.m5)])
+        self.assertEqual(self.checks, ['01-identity-only', '02-entry-image', '03-program-m5'])
         self.assertEqual(result['status'], 'M5_PROGRAMMED_VERIFIED_STARTED')
         states = [row['state'] for row in json.loads((self.directory / 'operations.json').read_text())]
-        self.assertEqual(states.count('checks'), 5)
-        self.assertEqual(self.reverified, [1, 1, 1])                  # before the entry compare, the load and the read-back
+        self.assertEqual(states.count('checks'), 3)
+        self.assertEqual(self.reverified, [1, 1])                     # before the entry compare and before the load
 
     def test_failure_record_write_error_still_releases_the_port(self):
         self.responses = [GOOD.replace('602003106', '1')]
@@ -200,10 +198,9 @@ class Program(Case):
         self.assertEqual(len(self.commands), 1)
 
     def test_missing_programming_verification_is_a_failure(self):
-        self.responses = [GOOD, OK, GOOD, GOOD]
+        self.responses = [GOOD, OK, GOOD]
         with self.assertRaisesRegex(HardwareStop, 'Complete M5 image verification absent'), self.driver() as driver:
             driver.program(self.m5, self.entry)
-        self.assertEqual(len(self.commands), 4)                        # the image is never started without its read-back
 
     def test_unsafe_image_paths_never_reach_the_probe(self):
         for entry, image in (('/b/"x.bin', self.m5), ('/b/x\n.bin', self.m5), (self.entry, '/b/"m5.bin'), (self.entry, 'relative.bin')):

@@ -21,8 +21,9 @@ A mode runs once per evidence parent directory.
             the first one that does not match (a mismatch ends the run); changes no flash and
             starts no reset, but may leave the core halted
   program   identity probe, ``verifybin`` of the identified entry image (stop if it differs),
-            then the exact M5 BIN in three runs: ``loadfile``; a full ``verifybin``; reset and go
-            only after that read-back succeeded
+            then the exact M5 BIN: ``loadfile``, ``verifybin``, reset, go in one run when its limit is
+            30 s (M5, S2, the normal image); a larger image in three runs: ``loadfile``; a full
+            ``verifybin``; reset and go only after that read-back succeeded
   restore   identity probe, ``loadfile`` + ``verifybin`` of the exact normal BIN, a second
             read-only full ``verifybin``, then reset and go with a passive UART capture open
             (raw bytes kept; its acceptance analysis is a separate offline replay)
@@ -226,10 +227,56 @@ class Driver:
         self.run('identity-only', 'q\n')
         entry = self.run('entry-image', self.verify_command(entry_binary, True), images=[entry_binary], seconds=entry_seconds)
         require('Verify successful' in entry, 'Current firmware differs from the identified entry image; stop before changes')
+        if seconds == COMMAND_SECONDS:                 # owner decision 2026-11-10: a 30 s image keeps main's single run
+            commands = m3net.image_commands(m5_binary, True)
+            if self.capture is not None:
+                return self.program_captured_single(m5_binary, commands)
+            text = self.run('program-m5', commands, images=[m5_binary])
+            require('Verify successful' in text, 'Complete M5 image verification absent')
+            return dict(status='M5_PROGRAMMED_VERIFIED_STARTED', entry_image_verified=True)
         if self.capture is not None:
             return self.program_captured(m5_binary, seconds)
         self.program_runs(m5_binary, seconds)
         return dict(status='M5_PROGRAMMED_VERIFIED_STARTED', entry_image_verified=True)
+
+    def program_captured_single(self, binary, commands):
+        """main's load step for a 30 s image, with the profile's passive raw capture opened after its checks and before
+        its one command (load, verify, reset and go).
+
+        The capture only reads. It never changes what runs: the command is the one above, started once, and nothing here
+        starts it again, whatever happens to the capture. A failed command aborts the capture at once (no window wait).
+        """
+        spec, opened = self.capture, []
+
+        def open_capture():
+            label = '%02d-program-m5' % self.step
+            require(self.port is not None, 'UART port not owned; no capture and no probe command')
+            require(self.clock() + COMMAND_SECONDS + spec.seconds < self.end, 'Capture window does not fit the series budget')
+            try:
+                opened.append(spec.open(self.port, self.directory / 'capture'))
+            except Exception as error:
+                raise HardwareStop('UART capture could not be opened; no probe command runs') from error
+            self.note(step=label, state='capture-open')
+
+        def abort(error, reason):
+            if opened:
+                try:
+                    opened[0].abort(reason)
+                except BaseException as secondary:
+                    error.capture_failure = repr(secondary)
+
+        try:
+            text = self.run('program-m5', commands, images=[binary], before=open_capture)
+        except BaseException as error:
+            abort(error, 'start command failed')
+            raise
+        if 'Verify successful' not in text:
+            error = HardwareStop('Complete M5 image verification absent')
+            abort(error, 'complete image verification absent')
+            raise error
+        opened[0].window()                             # the step's done marker is already written; a failure here is a stop
+        self.note(step='%02d-program-m5' % self.step, state='capture-closed')
+        return dict(status='M5_PROGRAMMED_VERIFIED_STARTED', entry_image_verified=True, capture=opened[0].summary())
 
     def program_runs(self, binary, seconds, *, before_load=None, before_start=None, phase=None, window=0):
         """Load, full read-back, then reset and go: three bounded runs, each started once, in that order only.

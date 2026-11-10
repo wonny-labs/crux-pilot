@@ -30,13 +30,13 @@ class FakeCapture:
 
     def __init__(self, case, directory, window_error=None, abort_error=None):
         self.case, self.directory, self.window_error, self.abort_error = case, directory, window_error, abort_error
-        self.calls, self.seen_done, self.failure = [], None, None
+        self.calls, self.seen_done = [], None
 
     def window(self):
         self.case.events.append('window')
         self.calls.append('window')
         rows = json.loads((self.case.directory / 'operations.json').read_text())
-        self.seen_done = any(r['step'] == '05-program-m5-start' and r['state'] == 'done' for r in rows)
+        self.seen_done = any(r['step'] == '03-program-m5' and r['state'] == 'done' for r in rows)
         if self.window_error:
             raise self.window_error
 
@@ -83,7 +83,7 @@ class Case(base.Case):
         return self.fake
 
     def program(self, spec=None, responses=None, **options):
-        self.responses = list(responses or [GOOD, OK, GOOD, OK, GOOD])
+        self.responses = list(responses or [GOOD, OK, OK])
         with self.driver(capture=spec, **options) as driver:
             return driver.program(self.m5, self.entry)
 
@@ -92,21 +92,19 @@ class Case(base.Case):
 
 
 class Order(Case):
-    def test_the_capture_opens_after_the_load_step_checks_and_before_the_load_command(self):
+    def test_the_capture_opens_after_the_load_step_checks_and_before_its_one_command(self):
         spec = self.spec()
         self.program(spec)
-        load_check = self.events.index('check 03-program-m5-load')
+        load_check = self.events.index('check 03-program-m5')
         opened = self.events.index('capture-open')
         probes = [i for i, event in enumerate(self.events) if event == 'probe']
         self.assertGreater(opened, load_check)
-        self.assertLess(opened, self.events.index('check 04-program-m5-verify'))
-        reverifications = [i for i, e in enumerate(self.events) if e == 'reverify']
-        self.assertGreater(opened, reverifications[1])                    # after the load step's manifest re-verification
-        self.assertEqual(probes[2], opened + 1)                            # the very next thing is the load command
-        self.assertEqual(self.events.count('capture-open'), 1)             # one capture across load, read-back and start
-        self.assertEqual(spec.opened[0]['checks'], ['01-identity-only', '02-entry-image', '03-program-m5-load'])
+        self.assertGreater(opened, max(i for i, e in enumerate(self.events) if e == 'reverify'))   # after the manifest re-verification
+        self.assertEqual(probes[-1], opened + 1)                           # the very next thing is the load, verify, reset and go command
+        self.assertEqual(self.events.count('capture-open'), 1)
+        self.assertEqual(spec.opened[0]['checks'], ['01-identity-only', '02-entry-image', '03-program-m5'])
         self.assertEqual(spec.opened[0]['commands'], 2)                    # only the identity probe and the entry verify had run
-        self.assertEqual(self.events.index('window'), probes[-1] + 1)      # the window follows the start run
+        self.assertEqual(self.events.index('window'), probes[-1] + 1)
 
     def test_it_gets_the_port_the_driver_owns_and_a_directory_below_the_mode_directory(self):
         spec = self.spec()
@@ -122,18 +120,15 @@ class Order(Case):
         self.assertEqual(with_capture, [c.replace(str(self.root), '') for c in self.commands])
         self.assertEqual(len([c for c in with_capture if 'loadfile' in c]), 1)
         self.assertEqual(len([c for c in with_capture if 'g\n' in c.replace('IsHalted', '')]), 1)
-        self.assertEqual(self.checks, ['01-identity-only', '02-entry-image', '03-program-m5-load', '04-program-m5-verify',
-                                       '05-program-m5-start'])
+        self.assertEqual(self.checks, ['01-identity-only', '02-entry-image', '03-program-m5'])
 
     def test_the_done_marker_is_written_before_the_window_starts(self):
         spec = self.spec()
         self.program(spec)
         self.assertTrue(spec.capture.seen_done)
-        self.assertEqual([s for s in self.states() if s[0].startswith(('03-', '04-', '05-'))],
-                         [('03-program-m5-load', 'checks'), ('03-program-m5-load', 'capture-open'), ('03-program-m5-load', 'done'),
-                          ('04-program-m5-verify', 'checks'), ('04-program-m5-verify', 'done'),
-                          ('05-program-m5-start', 'checks'), ('05-program-m5-start', 'done'),
-                          ('05-program-m5-start', 'capture-closed')])
+        self.assertEqual([s for s in self.states() if s[0] == '03-program-m5'],
+                         [('03-program-m5', 'checks'), ('03-program-m5', 'capture-open'), ('03-program-m5', 'done'),
+                          ('03-program-m5', 'capture-closed')])
 
     def test_the_result_keeps_the_status_and_adds_the_capture_summary(self):
         result = self.program(self.spec())
@@ -154,7 +149,7 @@ class Refusals(Case):
         original = self.preconditions
         def guard(directory, label, limit):
             original(directory, label, limit)
-            if label.endswith('program-m5-load'):
+            if label.endswith('program-m5'):
                 raise HardwareStop('Current mount protection unverified')
         self.preconditions = guard
         with self.assertRaisesRegex(HardwareStop, 'mount protection'):
@@ -167,7 +162,7 @@ class Refusals(Case):
             with self.subTest(series=series):
                 self.setUp()
                 spec = self.spec()
-                seconds = {'02-entry-image': 100, '03-program-m5-load': 0} if series == 200 else {'03-program-m5-load': 90}
+                seconds = {'02-entry-image': 100, '03-program-m5': 0} if series == 200 else {'03-program-m5': 90}
                 def timed(directory, label, limit, seconds=seconds):
                     Case.preconditions(self, directory, label, limit)
                     self.now += seconds.get(label, 0)
@@ -215,16 +210,14 @@ class Refusals(Case):
 
     def test_a_window_that_does_not_fit_the_series_budget_is_refused_before_the_load(self):
         spec = self.spec(seconds=300)
-        # Needed after the load step's checks: the 30 s load run, the read-back and start steps' reserves before their
-        # checks (120 s each), and the 300 s window: 570 s.
-        with self.assertRaisesRegex(HardwareStop, 'Series budget does not cover the load, read-back and start'):
-            self.program(spec, series_seconds=565)
+        with self.assertRaisesRegex(HardwareStop, 'Capture window does not fit the series budget'):
+            self.program(spec, series_seconds=320)
         self.assertNoCapture(spec)
         self.assertEqual(len(self.commands), 2)
         self.assertFalse(any('loadfile' in c for c in self.commands))
         self.setUp()
         spec = self.spec(seconds=300)
-        self.program(spec, series_seconds=575)                             # the three runs and the 300 s window just fit
+        self.program(spec, series_seconds=335)                             # 30 s command limit + 300 s window just fit
         self.assertEqual(len(spec.opened), 1)
 
     def test_only_program_mode_may_carry_a_capture(self):
@@ -246,56 +239,36 @@ class Failures(Case):
         self.assertTrue(self.port.closed)
         failure = json.loads((self.directory / 'failure.json').read_text())
         self.assertEqual((failure['mode'], failure['automatic_retry']), ('program', False))
-        self.assertNotIn(('03-program-m5-load', 'done'), self.states())
+        self.assertNotIn(('03-program-m5', 'done'), self.states())
 
-    def test_a_failing_command_of_any_run_aborts_the_capture_keeps_the_error_and_never_retries(self):
-        timeout = HardwareStop('Probe timeout; state uncertain; no further hardware changes')
-        for responses, reason in (([GOOD, OK, timeout], 'load step failed'), ([GOOD, OK, GOOD, timeout], 'verify step failed'),
-                                  ([GOOD, OK, GOOD, OK, timeout], 'start step failed')):
-            with self.subTest(reason):
-                self.setUp()
-                spec = self.spec(abort_error=HardwareStop('UART capture reader failed: boom'))
-                with self.assertRaisesRegex(HardwareStop, 'Probe timeout') as caught:
-                    self.program(spec, responses=responses)
-                self.assertEqual(len(self.commands), len(responses))       # nothing ran after the failed command
-                self.assertEqual(spec.capture.calls, [('abort', reason)])
-                self.assertIn('boom', caught.exception.capture_failure)
-                self.assertTrue(self.port.closed)
+    def test_a_failing_start_command_aborts_the_capture_keeps_the_error_and_never_retries(self):
+        spec = self.spec(abort_error=HardwareStop('UART capture reader failed: boom'))
+        with self.assertRaisesRegex(HardwareStop, 'Probe timeout') as caught:
+            self.program(spec, responses=[GOOD, OK, HardwareStop('Probe timeout; state uncertain; no further hardware changes')])
+        self.assertEqual(len(self.commands), 3)                           # nothing ran after the failed command
+        self.assertEqual(spec.capture.calls, [('abort', 'start command failed')])
+        self.assertIn('boom', caught.exception.capture_failure)
+        self.assertTrue(self.port.closed)
 
-    def test_missing_verification_aborts_the_capture_and_never_starts_the_image(self):
+    def test_missing_verification_aborts_the_capture_instead_of_waiting_the_window(self):
         spec = self.spec()
         with self.assertRaisesRegex(HardwareStop, 'Complete M5 image verification absent'):
-            self.program(spec, responses=[GOOD, OK, GOOD, GOOD])
+            self.program(spec, responses=[GOOD, OK, GOOD])
         self.assertEqual(spec.capture.calls, [('abort', 'complete image verification absent')])
-        self.assertEqual(len(self.commands), 4)
-        self.assertFalse(any(c.startswith('r\n') for c in self.commands))
-
-    def test_a_reader_that_failed_before_the_start_stops_the_run_before_the_reset(self):
-        spec = self.spec()
-        original = self.probe
-        def probe(commands, output, seconds):
-            text = original(commands, output, seconds)
-            if commands.startswith('verifybin') and 'IsHalted' not in commands:
-                spec.capture.failure = "OSError('device disconnected')"    # the reader ended while the read-back ran
-            return text
-        with self.assertRaisesRegex(HardwareStop, 'UART capture reader failed before the start'):
-            self.program(spec, probe=probe)
-        self.assertEqual(len(self.commands), 4)                            # loaded and verified, never started
-        self.assertFalse(any(c.startswith('r\n') for c in self.commands))
-        self.assertEqual(spec.capture.calls, [('abort', 'reader failed before the start')])
+        self.assertEqual(len(self.commands), 3)
 
     def test_a_capture_that_fails_during_the_window_is_a_stop_and_never_a_second_start(self):
         spec = self.spec(window_error=HardwareStop('UART capture reader failed: OSError(device disconnected)'))
         with self.assertRaisesRegex(HardwareStop, 'UART capture reader failed'):
             self.program(spec)
-        self.assertEqual(len(self.commands), 5)
+        self.assertEqual(len(self.commands), 3)
         self.assertEqual(len([c for c in self.commands if 'loadfile' in c]), 1)
-        self.assertEqual(len([c for c in self.commands if c.startswith('r\n')]), 1)
+        self.assertEqual(len([c for c in self.commands if c.startswith('loadfile')]), 1)
         self.assertEqual(spec.capture.calls, ['window'])                  # not aborted, not repeated
         self.assertNotIn('result', [p.name for p in self.directory.iterdir()])
         failure = json.loads((self.directory / 'failure.json').read_text())
-        self.assertEqual((failure['steps'], failure['automatic_retry']), (5, False))
-        self.assertIn(('05-program-m5-start', 'done'), self.states())      # the start itself is on record: the image did start
+        self.assertEqual((failure['steps'], failure['automatic_retry']), (3, False))
+        self.assertIn(('03-program-m5', 'done'), self.states())            # the start itself is on record: the image did start
         self.assertTrue(self.port.closed)
 
     def test_an_interrupt_in_the_window_is_not_swallowed(self):
@@ -303,7 +276,7 @@ class Failures(Case):
         with self.assertRaises(KeyboardInterrupt):
             self.program(spec)
         self.assertTrue(self.port.closed)
-        self.assertEqual(len(self.commands), 5)
+        self.assertEqual(len(self.commands), 3)
 
 
 class Ports(Case):
@@ -334,7 +307,7 @@ class Ports(Case):
         reads = self.port.reads
         time.sleep(.05)
         self.assertEqual(self.port.reads, reads)                          # no reader outlives the mode
-        self.assertTrue((self.directory / '03-program-m5-load.log').exists())  # the Commander logs and the capture do not collide
+        self.assertTrue((self.directory / '03-program-m5.log').exists())  # the Commander log and the capture do not collide
         self.assertEqual(result['capture']['final_line'], 'cut')
         self.assertEqual(result['status'], 'M5_PROGRAMMED_VERIFIED_STARTED')
         analysis = json.loads((self.directory / 'capture' / 'analysis.json').read_text())
@@ -372,7 +345,7 @@ class Ports(Case):
         self.port = Dying(self)
         with self.assertRaisesRegex(HardwareStop, 'UART capture reader failed'):
             self.program(raw.CaptureSpec(1))
-        self.assertEqual(len(self.commands), 5)
+        self.assertEqual(len(self.commands), 3)
         self.assertIn('device disconnected', json.loads((self.directory / 'capture' / 'analysis.json').read_text())['reader_failure'])
 
 
