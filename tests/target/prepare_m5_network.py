@@ -15,6 +15,7 @@ from m3_errno import verify_errno_map
 from m3_image import require
 from m5_image import check_image
 from prepare_m3_errno import prepare as prepare_errno
+import patched_zephyr
 import s2_image
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -34,6 +35,8 @@ PINNED_PATHS = {'zephyr': 'zephyr', 'cmsis': 'modules/hal/cmsis', 'cmsis_6': 'mo
 MANIFEST_PATH = 'crux-pilot'
 ROLES = {'binary', 'elf', 'config', 'map', 'dts', 'compilation', 'inputs', 'provenance', 'errno'}
 M5_NAME = 'm5-network-physical'
+# The frozen roles that only some profiles have (ImageProfile.extra_roles), and where the build leaves each file.
+EXTRA_ROLE_FILES = {'bench_manifest': 'bench-manifest.json', 'patched_zephyr': 'patched-zephyr/patched-zephyr.json'}
 
 
 def m5_profile():
@@ -191,7 +194,9 @@ def prepare(build, inputs, output, repo, *, tool_paths=None, profile=None, tool_
     provenance = json.loads(files['provenance'].read_text())
     require(provenance['source'] == data['source'] and
             provenance['west_projects'] == data['west_projects'], 'Build provenance differs')
-    checked = profile.check_image(files['binary'], files['elf'], files['config'])
+    extra = {role: build / EXTRA_ROLE_FILES[role] for role in profile.extra_roles}
+    files.update(extra)
+    checked = profile.check_image(files['binary'], files['elf'], files['config'], **extra)
     require(not profile.commit_tag or data['source']['git_commit'][:12].encode() in files['binary'].read_bytes(),
             'Source tag absent from image')
     # A new directory prevents accidentally combining ABI evidence from another image.
@@ -213,6 +218,9 @@ def prepare(build, inputs, output, repo, *, tool_paths=None, profile=None, tool_
     tools = list(default_tools(tool_repo, profile) if tool_paths is None else tool_paths)
     require(tools, 'No frozen runner/tool identities')
     paths = list(files.values()) + (sorted(abi.iterdir()) if profile.errno_suffix else []) + tools + [Path(p) for p in provenance_files.values()]
+    if 'patched_zephyr' in extra:
+        # every file that the record names is frozen too, so that the generic re-hash of verify covers it
+        paths += [extra['patched_zephyr'].parent / relative for relative in patched_zephyr.named_files(extra['patched_zephyr'])]
     unique = sorted({p.resolve(strict=True) for p in paths})
     record = dict(schema=1, profile=profile.name, target='mimxrt1060_evk@B//qspi',
                   source=data['source'], west_projects=data['west_projects'], image=checked,
@@ -234,7 +242,7 @@ def verify(manifest, expected_sha256, profile=None):
     require(record['schema'] == 1 and record['profile'] == profile.name and
             record['target'] == 'mimxrt1060_evk@B//qspi', 'Unexpected image manifest')
     frozen_inputs(record, profile)
-    roles = ROLES if profile.errno_suffix else ROLES - {'errno'}
+    roles = (ROLES if profile.errno_suffix else ROLES - {'errno'}) | set(profile.extra_roles)
     require(set(record['files']) == roles, 'Incomplete image roles')
     paths = []
     for artifact in record['artifacts']:
@@ -245,6 +253,10 @@ def verify(manifest, expected_sha256, profile=None):
         paths.append(str(path))
     require(len(paths) == len(set(paths)), 'Duplicate evidence artifact')
     required = set(record['files'].values()) | set(record['tools']) | set(record['provenance_files'].values())
+    if 'patched_zephyr' in profile.extra_roles:
+        record_path = Path(record['files']['patched_zephyr'])
+        required |= {str(record_path.parent.resolve() / relative) for relative in patched_zephyr.named_files(record_path)}
+        require(required <= set(paths), 'A file named by the patched Zephyr record is not a frozen artifact')
     require(record['tools'] and len(record['tools']) == len(set(record['tools'])) and
             required <= set(paths), 'Missing/duplicate tool or image evidence')
     files = record['files']
@@ -266,7 +278,8 @@ def verify(manifest, expected_sha256, profile=None):
     require(provenance_paths == set(record['provenance_files']) and
             {files[k] for k in ('binary', 'elf', 'config', 'map', 'dts')} <=
             set(record['provenance_files'].values()), 'Incomplete build provenance artifacts')
-    checked = profile.check_image(files['binary'], files['elf'], files['config'])
+    checked = profile.check_image(files['binary'], files['elf'], files['config'],
+                                  **{role: files[role] for role in profile.extra_roles})
     require(checked == record['image'] and (not profile.commit_tag or record['source']['git_commit'][:12].encode() in
             Path(files['binary']).read_bytes()), 'Image geometry/source identity differs')
     image = dict(source=record['source'], binary=files['binary'], artifacts=record['artifacts'])
