@@ -1,0 +1,22 @@
+*** Booting Zephyr OS build 4.4.2 ***
+Running TESTSUITE isn_fail_closed
+===================================================================
+START - test_scenario
+ISN-REPORT phase=A-read-fails path=passive sent=RST|ACK isn=- connect=-
+ISN-REPORT phase=A-read-fails path=active sent=nothing isn=- connect=-5
+ISN-REPORT phase=B-read-works path=passive sent=SYN|ACK isn=keyed connect=-
+ISN-REPORT phase=B-read-works path=active sent=SYN isn=keyed connect=-115
+ISN-REPORT entropy-reads=6 accepted=0
+ PASS - test_scenario in 0.430 seconds
+===================================================================
+TESTSUITE isn_fail_closed succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [isn_fail_closed]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.430 seconds
+ - PASS - [isn_fail_closed.test_scenario] duration = 0.430 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

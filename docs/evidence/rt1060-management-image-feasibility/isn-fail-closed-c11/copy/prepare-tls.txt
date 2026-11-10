@@ -1,0 +1,1 @@
+prepared: /build/zephyr-wolf, Zephyr dccb09599635bdff17633fa7e9dab014b91dce90 with zephyr-tls-4.4.1.patch at wolfSSL/osp 8c32b060ac6017b1291a6da0875a48637bfb682d

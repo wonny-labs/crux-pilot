@@ -1,0 +1,5 @@
+description: Entropy device for tests, whose reads can be made to fail at run time. Not a source of entropy.
+
+compatible: "crux,test-entropy"
+
+include: base.yaml

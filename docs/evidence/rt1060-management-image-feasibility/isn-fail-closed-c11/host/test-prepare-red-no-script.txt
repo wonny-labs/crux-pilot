@@ -1,0 +1,8 @@
+  File "<frozen importlib._bootstrap_external>", line 982, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1039, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '<worktree>/scripts/prepare-isn-fail-closed.py'
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.005s
+
+FAILED (errors=10)

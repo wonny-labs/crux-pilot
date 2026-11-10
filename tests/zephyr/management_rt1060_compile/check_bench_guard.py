@@ -56,6 +56,8 @@ config WOLFSSL_RSA
 	bool "stub"
 config WOLFSSL_HAS_SETTINGS_FILE
 	bool "stub"
+config NET_TCP_ISN_RFC6528
+	bool "stub"
 source "{kconfig_bench}"
 """
 
@@ -103,8 +105,10 @@ class Tree:
 # ---- CMake level -----------------------------------------------------------------------------------------------
 
 
-def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=None, states=None, edits=None):
-    """A stand-in for the build-local Zephyr copy, and a declaration copy that names its hash."""
+def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=None, states=None, edits=None,
+                     isn_marker=None, isn_text="isn patched"):
+    """A stand-in for the build-local Zephyr copy with both patches (D8 and row C11), and a declaration copy that names
+    the hashes of its two patched files."""
     patch = tree.declaration["patched_zephyr"]
     base = Path(directory) / "zephyr"
     target = base / patch["patched_file"]
@@ -113,13 +117,25 @@ def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=N
     pin = pin or patch["zephyr_pin"]
     if marker is not False:
         (base / patch["marker_file"]).write_text(marker or f"{pin} {patch['patch_sha256']}\n")
+    isn = patch["isn_fail_closed"]
+    isn_target = base / isn["patched_file"]
+    isn_target.parent.mkdir(parents=True, exist_ok=True)
+    isn_target.write_text(isn_text)
+    if isn_marker is not False:
+        (base / isn["marker_file"]).write_text(isn_marker or f"{pin} {isn['patch_sha256']}\n")
     declaration = declared_with(tree, states)
     for (section, key), value in (edits or {}).items():
         declaration[section][key] = value
     declaration["patched_zephyr"]["patched_file_sha256"] = hashlib.sha256(patched_text.encode()).hexdigest()
+    declaration["patched_zephyr"]["isn_fail_closed"]["patched_file_sha256"] = hashlib.sha256(isn_text.encode()).hexdigest()
     declared = Path(directory) / "declaration.json"
     declared.write_text(json.dumps(declaration))
     return base, declared
+
+
+def isn_declared(tree):
+    """The declaration of the second patch of the build-local copy (row C11, D-c)."""
+    return tree.declaration["patched_zephyr"]["isn_fail_closed"]
 
 
 def declared_with(tree, states=None):
@@ -208,6 +224,7 @@ def good_cmake_settings(tree, declaration=None):
         "CONFIG_CRUX_MANAGEMENT_BENCH_IMAGE": "y",
         "CONFIG_ENTROPY_MCUX_TRNG": "y",
         "CONFIG_WOLFPSA": "y",
+        "CONFIG_NET_TCP_ISN_RFC6528": "y",
         "CONFIG_CRUX_SSH": "y",
         "CONFIG_CRUX_SSH_CLI": "y",
         "CONFIG_CRUX_SSH_SFTP": "y",
@@ -320,6 +337,22 @@ def cmake_cases(tree):
         ("a marker without the patched file", {"ZEPHYR_BASE_BROKEN": "no file"}, "is not the build-local Zephyr copy"),
         ("a Zephyr copy on another pin", {"ZEPHYR_BASE_BROKEN": "pin"}, "is not the build-local Zephyr copy"),
         ("a Zephyr copy with another patch", {"ZEPHYR_BASE_BROKEN": "file"}, "is not the build-local Zephyr copy"),
+    ])
+    # Row C11, D-c: the second patch of the copy, and the settings that make the stack use its key.
+    cases.extend([
+        ("a Zephyr copy without the initial sequence number marker", {"ZEPHYR_BASE_BROKEN": "no isn marker"},
+         "the fail-closed TCP initial sequence number patch (scripts/prepare-isn-fail-closed.py): .crux-isn-fail-closed is missing"),
+        ("a Zephyr copy without the patched tcp.c", {"ZEPHYR_BASE_BROKEN": "no isn file"},
+         "the fail-closed TCP initial sequence number patch (scripts/prepare-isn-fail-closed.py): .crux-isn-fail-closed is missing"),
+        ("an initial sequence number marker on another pin", {"ZEPHYR_BASE_BROKEN": "isn pin"},
+         "the marker .crux-isn-fail-closed differs"),
+        ("an initial sequence number marker of another patch", {"ZEPHYR_BASE_BROKEN": "isn patch"},
+         "the marker .crux-isn-fail-closed differs"),
+        ("a tcp.c that is not the patched one", {"ZEPHYR_BASE_BROKEN": "isn file"}, "subsys/net/ip/tcp.c differs"),
+        ("no RFC 6528 initial sequence number", {"CONFIG_NET_TCP_ISN_RFC6528": None},
+         "CONFIG_NET_TCP_ISN_RFC6528 is required"),
+        ("the test network stack", {"CONFIG_NET_TEST": "y"}, "skip tcp_init_isn() and are refused"),
+        ("the test TCP protocol", {"CONFIG_NET_TEST_PROTOCOL": "y"}, "skip tcp_init_isn() and are refused"),
     ])
     return cases
 
@@ -504,6 +537,20 @@ def check_cmake(tree):
             elif broken == "file":
                 zephyr, declaration = make_zephyr_base(tree, case_dir)
                 (zephyr / tree.declaration["patched_zephyr"]["patched_file"]).write_text("another file")
+            elif broken == "no isn marker":
+                zephyr, declaration = make_zephyr_base(tree, case_dir, isn_marker=False)
+            elif broken == "no isn file":
+                zephyr, declaration = make_zephyr_base(tree, case_dir)
+                (zephyr / isn_declared(tree)["patched_file"]).unlink()
+            elif broken == "isn pin":
+                zephyr, declaration = make_zephyr_base(tree, case_dir,
+                                                       isn_marker=f"{'0' * 40} {isn_declared(tree)['patch_sha256']}")
+            elif broken == "isn patch":
+                zephyr, declaration = make_zephyr_base(
+                    tree, case_dir, isn_marker=f"{tree.declaration['patched_zephyr']['zephyr_pin']} {'0' * 64}")
+            elif broken == "isn file":
+                zephyr, declaration = make_zephyr_base(tree, case_dir)
+                (zephyr / isn_declared(tree)["patched_file"]).write_text("another tcp.c")
             else:
                 zephyr, declaration = make_zephyr_base(tree, case_dir, states=states,
                                                        edits=change.get("DECLARATION_EDITS"))
@@ -534,6 +581,7 @@ def run_manifest(tree, directory, hash_value):
         script.write(f'set(CRUX_BENCH_DECLARATION_OVERRIDE "{tree.root / "bench_declaration.json"}")\n')
         for symbol in tree.selected_forms():
             script.write(f'set(CONFIG_{symbol} "y")\n')
+        script.write('set(CONFIG_NET_TCP_ISN_RFC6528 "y")\n')
         if hash_value is not None:
             script.write(f'set_property(GLOBAL PROPERTY CRUX_BENCH_FIRST_ACCOUNT_SHA256 "{hash_value}")\n')
         script.write(f'include("{tree.root / "bench_guard.cmake"}")\ncrux_bench_manifest()\n')
@@ -563,6 +611,22 @@ def check_manifest(tree):
             failures.append("the manifest does not say that the first account's plaintext is in the image")
         if record["test_forms"]["first_account_file"].get("set") is not True:
             failures.append("the manifest does not show the first account form as set")
+        # Row C11, D-c: the second patch of the build-local copy and the setting it relies on are in the record.
+        recorded = record.get("patched_zephyr", {}).get("isn_fail_closed", {})
+        declared_isn = isn_declared(tree)
+        expected_isn = {
+            "decision": declared_isn["decision"], "row": declared_isn["row"],
+            "marker_file": declared_isn["marker_file"], "patch": declared_isn["patch_name"],
+            "patch_sha256": declared_isn["patch_sha256"], "patched_file": declared_isn["patched_file"],
+            "original_file_sha256": declared_isn["original_file_sha256"],
+            "patched_file_sha256": declared_isn["patched_file_sha256"],
+            "requires_setting": "CONFIG_" + declared_isn["requires_setting"]}
+        if recorded != expected_isn:
+            failures.append(f"the manifest does not record the second patch of the Zephyr copy as declared: {recorded}")
+        if record.get("settings", {}).get("CONFIG_" + declared_isn["requires_setting"]) != "y":
+            failures.append("the manifest does not record the RFC 6528 initial sequence number setting")
+        if record.get("patched_zephyr", {}).get("patch_sha256") != tree.declaration["patched_zephyr"]["patch_sha256"]:
+            failures.append("the manifest no longer records the first patch of the Zephyr copy (D8)")
         bare = Path(scratch) / "bare"
         bare.mkdir()
         result = run_manifest(tree, bare, None)
@@ -596,6 +660,8 @@ C_GUARD_MESSAGES = (
     "The RAM disk image has no card",
     "needs the microSD File provider and the SD card driver",
     "The microSD image has no RAM disk",
+    "needs the RFC 6528 initial sequence number",
+    "CONFIG_NET_TEST and CONFIG_NET_TEST_PROTOCOL are refused",
 )
 
 
@@ -607,6 +673,7 @@ def good_c_definitions(tree):
         "CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI": "1",
         "CONFIG_BOARD_REVISION_B": "1",
         "CONFIG_ENTROPY_MCUX_TRNG": "1",
+        "CONFIG_NET_TCP_ISN_RFC6528": "1",
         "CRUX_BENCH_ADDRESS": f'"{net["address"]}"',
         "CRUX_BENCH_NETMASK": f'"{net["netmask"]}"',
         "CRUX_BENCH_IMAGE_ID": f'"{tree.declaration["image_id"]}"',
@@ -635,6 +702,11 @@ def c_cases(tree):
         ("a test random generator", {"CONFIG_TEST_RANDOM_GENERATOR": "1"}, "over the TRNG driver"),
         ("fake entropy", {"CONFIG_FAKE_ENTROPY_NATIVE_SIM": "1"}, "over the TRNG driver"),
         ("no TRNG driver", {"CONFIG_ENTROPY_MCUX_TRNG": None}, "over the TRNG driver"),
+        ("no RFC 6528 initial sequence number", {"CONFIG_NET_TCP_ISN_RFC6528": None},
+         "needs the RFC 6528 initial sequence number"),
+        ("the test network stack", {"CONFIG_NET_TEST": "1"}, "CONFIG_NET_TEST and CONFIG_NET_TEST_PROTOCOL are refused"),
+        ("the test TCP protocol", {"CONFIG_NET_TEST_PROTOCOL": "1"},
+         "CONFIG_NET_TEST and CONFIG_NET_TEST_PROTOCOL are refused"),
         ("no bench address", {"CRUX_BENCH_ADDRESS": None}, "did not reach the compiler"),
         ("no bench netmask", {"CRUX_BENCH_NETMASK": None}, "did not reach the compiler"),
         ("no image identity", {"CRUX_BENCH_IMAGE_ID": None}, "did not reach the compiler"),
@@ -797,6 +869,7 @@ def check_kconfig(tree, kconfiglib):
         kconf.syms["BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI"].set_value("y")
         kconf.syms["BOARD_REVISION"].set_value(tree.board["revision"])
         kconf.syms["ENTROPY_MCUX_TRNG"].set_value("y")
+        kconf.syms["NET_TCP_ISN_RFC6528"].set_value("y")  # Zephyr's default, which the image's second patch relies on
         kconf.syms["DISK_DRIVER_RAM"].set_value("y")  # the RAM disk's driver, which the declared file backend needs
 
     def card_board(kconf):
@@ -835,6 +908,7 @@ def check_kconfig(tree, kconfiglib):
         ("IPv6", lambda k: k.syms["NET_IPV6"].set_value("y")),
         ("RSA in wolfCrypt", lambda k: k.syms["WOLFSSL_RSA"].set_value("y")),
         ("a wolfSSL settings file", lambda k: k.syms["WOLFSSL_HAS_SETTINGS_FILE"].set_value("y")),
+        ("no RFC 6528 initial sequence number", lambda k: k.syms["NET_TCP_ISN_RFC6528"].set_value("n")),
     ]
     for name, apply in broken:
         kconf, directory = load()
@@ -980,6 +1054,38 @@ ARITHMETIC_MUTANTS = (
 )
 
 
+# Row C11 (D-c): the checks of the second patch of the build-local Zephyr copy and of the setting it relies on, in
+# bench_guard.cmake, each weakened once. Each must be seen by a case of check_cmake.
+ISN_MUTANTS = (
+    ("both the marker and the patched file must exist: only one is needed",
+     'if(NOT EXISTS "${isn_marker}" OR NOT EXISTS "${isn_patched}")', 'if(NOT EXISTS "${isn_marker}" AND NOT EXISTS "${isn_patched}")'),
+    ("the marker is not compared", 'if(NOT "${isn_marker_text}" STREQUAL "${BENCH_ZEPHYR_PIN} ${BENCH_ISN_PATCH_SHA256}")', "if(0)"),
+    ("the marker's pin is not compared", 'if(NOT "${isn_marker_text}" STREQUAL "${BENCH_ZEPHYR_PIN} ${BENCH_ISN_PATCH_SHA256}")',
+     'if(NOT "${isn_marker_text}" MATCHES "${BENCH_ISN_PATCH_SHA256}$")'),
+    ("the marker's patch hash is not compared", 'if(NOT "${isn_marker_text}" STREQUAL "${BENCH_ZEPHYR_PIN} ${BENCH_ISN_PATCH_SHA256}")',
+     'if(NOT "${isn_marker_text}" MATCHES "^${BENCH_ZEPHYR_PIN} ")'),
+    ("the patched file's hash is not compared", 'if(NOT "${isn_patched_hash}" STREQUAL "${BENCH_ISN_PATCHED_FILE_SHA256}")', "if(0)"),
+    ("the patched file's hash is compared with the first patch's file", 'STREQUAL "${BENCH_ISN_PATCHED_FILE_SHA256}")',
+     'STREQUAL "${BENCH_PATCHED_FILE_SHA256}")'),
+    ("the RFC 6528 setting is not required", "if(NOT CONFIG_${BENCH_ISN_REQUIRES_SETTING})", "if(0)"),
+    ("the test network stack is allowed", "if(CONFIG_NET_TEST OR CONFIG_NET_TEST_PROTOCOL)", "if(CONFIG_NET_TEST_PROTOCOL)"),
+    ("the test TCP protocol is allowed", "if(CONFIG_NET_TEST OR CONFIG_NET_TEST_PROTOCOL)", "if(CONFIG_NET_TEST)"),
+    ("the manifest leaves out the second patch", 'string(JSON zephyr SET "${zephyr}" isn_fail_closed "${isn}")', ""),
+    ("the manifest records the wrong patch hash", r'string(JSON isn SET "${isn}" patch_sha256 "\"${BENCH_ISN_PATCH_SHA256}\"")',
+     r'string(JSON isn SET "${isn}" patch_sha256 "\"${BENCH_PATCH_SHA256}\"")'),
+    ("the manifest does not record the setting", "NET_TCP_MAX_|NET_TCP_ISN_RFC6528|", "NET_TCP_MAX_|"),
+)
+
+# The same in src/bench_guard.h.
+ISN_HEADER_MUTANTS = (
+    ("the setting is not required", "#if !defined(CONFIG_NET_TCP_ISN_RFC6528)", "#if 0"),
+    ("the test network stack is allowed", "#if defined(CONFIG_NET_TEST) || defined(CONFIG_NET_TEST_PROTOCOL)",
+     "#if defined(CONFIG_NET_TEST_PROTOCOL)"),
+    ("the test TCP protocol is allowed", "#if defined(CONFIG_NET_TEST) || defined(CONFIG_NET_TEST_PROTOCOL)",
+     "#if defined(CONFIG_NET_TEST)"),
+)
+
+
 def mutants(root):
     """Yield (description, relative file, mutated text, group). Each weakens one guard."""
     root = Path(root)
@@ -992,7 +1098,13 @@ def mutants(root):
     for description, old_text, new_text in ARITHMETIC_MUTANTS:
         mutated = cmake.replace(old_text, new_text, 1) if old_text in cmake else None
         yield (f"bench_guard.cmake, row C6 rule: {description}", "bench_guard.cmake", mutated, "cmake")
+    for description, old_text, new_text in ISN_MUTANTS:
+        mutated = cmake.replace(old_text, new_text, 1) if old_text in cmake else None
+        yield (f"bench_guard.cmake, row C11 rule: {description}", "bench_guard.cmake", mutated, "cmake")
     header = (root / "src" / "bench_guard.h").read_text()
+    for description, old_text, new_text in ISN_HEADER_MUTANTS:
+        mutated = header.replace(old_text, new_text, 1) if old_text in header else None
+        yield (f"bench_guard.h, row C11 rule: {description}", "src/bench_guard.h", mutated, "c")
     directives = [m.start() for m in re.finditer(r"^#error", header, re.MULTILINE)]
     for index, at in enumerate(directives):
         line = header[:at].count("\n") + 1

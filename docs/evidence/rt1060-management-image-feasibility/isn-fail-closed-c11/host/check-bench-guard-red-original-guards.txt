@@ -1,0 +1,19 @@
+bench_guard.cmake, a Zephyr copy without the initial sequence number marker: not refused for its reason (the fail-closed TCP initial sequence number patch (scripts/prepare-isn-fail-closed.py): .crux-isn-fail-closed is missing): rc=0 
+bench_guard.cmake, a Zephyr copy without the patched tcp.c: not refused for its reason (the fail-closed TCP initial sequence number patch (scripts/prepare-isn-fail-closed.py): .crux-isn-fail-closed is missing): rc=0 
+bench_guard.cmake, an initial sequence number marker on another pin: not refused for its reason (the marker .crux-isn-fail-closed differs): rc=0 
+bench_guard.cmake, an initial sequence number marker of another patch: not refused for its reason (the marker .crux-isn-fail-closed differs): rc=0 
+bench_guard.cmake, a tcp.c that is not the patched one: not refused for its reason (subsys/net/ip/tcp.c differs): rc=0 
+bench_guard.cmake, no RFC 6528 initial sequence number: not refused for its reason (CONFIG_NET_TCP_ISN_RFC6528 is required): rc=0 
+bench_guard.cmake, the test network stack: not refused for its reason (skip tcp_init_isn() and are refused): rc=0 
+bench_guard.cmake, the test TCP protocol: not refused for its reason (skip tcp_init_isn() and are refused): rc=0 
+the manifest does not record the second patch of the Zephyr copy as declared: {}
+the manifest does not record the RFC 6528 initial sequence number setting
+bench_guard.h, no RFC 6528 initial sequence number: not refused for its reason (needs the RFC 6528 initial sequence number): 
+bench_guard.h, the test network stack: not refused for its reason (CONFIG_NET_TEST and CONFIG_NET_TEST_PROTOCOL are refused): 
+bench_guard.h, the test TCP protocol: not refused for its reason (CONFIG_NET_TEST and CONFIG_NET_TEST_PROTOCOL are refused): 
+Kconfig.bench, no RFC 6528 initial sequence number: the declaration is not refused
+Kconfig.bench, no RFC 6528 initial sequence number: CRUX_BENCH_FILE_RAM_DISK is accepted without the declaration
+Kconfig.bench, no RFC 6528 initial sequence number: CRUX_BENCH_FIRST_ACCOUNT_FILE is accepted without the declaration
+Kconfig.bench, no RFC 6528 initial sequence number: CRUX_BENCH_NO_TIME_SOURCE is accepted without the declaration
+Kconfig.bench, no RFC 6528 initial sequence number: CRUX_BENCH_TEST_HOST_KEY is accepted without the declaration
+CMake: FAILED; C: FAILED; Kconfig: FAILED
