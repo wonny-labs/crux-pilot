@@ -42,12 +42,13 @@ class Case(unittest.TestCase):
         self.m5, self.entry, self.normal = (str(self.root / name) for name in ('m5.bin', 'entry.bin', 'normal.bin'))
         for path in (self.m5, self.entry, self.normal):
             Path(path).write_bytes(path.encode())
-        self.commands, self.checks, self.responses, self.events = [], [], [], []
+        self.commands, self.checks, self.responses, self.events, self.limits, self.guard_limits = [], [], [], [], [], []
         self.now, self.reverified, self.port = 1000., [], Port()
         self.guard_error = None
 
-    def probe(self, commands, output):
+    def probe(self, commands, output, seconds):
         self.commands.append(commands)
+        self.limits.append(seconds)
         self.events.append('probe')
         response = self.responses.pop(0) if self.responses else GOOD
         if isinstance(response, Exception):
@@ -58,8 +59,9 @@ class Case(unittest.TestCase):
         Path(output).write_text(response)
         return response
 
-    def preconditions(self, directory, label):
+    def preconditions(self, directory, label, seconds):
         self.checks.append(label)
+        self.guard_limits.append(seconds)
         self.now += getattr(self, 'check_seconds', 0)
         if self.guard_error:
             raise self.guard_error
@@ -422,7 +424,7 @@ class Inputs(Case):
 class RealParts(Case):
     """The real wiring with every host call faked: ownership before and after this process holds the UART."""
 
-    def wired(self):
+    def wired(self, session=None):
         import os
         from types import ModuleType
         import capture_m3_network as m3net
@@ -456,7 +458,9 @@ class RealParts(Case):
         self.inventories['lsof-tty'] = host_fixtures.completed('lsof_tty_unopened')          # real: exit 1, nothing printed
         self.inventories['ps'] = host_fixtures.completed('ps_axo_system_processes')
         self.directory.mkdir()
-        return program.real_parts(SimpleNamespace(evidence=self.directory), {}), port
+        if session is None:                             # a guard that runs for two more hours, the guard's default lifetime
+            session = dict(deadline=program.m3_clock.monotonic() + 7200)
+        return program.real_parts(SimpleNamespace(evidence=self.directory), session), port
 
     def test_unowned_before_and_self_owned_after_acquisition(self):
         (preconditions, probe, acquire), port = self.wired()
@@ -503,12 +507,12 @@ class RealParts(Case):
         (preconditions, probe, acquire), port = self.wired()
         text = (host_fixtures.DIRECTORY / 'jlink-loadfile-verifybin-quit-diagnostic.log').read_text()
         commands = 'loadfile "<image>.bin", 0x60000000\nverifybin "<image>.bin", 0x60000000\nq\n'
-        def commander(probe_id, given, output):
+        def commander(probe_id, given, output, seconds):
             output.write_text(text)
             raise HardwareStop('Probe diagnostic; stop hardware changes')       # as the M3 wrapper does after a zero exit
         output = self.directory / 'load.log'
         with patch.object(capture_m3, 'commander', commander):
-            self.assertEqual(probe(commands, output), text)
+            self.assertEqual(probe(commands, output, 30), text)
         record = json.loads(output.with_suffix('.diagnostic-accepted.json').read_text())
         self.assertEqual(record['diagnostic'], '****** Error: Could not start CPU core. (ErrorCode: -1)')
 
@@ -518,11 +522,11 @@ class RealParts(Case):
         real = (host_fixtures.DIRECTORY / 'jlink-loadfile-verifybin-quit-diagnostic.log').read_text()
         text = real.replace('J-Link>q', 'J-Link>IsHalted\nCPU is halted (PC = 0x600156C2).\nJ-Link>q', 1)
         commands = 'verifybin "<image>.bin", 0x60000000\nIsHalted\nq\n'
-        def commander(probe_id, given, output):
+        def commander(probe_id, given, output, seconds):
             output.write_text(text)
             raise HardwareStop('Probe diagnostic; stop hardware changes')
         with patch.object(capture_m3, 'commander', commander):
-            self.assertEqual(probe(commands, self.directory / 'halted.log'), text)
+            self.assertEqual(probe(commands, self.directory / 'halted.log', 30), text)
 
     def test_any_other_diagnostic_or_context_still_stops(self):
         import host_fixtures
@@ -551,13 +555,13 @@ class RealParts(Case):
         }
         for number, (name, (text, commands)) in enumerate(cases.items()):
             with self.subTest(name):
-                def commander(probe_id, given, output, text=text):
+                def commander(probe_id, given, output, seconds, text=text):
                     output.write_text(text)
                     raise HardwareStop('Probe diagnostic; stop hardware changes')
                 output = self.directory / ('case%d.log' % number)         # one output per case: a wrong acceptance cannot leak into the next
                 with patch.object(capture_m3, 'commander', commander):
                     with self.assertRaisesRegex(HardwareStop, 'Probe diagnostic'):
-                        probe(commands, output)
+                        probe(commands, output, 30)
                 self.assertFalse(output.with_suffix('.diagnostic-accepted.json').exists())
 
     def test_other_wrapper_failures_are_never_reinterpreted(self):
@@ -568,12 +572,26 @@ class RealParts(Case):
                         'Probe timeout; state uncertain; no further hardware changes',
                         'Unexpected probe firmware maintenance; stop all target operations'):
             with self.subTest(message):
-                def commander(probe_id, given, output, message=message):
+                def commander(probe_id, given, output, seconds, message=message):
                     output.write_text(real)
                     raise HardwareStop(message)
                 with patch.object(capture_m3, 'commander', commander):
                     with self.assertRaisesRegex(HardwareStop, message.split(';')[0]):
-                        probe('verifybin "<image>.bin", 0x60000000\nq\n', self.directory / 'y.log')
+                        probe('verifybin "<image>.bin", 0x60000000\nq\n', self.directory / 'y.log', 30)
+
+    def test_the_step_limit_reaches_the_one_accepted_wrapper_and_the_guard_keeps_90_s(self):
+        (preconditions, probe, acquire), port = self.wired()
+        seen, guards = [], []
+        def commander(probe_id, given, output, seconds):
+            seen.append((probe_id, seconds))
+            return GOOD
+        with patch.object(capture_m3, 'commander', commander):
+            probe('q\n', self.directory / 'z.log', 60)
+        self.assertEqual(seen, [(runner.PROBE, 60)])
+        import capture_m3_network as m3net
+        with patch.object(m3net, 'guard_check', lambda session, directory, label, remaining, **k: guards.append(remaining)):
+            preconditions(self.directory, 'g')
+        self.assertEqual(guards, [program.GUARD_SECONDS])
 
     def test_acquisition_releases_the_lock_when_the_port_cannot_be_opened(self):
         (preconditions, probe, acquire), port = self.wired()
