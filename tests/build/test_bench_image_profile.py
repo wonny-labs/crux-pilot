@@ -17,12 +17,14 @@ import unittest
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[0]
 sys.path.insert(0, str(ROOT / 'target'))
+sys.path.insert(0, str(HERE))
 from test_m3_image import OTHER_OPTIMIZATIONS, fixture
 import bench_image
 import image_profile
 import m5_image
 import prepare_m5_network
 import s2_image
+from frozen_zephyr_fixtures import Frozen
 
 FIXTURES = HERE / 'fixtures' / 'bench-image'
 FACTS = json.loads((FIXTURES / 'facts.json').read_text())
@@ -65,9 +67,15 @@ def without(symbol):
     return [s for s in SYMBOLS if s[0] != symbol]
 
 
+def zephyr_roles(root):
+    """The two frozen roles of the patched Zephyr copy (a hand-written frozen folder, see frozen_zephyr_fixtures.py)."""
+    frozen = Frozen(Path(root) / 'frozen')
+    return dict(bench_manifest=frozen.manifest, patched_zephyr=frozen.record_path)
+
+
 def check(config=CONFIG, symbols=SYMBOLS):
     with tempfile.TemporaryDirectory() as tmp:
-        return bench_image.check_image(*synthetic_image(Path(tmp), config, symbols))
+        return bench_image.check_image(*synthetic_image(Path(tmp), config, symbols), **zephyr_roles(tmp))
 
 
 def drop(*lines):
@@ -163,7 +171,7 @@ class GroupMismatches(unittest.TestCase):
             paths = synthetic_image(Path(tmp))
             paths[0].write_bytes(paths[0].read_bytes()[:-1] + b'x')
             with self.assertRaises(ValueError):
-                bench_image.check_image(*paths)
+                bench_image.check_image(*paths, **zephyr_roles(tmp))
 
 
 class RefusesOtherImages(unittest.TestCase):
@@ -189,7 +197,7 @@ class RefusesOtherImages(unittest.TestCase):
         for profile in ('network',):
             with tempfile.TemporaryDirectory() as tmp:
                 with self.assertRaises(ValueError):
-                    bench_image.check_image(*fixture(Path(tmp), profile))
+                    bench_image.check_image(*fixture(Path(tmp), profile), **zephyr_roles(tmp))
 
 
 def m5_constants():
@@ -202,7 +210,7 @@ class FirmwareIdentity(unittest.TestCase):
     def test_check_image_returns_the_identity_the_recorder_computes(self):
         with tempfile.TemporaryDirectory() as tmp:
             paths = synthetic_image(Path(tmp))
-            facts = bench_image.check_image(*paths)
+            facts = bench_image.check_image(*paths, **zephyr_roles(tmp))
             identity = dict(algorithm=RECORDER.FIRMWARE_IDENTITY_ALGORITHM, target='mimxrt1060_evk@B//qspi',
                             image_sha256=hashlib.sha256(paths[0].read_bytes()).hexdigest(),
                             configuration_sha256=hashlib.sha256(RECORDER.normalised_config(paths[2].read_bytes())).hexdigest())
@@ -211,9 +219,10 @@ class FirmwareIdentity(unittest.TestCase):
     def test_the_identity_follows_the_image_and_the_configuration(self):
         with tempfile.TemporaryDirectory() as tmp:
             binary, elf, config = synthetic_image(Path(tmp))
-            first = bench_image.check_image(binary, elf, config)['firmware_identity']
+            roles = zephyr_roles(tmp)
+            first = bench_image.check_image(binary, elf, config, **roles)['firmware_identity']
             config.write_text(CONFIG + '# CONFIG_NOTHING is not set\n')
-            self.assertNotEqual(bench_image.check_image(binary, elf, config)['firmware_identity'], first)
+            self.assertNotEqual(bench_image.check_image(binary, elf, config, **roles)['firmware_identity'], first)
 
     def test_the_recorded_configuration_and_image_hash_reproduce_the_recorded_identity(self):
         recorded = json.loads((EVIDENCE / 'firmware-identity.json').read_text())
@@ -244,7 +253,8 @@ class Profile(unittest.TestCase):
         self.assertEqual((p.name, p.manifest_path, p.commit_tag, p.errno_suffix, p.capture),
                          ('crux-mgmt-bench-rt1060-evkb-b', 'crux-pilot', False, None, 'raw'))
         self.assertEqual((dict(p.modules), dict(p.module_paths)), ({}, {}))
-        self.assertEqual(p.tool_scripts, ('record-build-provenance.py',))
+        self.assertEqual(p.tool_scripts, ('record-build-provenance.py', 'freeze-patched-zephyr.sh'))
+        self.assertEqual(p.extra_roles, ('bench_manifest', 'patched_zephyr'))
         self.assertIs(p.check_image, bench_image.check_image)
         self.assertIn('crux-mgmt-bench-rt1060-evkb-b', PLAN)
 

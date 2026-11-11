@@ -401,7 +401,7 @@ class Profiles(Case):
         # A new field is a new way for a profile to change behaviour: this list must change in the same reviewed change.
         self.assertEqual({f.name for f in fields(ImageProfile)},
                          {'name', 'manifest_path', 'pinned', 'pinned_paths', 'check_image', 'commit_tag', 'errno_suffix',
-                          'tool_scripts', 'modules', 'module_paths', 'capture', 'capture_seconds'})
+                          'tool_scripts', 'modules', 'module_paths', 'capture', 'capture_seconds', 'extra_roles'})
         for gate in ('guard', 'skip_guard', 'owners', 'skip_owners', 'voltage', 'retry', 'entry_verify', 'restore', 'budget', 'unsafe'):
             with self.subTest(gate=gate), self.assertRaises(TypeError):
                 synthetic_profile(**{gate: True})

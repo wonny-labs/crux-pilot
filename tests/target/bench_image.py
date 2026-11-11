@@ -4,8 +4,10 @@ Built, tested, and deliberately NOT registered in ``PROFILES`` of ``prepare_m5_n
 in docs/board-image-profiles.md (B2, B4, B5, B1, D-b to D-f) come first, and a registered profile would let a freeze
 record a Zephyr tree that was never compiled. Every fact below is taken from docs/rt1060-bench-image-plan.md, section
 "The image profile input", and from the recorded real cross-build (docs/evidence/rt1060-management-image-feasibility/
-image-plan-c8). Nothing here ran on a board, and the check reads only the BIN, the ELF and the resolved ``.config`` that
-a freeze holds: it never trusts the build tree.
+image-plan-c8). Nothing here ran on a board, and the check reads only the BIN, the ELF, the resolved ``.config`` and the
+two frozen records of the patched Zephyr copy (the bench manifest and ``patched-zephyr.json`` with the artefacts it names)
+that a freeze holds: it never trusts the build tree and never reads the Zephyr copy (docs/rt1060-bench-freeze-and-capture-design.md,
+part 1; the freeze is ``patched_zephyr.py``).
 """
 import hashlib
 import importlib.util
@@ -13,6 +15,7 @@ from pathlib import Path
 import struct
 
 from image_profile import ImageProfile, MAX_CAPTURE_SECONDS
+import patched_zephyr as zephyr_freeze
 from m3_image import check_image_bytes, check_optimization, require
 
 NAME = 'crux-mgmt-bench-rt1060-evkb-b'          # the image id of the declaration and of the banner; the registry key must equal it
@@ -119,8 +122,11 @@ def symbol_sizes(elf_path):
     return {name: sorted(values) for name, values in sizes.items()}
 
 
-def check_image(binary_path, elf_path, config_path):
-    """Verify the frozen bytes of the bench image and return the facts. Raises ValueError on any mismatch."""
+def check_image(binary_path, elf_path, config_path, *, bench_manifest, patched_zephyr):
+    """Verify the frozen bytes of the bench image and return the facts. Raises ValueError on any mismatch.
+
+    ``bench_manifest`` and ``patched_zephyr`` (the frozen ``bench-manifest.json`` and ``patched-zephyr.json``) are required
+    keyword arguments with no default: there is no way to skip the group, and a missing artefact is a refusal."""
     geometry = check_image_bytes(binary_path, elf_path)
     config = Path(config_path).read_text().splitlines()
     lines = set(config)
@@ -134,15 +140,17 @@ def check_image(binary_path, elf_path, config_path):
     for name, expected in STACK_OBJECTS.items():
         require(sizes.get(name) == expected, 'Stack objects differ: ' + name)
     require('m5_observer' not in sizes, 'M5 observer in a bench image')
+    zephyr = zephyr_freeze.check_record(bench_manifest, patched_zephyr, PINNED['zephyr'])
     return dict(elf_sections_match_bin=True, gap_fill=255, bin_address=0x60000000, bin_bytes=geometry['binary_bytes'],
                 main_stack=geometry['symbols']['z_main_stack'], stack_objects={n: sizes[n] for n in STACK_OBJECTS},
                 firmware_identity=firmware_identity_of(hashlib.sha256(Path(binary_path).read_bytes()).hexdigest(),
-                                                       Path(config_path).read_bytes()))
+                                                       Path(config_path).read_bytes()),
+                patched_zephyr=zephyr)
 
 
 def bench_profile():
     """The bench image profile. Not registered: see the module docstring and docs/board-image-profiles.md."""
     return ImageProfile(name=NAME, manifest_path=MANIFEST_PATH, pinned=PINNED, pinned_paths=PINNED_PATHS,
                         check_image=check_image, commit_tag=False, errno_suffix=None,
-                        tool_scripts=('record-build-provenance.py',), capture='raw',
-                        capture_seconds=BENCH_CAPTURE_SECONDS)
+                        tool_scripts=('record-build-provenance.py', 'freeze-patched-zephyr.sh'), capture='raw',
+                        capture_seconds=BENCH_CAPTURE_SECONDS, extra_roles=('bench_manifest', 'patched_zephyr'))
