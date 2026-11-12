@@ -65,3 +65,31 @@ Every skill, command and agent below is named with the `ecc:` prefix. The table 
 | Small or mechanical change | none | Sonnet | None. |
 
 Do not use these ECC skills without the owner's approval. They commit, push, open PRs, post reviews or send code outside the session: `ecc:astra-review` sends the diff to OpenAI, PR-mode `ecc:code-review` posts `gh pr review --approve` or `--request-changes`, which can look like an approval, and the `ecc:orch-*` workflows (some commit or open PRs), `ecc:prp-commit`, `ecc:prp-pr`, `ecc:pr` and `ecc:multi-*` commit, open PRs or call external models.
+
+Do not use these ECC agents and skills without the owner's approval. They write to protected paths, `.claude/`, `~/.claude` or `docs/`: `ecc:harness-optimizer` (edits hooks, agents, skills and settings), `ecc:doc-updater` (generates `docs/CODEMAPS/*`, edits READMEs), `ecc:agent-sort`, `ecc:living-docs-governance`, and `ecc:skill-stocktake` when it would change files. `ecc:rules-distill` stays barred, as the table says.
+
+### Extra review lenses
+
+These agents are optional input for the author and the `reviewer` agent. They add to the mandatory `reviewer` agent and never replace it. Their findings are not a verdict and gate nothing. They have no Write or Edit tools but do have Bash: tell them not to change files. Use one only when the change touches that kind of code:
+
+- `ecc:python-reviewer`: Python test tooling and scripts, such as `tests/target/` and `tests/build/`.
+- `ecc:silent-failure-hunter`: C error paths and scripts, for swallowed errors and bad fallbacks.
+- `ecc:pr-test-analyzer`: behavioural test coverage of a change.
+- `ecc:security-reviewer`: secure-management, TLS, SSH, credential and access code.
+
+`ecc:cpp-reviewer` and the `ecc:cpp-coding-standards` skill target C++, not this repository's C17 code. Use them only for C++ test code.
+
+### ECC rules and contexts
+
+Do not install ECC `rules/` or load ECC `contexts/`. A plugin cannot distribute `rules/` (per the ECC README), and they conflict with this repository:
+
+- `rules/common/git-workflow.md` notes that ECC installs set `includeCoAuthoredBy` to false, so commits carry no `Co-Authored-By` trailer, and its PR steps say to push the branch, with no Gate 2 or protected-path rule.
+- `rules/common/agents.md` says to use `ecc:planner`, `ecc:code-reviewer`, `ecc:tdd-guide` and `ecc:architect` with "No user prompt needed".
+- `contexts/dev.md` says "Write code first, explain after", against TDD.
+
+### Session memory and learning
+
+- ECC's session-end hook writes summaries to `~/.claude/session-data/`. They hold the first 200 characters of each user message, edited file names and tool names (a model-written summary may be added). A session start can inject a "previous session" summary, and a parallel session or worktree of this repository can be its source. Treat it as stale and verify facts in the repository, issues and PRs. The Claude Code auto-memory is the record of owner decisions.
+- Do not use `/resume-session`: with no argument it loads the newest file in the folder, whatever the project. Use `/sessions` to pick a file when needed.
+- Do not enable the background observer (`skills/continuous-learning-v2/config.json` has `observer.enabled: false`). Do not run `/evolve --generate`, `/promote` or `/instinct-import` without the owner's approval.
+- Propose learned patterns only through `/learn-eval`, which asks before saving. Save them project-scoped and only what the owner approves. Instincts are for tool-use habits. Owner decisions and preferences stay in the auto-memory.
