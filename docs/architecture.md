@@ -334,9 +334,9 @@ The rule:
 1. **A result that proves only a narrow slice stays labelled as that slice.** The label names the slice: the component, environment, configuration, board, client and revision. It travels with the result when another document cites it.
 2. **A recorded limitation that blocks the central hypothesis keeps the criterion Open, Blocked or Failed.** It is not counted as validated, whatever else passed.
 3. **A narrow success never closes a broader criterion.** A result for one environment does not close a criterion worded for another, and the [evidence kinds above](#engineering-and-validation-boundaries) do not imply one another. For example, a `native_sim` run of a management service is a `native_sim` result, and a criterion worded for a board stays Open or Blocked.
-4. **Limits are written next to the result they limit**: in the same row, paragraph or status line, not only in another document or a later section. A limitation found after a result was recorded is added next to that result in the maintained document that cites it, with a link to the evidence. Accepted evidence records stay unchanged, as `AGENTS.md` requires.
+4. **Limits are written next to the result they limit**: in the same row, paragraph or status line, not only in another document or a later section.
 
-Do not close an issue or a milestone on a criterion that is not Validated ([AGENTS.md](../AGENTS.md#autonomous-work-and-review-boundaries)). The [component readiness table](component-readiness.md) applies the same reading to each component's evidence.
+The [component readiness table](component-readiness.md) applies the same reading to each component's evidence.
 
 ## Extending Crux
 
