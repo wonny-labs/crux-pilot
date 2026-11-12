@@ -1,6 +1,6 @@
 # Crux Initial Implementation Plan
 
-Status: Historical. The Time Pilot plan with the Pilot milestones M0–M5, as `AGENTS.md` calls it; kept as a record. Its table below was last updated on 17 October 2026, so its "M4 hardware evidence remains pending" is not current: see [implementation status](../implementation-status.md) for the recorded evidence and GitHub milestones for current delivery status.
+Status: historical record. The Time Pilot plan with the Pilot milestones M0–M5, as `AGENTS.md` calls it; kept as a record. The Status row in its table below is as of 17 October 2026, so its "M4 hardware evidence remains pending" is not current: see [implementation status](../implementation-status.md) for the recorded evidence and GitHub milestones for current delivery status.
 
 | Item | Baseline |
 | --- | --- |

@@ -1,6 +1,6 @@
 # Portable networking implementation plan
 
-Status: Historical. Implementation plan for the Pilot milestone M5 networking work (merged in PR #38); kept as a record. The approved design is in [the networking proposal](m5-networking-proposal.md).
+Status: historical record. Implementation plan for Issue #28 (sockets and network interface) in the M5 milestone of Issues #25–#30, not the Time Pilot M5; merged in PR #38 and kept as a record. Issue #28 itself is still open. The approved design is in [the networking proposal](m5-networking-proposal.md).
 
 > Execute inline with superpowers:executing-plans and TDD; independent whole-branch review before Draft PR.
 
