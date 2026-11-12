@@ -27,6 +27,11 @@ A mode runs once per evidence parent directory.
   restore   identity probe, ``loadfile`` + ``verifybin`` of the exact normal BIN, a second
             read-only full ``verifybin``, then reset and go with a passive UART capture open
             (raw bytes kept; its acceptance analysis is a separate offline replay)
+  watch     read-only: no probe command at all. One step of checks (guard check requiring 90 s
+            plus the window, ownership inventory, adapter identity, series budget, manifest
+            re-verification, guard deadline re-check), then a passive raw UART capture of the
+            profile's ``watch_seconds`` (at most 3600 s); for a profile that has a watch window
+            only, after ``program`` has finished and released the port. Writes nothing to the board.
 """
 import argparse
 import fcntl
@@ -42,11 +47,13 @@ import capture_m3_network as m3net
 import capture_m5_network as runner
 import m3_clock
 from capture_m3 import HardwareStop
+from image_profile import MAX_WATCH_SECONDS
 from m5_bench import BENCH, only_process_owns
-from uart_raw_capture import CaptureSpec
+from uart_raw_capture import CaptureSpec, WatchSpec
 
 BASE = 0x60000000
-MODES = ('identify', 'program', 'restore')
+MODES = ('identify', 'program', 'restore', 'watch')
+CAPTURE_MODES = ('program', 'watch')            # the modes that may carry a capture; watch must, and runs no probe command
 OBSERVE_SECONDS = 15
 RESERVE_BEFORE, RESERVE_AFTER = 120, 45        # the accepted wrappers' whole-series reserves before and after the guard
 COMMAND_SECONDS = capture_m3.COMMAND_SECONDS   # the default limit of one Commander run (30 s)
@@ -56,6 +63,12 @@ GUARD_RUN_MARGIN = 2                           # just before the run: the 1 s re
 # runs (fixtures/programmer-split) took at most 4.52 s per range for compare, erase, program and the loader's verify,
 # 2.49 s fixed (prepare, restore), and at most about 4.9 s per 128 KiB for a read-back: 10 s each keeps twice that.
 RANGE_BYTES, SECONDS_BASE, SECONDS_PER_RANGE = 128 * 1024, 10, 10
+# The watch mode (blocker B4, option X, owner decision 2026-11-12). Its series is 300 s plus the window (decision D5): the
+# acquisition checks and the one step of checks need far less than the 900 s of three Commander steps. Its one guard check
+# requires 90 s plus the window (D3) and is not repeated inside the window (D4). WATCH_CLOSE_SECONDS is what the series
+# and the guard deadline must still hold after the window: the reader's 1 s join and the evidence files written at close.
+WATCH_SERIES_BASE = 300
+WATCH_CLOSE_SECONDS = 5
 
 
 def require(condition, message):
@@ -84,6 +97,26 @@ def guard_seconds(seconds):
     """Guard time that must be left at the check before a run of ``seconds``: 90 s for 30 s, plus what a run exceeds 30 s
     (as the series reserves grow). 120 s for a 60 s run, 140 s at the 80 s ceiling; the guard lives at least 300 s."""
     return GUARD_SECONDS + max(0, seconds - COMMAND_SECONDS)
+
+
+def watch_series_seconds(spec):
+    """The series budget of the watch mode: 300 s plus its window (decision D5)."""
+    return WATCH_SERIES_BASE + spec.seconds
+
+
+def require_guard_window(guard_session, seconds, clock=m3_clock.monotonic):
+    """The watch mode's last check before the capture opens: the guard deadline must outlive the window and the close.
+
+    The counterpart of the deadline re-check before every probe command (``real_parts.probe``). The guard is not checked
+    again inside the window (decision D4), so this is the only promise that it covers the window."""
+    deadline = guard_session.get('deadline')
+    require(type(deadline) in (int, float) and clock() + seconds + WATCH_CLOSE_SECONDS < deadline,
+            'Guard deadline would lapse during the watch window; no capture')
+
+
+def no_probe(commands, output, seconds):
+    """The probe of the watch mode: it refuses. The mode has no probe command, and ``Driver.run`` refuses before this."""
+    raise HardwareStop('The watch mode runs no probe command')
 
 
 _SECONDS = r'\d+(?:\.\d+)?'
@@ -133,7 +166,13 @@ class Driver:
     def __init__(self, plan, approval, mode, directory, *, probe, preconditions, acquire=None, images=None, reverify=None,
                  clock=m3_clock.monotonic, series_seconds=900, capture=None):
         require(mode in MODES, 'Unknown mode')
-        require(capture is None or mode == 'program', 'A capture is allowed only for the program mode')
+        require(capture is None or mode in CAPTURE_MODES, 'A capture is allowed only for the program mode and the read-only watch mode')
+        require(not isinstance(capture, WatchSpec) or mode == 'watch', 'The watch window is for the watch mode only')
+        require(mode != 'watch' or (capture is not None and reverify is not None),
+                'The watch mode needs its capture window and the manifest re-verification')
+        require(mode != 'watch' or isinstance(capture, WatchSpec), 'The watch mode needs a WatchSpec window, never a program window')
+        require(mode != 'watch' or (type(capture.seconds) is int and 1 <= capture.seconds <= MAX_WATCH_SECONDS),
+                'The watch window must be a whole number of seconds from 1 to %d' % MAX_WATCH_SECONDS)
         runner.validate_approval(approval, plan)       # also requires every plan operation to be approved
         self.mode, self.directory, self.clock = mode, Path(directory), clock
         self.probe_command, self.preconditions, self.acquire = probe, preconditions, acquire
@@ -179,25 +218,41 @@ class Driver:
         self.safe(path)
         return 'verifybin "%s", 0x%X\n%sq\n' % (path, BASE, 'IsHalted\n' if halted else '')
 
+    def _checks(self, label, entry, seconds, extra, *, images=(), reverify=False, before=None, remaining=None,
+                subject='probe command'):
+        """The gate sequence of one step, shared by ``run`` and ``watch`` so that the two cannot drift. Returns the label.
+
+        In this order: the series reserve before the checks, the ``checks`` record, the guard check, ownership inventory and
+        adapter identity (``preconditions``), the reserve after them, the image hashes, the manifest re-verification, and
+        ``before`` as the very last thing. ``extra`` is what both reserves grow by. ``remaining`` (the watch mode only) is the
+        guard time the check must require; without it ``preconditions`` derives it from ``seconds`` exactly as before.
+        """
+        self.step += 1
+        label = '%02d-%s' % (self.step, label)
+        require(self.clock() + RESERVE_BEFORE + extra < self.end, 'Insufficient series budget for the next ' + subject)
+        self.note(step=label, **entry)
+        if remaining is None:
+            self.preconditions(self.directory, label, seconds)   # the guard time it requires grows with the limit
+        else:
+            self.preconditions(self.directory, label, seconds, remaining=remaining)
+        require(self.clock() + RESERVE_AFTER + extra < self.end, 'Series budget exhausted by the guard and ownership checks')
+        for path in images:                            # the bytes about to be loaded or compared are the approved ones
+            require(path in self.pinned and sha(path) == self.pinned[path], 'Image changed since approval: ' + str(path))
+        if (images or reverify) and self.reverify:
+            self.reverify()
+        if before:                                     # only after every check above; the very next thing is the probe command
+            before()
+        return label
+
     def run(self, label, commands, *, images=(), before=None, seconds=COMMAND_SECONDS):
         """One guarded probe command, limited to ``seconds``. Anything unexpected raises HardwareStop and nothing else runs.
 
         Both series reserves grow by what the limit exceeds the default 30 s, so a longer run never eats the margin.
         """
         require(type(seconds) is int and 1 <= seconds <= capture_m3.MAX_COMMAND_SECONDS, 'Commander limit outside the ceiling')
-        extra = max(0, seconds - COMMAND_SECONDS)
-        self.step += 1
-        label = '%02d-%s' % (self.step, label)
-        require(self.clock() + RESERVE_BEFORE + extra < self.end, 'Insufficient series budget for the next probe command')
-        self.note(step=label, commands=commands, state='checks', limit_seconds=seconds)
-        self.preconditions(self.directory, label, seconds)   # the guard time it requires grows with the limit
-        require(self.clock() + RESERVE_AFTER + extra < self.end, 'Series budget exhausted by the guard and ownership checks')
-        for path in images:                            # the bytes about to be loaded or compared are the approved ones
-            require(path in self.pinned and sha(path) == self.pinned[path], 'Image changed since approval: ' + str(path))
-        if images and self.reverify:
-            self.reverify()
-        if before:                                     # only after every check above; the very next thing is the probe command
-            before()
+        require(self.mode != 'watch', 'The watch mode runs no probe command')
+        label = self._checks(label, dict(commands=commands, state='checks', limit_seconds=seconds), seconds,
+                             max(0, seconds - COMMAND_SECONDS), images=images, reverify=bool(images), before=before)
         output = self.directory / (label + '.log')
         text = self.probe_command(commands, output, seconds)
         check_identity(text)
@@ -363,6 +418,45 @@ class Driver:
         capture.finish()
         return dict(status='NORMAL_RESTORED_VERIFIED_STARTED', capture=capture.summary())
 
+    def watch(self, guard_window):
+        """The read-only watch: one step of checks, then the profile's passive raw capture for its window. No probe command.
+
+        The step runs the same gate sequence as every probe step (``_checks``): series reserves before and after the checks
+        (each grown by the whole window), the guard check requiring 90 s plus the window, the ownership inventory (this
+        process alone holds the cu node, nobody the tty node, no debugger runs) and the adapter identity, and the manifest
+        re-verification. Then, as the last things before the open: the window and the close fit the series budget, and
+        ``guard_window(seconds)`` checks that the guard deadline outlives them. The capture opens on the port that
+        ``acquire`` owns. Nothing here writes to the board or to the port, and nothing runs again after a failure: a reader
+        that fails in the window ends the mode with the bytes read so far, and an interrupt propagates.
+        """
+        require(self.mode == 'watch', 'Driver.watch runs only in the watch mode')
+        spec, opened = self.capture, []
+        seconds = spec.seconds
+
+        def open_capture():
+            require(self.port is not None, 'UART port not owned; no capture')
+            require(self.clock() + seconds + WATCH_CLOSE_SECONDS < self.end, 'Watch window does not fit the series budget')
+            guard_window(seconds)                      # the very last check: the guard outlives the window and the close
+            try:
+                opened.append(spec.open(self.port, self.directory / 'capture'))
+            except Exception as error:
+                raise HardwareStop('UART capture could not be opened; nothing was read') from error
+            self.note(step='%02d-watch' % self.step, state='capture-open')
+
+        try:
+            label = self._checks('watch', dict(state='checks', window_seconds=seconds, probe_commands=0), seconds, seconds,
+                                 reverify=True, before=open_capture, remaining=GUARD_SECONDS + seconds, subject='watch window')
+        except BaseException as error:
+            if opened:                                 # only a failure after the open (its record) reaches this
+                try:
+                    opened[0].abort('watch step failed after the open')
+                except BaseException as secondary:
+                    error.capture_failure = repr(secondary)
+            raise
+        opened[0].window()                             # a reader failure or an interrupt here is a stop; nothing reopens
+        self.note(step=label, state='capture-closed')
+        return dict(status='UART_WATCHED', probe_commands=0, capture=opened[0].summary())
+
 
 class Observation:
     """Passive UART capture around the final start: exact raw bytes, a fresh boot banner of the normal image."""
@@ -467,8 +561,9 @@ def real_parts(args, guard_session):
     state = dict(owned=False)
     uart, tty = BENCH['uart'], BENCH['uart'].replace('/dev/cu.', '/dev/tty.')
 
-    def preconditions(directory, label, seconds=COMMAND_SECONDS):
-        m3net.guard_check(guard_session, directory, label, guard_seconds(seconds), uart=uart)
+    def preconditions(directory, label, seconds=COMMAND_SECONDS, remaining=None):
+        # ``remaining`` is given only by the watch mode (90 s plus its window); every probe step derives it from its limit.
+        m3net.guard_check(guard_session, directory, label, guard_seconds(seconds) if remaining is None else remaining, uart=uart)
         if not state['owned']:
             capture_m3.check_owners(uart, directory / (label + '-owners.txt'))
         else:                                          # this process is the only accepted owner; no debugger may run
@@ -549,7 +644,10 @@ def bind_profile(name):
 
 
 def capture_spec(profile, mode):
-    """The profile's capture for this mode: only ``program`` records, and only when the profile asks for it."""
+    """The profile's capture for this mode: ``program`` records when the profile asks for it (its own 300 s cap), and
+    ``watch`` gets the profile's watch window under the watch cap, or None for a profile without one."""
+    if mode == 'watch':
+        return WatchSpec(profile.watch_seconds) if profile.watch_seconds else None
     if mode != 'program' or profile.capture == 'none':
         return None
     return CaptureSpec(profile.capture_seconds)
@@ -558,6 +656,8 @@ def capture_spec(profile, mode):
 def main(argv=None):
     args = build_parser().parse_args(argv)
     profile, verify_profile = bind_profile(args.profile)
+    capture = capture_spec(profile, args.mode)
+    require(args.mode != 'watch' or capture is not None, 'Profile %s has no watch window; nothing consumed' % profile.name)
     plan, approval, m5, entry, normal = load_inputs(args, verify_m5=verify_profile,
                                                     verify_m3=capture_m3.verify_manifest,
                                                     verify_tools=capture_m3.verify_jlink_tools)
@@ -577,14 +677,18 @@ def main(argv=None):
                 runner.sha(args.recovery_manifest) == plan['recovery_manifest_sha256'], 'Recovery artefact changed')
     require_clean_tree(repo)
     consume(Path(args.evidence).parent, args.mode)
-    driver = Driver(plan, approval, args.mode, args.evidence, probe=probe, preconditions=preconditions, acquire=acquire,
-                    images=images, reverify=reverify, capture=capture_spec(profile, args.mode))
+    # The watch mode gets a probe that refuses (it has no probe command) and its own series budget (decision D5).
+    options = dict(probe=no_probe, series_seconds=watch_series_seconds(capture)) if args.mode == 'watch' else dict(probe=probe)
+    driver = Driver(plan, approval, args.mode, args.evidence, preconditions=preconditions, acquire=acquire,
+                    images=images, reverify=reverify, capture=capture, **options)
     write_inputs(repo, args.evidence, args, plan)
     with driver:
         if args.mode == 'identify':
             result = dict(status='IDENTIFIED', matching=driver.identify(candidates))
         elif args.mode == 'program':
             result = driver.program(m5['files']['binary'], entry['binary'])
+        elif args.mode == 'watch':
+            result = driver.watch(lambda seconds: require_guard_window(guard_session, seconds))
         else:
             from capture_m3 import Receiver
             source = normal['source']['git_commit'][:12]
