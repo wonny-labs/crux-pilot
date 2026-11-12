@@ -1,5 +1,7 @@
 # Issue #26 implementation plan
 
+Status: Historical. Implementation plan for Issue #26 in the Pilot milestone M5 (messaging); first implemented in PR #41 and kept as a record. Issue #26 itself is still open, so see the Issue for current scope.
+
 Historical implementation plan for Issue #26. Its signed-ms Monotonic surface
 is superseded by the [typed Time contract](../time-contract.md) and
 [Thread sleep contract](../thread-sync.md); original design steps remain below.

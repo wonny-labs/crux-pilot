@@ -1,5 +1,7 @@
 # Portable networking implementation plan
 
+Status: Historical. Implementation plan for the Pilot milestone M5 networking work (merged in PR #38); kept as a record. The approved design is in [the networking proposal](m5-networking-proposal.md).
+
 > Execute inline with superpowers:executing-plans and TDD; independent whole-branch review before Draft PR.
 
 Goal: qualify the approved IPv4 TCP client/connected UDP standard profile and

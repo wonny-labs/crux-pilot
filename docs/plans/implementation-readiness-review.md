@@ -1,5 +1,7 @@
 # Crux Implementation Readiness Review
 
+Status: Historical. Planning review of 16 October 2026 of the Time Pilot plan v0.4, before M0–M5 implementation; kept as a record and not an adopted plan.
+
 | Item | Assessment |
 | --- | --- |
 | Date | 16 October 2026 |

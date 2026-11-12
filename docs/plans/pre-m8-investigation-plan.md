@@ -1,5 +1,7 @@
 # Pre-M8 boot and update investigation plan
 
+Status: Investigation plan for open Issue #141, not an adopted plan or requirement. Only approvals A0 and A1 are recorded, and the results so far are a Draft in [the boot and update investigation](../boot-update-investigation.md).
+
 > **Note of 2 November 2026.** The owner returned RT1170-EVK Rev A1 to #141 as
 > scope item 5, "Record the RT1170-EVK Rev A1 layout and boot differences",
 > desk and build-only. Stage 7 and question 11 return with it. RT1170 hardware

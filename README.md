@@ -28,13 +28,15 @@ See the [architecture overview](docs/architecture.md) for component ownership, p
 
 ### Development and target environments
 
-| Environment | Current scope |
-| --- | --- |
-| Linux Host | Linux amd64 development, testing and selected Linux implementations, not production Embedded Linux support |
-| Zephyr `native_sim` | Selected Zephyr component and reference-controller tests without physical hardware |
-| MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | Initial physical target, with results limited to documented firmware and configurations |
-| RT1170-EVK Rev A1 Cortex-M7 | Second board, software scope of M6 and M7 (cross-build, identification, review); hardware verification deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155), not qualified |
-| Production Embedded Linux | Future platform variant, not currently implemented or qualified |
+| Category | Environment | Current scope |
+| --- | --- | --- |
+| Development and test environment | Linux Host | Linux amd64 development, testing and selected Linux implementations, not production Embedded Linux support |
+| Simulated Zephyr target | Zephyr `native_sim` | Selected Zephyr component and reference-controller tests without physical hardware |
+| Product OS target (Zephyr) | MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | Initial physical target, with results limited to documented firmware and configurations |
+| Product OS target (Zephyr) | RT1170-EVK Rev A1 Cortex-M7 | Second board, software scope of M6 and M7 (cross-build, identification, review); hardware verification deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155), not qualified |
+| Future variant | Production Embedded Linux | Future platform variant, not currently implemented or qualified |
+
+**What the Linux Host providers are used for today.** They run the Host tests (GoogleTest with CTest, see the [test guide](tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, which the `scripts/test-*.sh` runners use, and `scripts/test-mgmt-services.sh` also runs two suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](docs/build.md#external-linux-application-using-crux-source), [`tests/consumer_poc`](tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
 
 Host tests, `native_sim` runs and target cross-builds do not prove physical operation. The M4 Pilot has selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR. The Zephyr Settings File backend has been tested only on `native_sim`, with corrections staged in the test fixture; there is no Settings File target provider and the backend is not qualified. Physical microSD evidence (one board, one card) covers mount, reboot persistence, power cuts during plain File appends on FatFs and a repeat of the compaction's write, close and rename order (not the backend), and blank-card, wrong-layout, stack and card-removal runs; it is not a qualification of the board, the card or the Settings File backend. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
 

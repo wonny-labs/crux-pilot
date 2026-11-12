@@ -1,3 +1,5 @@
+> **Historical record.** This file records the evidence of the Time Pilot milestones M0–M5 and was last updated on 2026-10-17. It is not the current platform status. Current delivery status is in the [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), issues and pull requests; see also [Project status](../README.md#project-status-and-contributing) in the README.
+
 # Crux implementation status
 
 Last evidence update: 2026-10-17. M0–M3 software and software-only M5 checks are recorded;
