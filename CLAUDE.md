@@ -64,9 +64,7 @@ Every skill, command and agent below is named with the `ecc:` prefix. The table 
 | Handoff to another session or agent | Suggest `ecc:save-session` to the user | Same as the work | Writes to `~/.claude/session-data/`, outside the repository. Record the handoff in the issue or PR as this file requires. |
 | Small or mechanical change | none | Sonnet | None. |
 
-Do not use these ECC skills without the owner's approval. They commit, push, open PRs, post reviews or send code outside the session: `ecc:astra-review` sends the diff to OpenAI, PR-mode `ecc:code-review` posts `gh pr review --approve` or `--request-changes`, which can look like an approval, and the `ecc:orch-*` workflows (some commit or open PRs), `ecc:prp-commit`, `ecc:prp-pr`, `ecc:pr` and `ecc:multi-*` commit, open PRs or call external models.
-
-Do not use these ECC agents and skills without the owner's approval. They write to protected paths, `.claude/`, `~/.claude` or `docs/`: `ecc:harness-optimizer` (edits hooks, agents, skills and settings), `ecc:doc-updater` (generates `docs/CODEMAPS/*`, edits READMEs), `ecc:agent-sort`, `ecc:living-docs-governance`, and `ecc:skill-stocktake` when it would change files. `ecc:rules-distill` stays barred, as the table says.
+Do not use these ECC skills without the owner's approval. They commit, push, open PRs, post reviews or send code outside the session: `ecc:astra-review` sends the diff to OpenAI, PR-mode `ecc:code-review` posts `gh pr review --approve` or `--request-changes`, which can look like an approval, and the `ecc:orch-*` workflows (some commit or open PRs), `ecc:prp-commit`, `ecc:prp-pr`, `ecc:pr` and `ecc:multi-*` commit, open PRs or call external models. Also do not use these ECC agents and skills without the owner's approval. They write to protected paths, `.claude/`, `~/.claude` or `docs/`: `ecc:harness-optimizer` (edits hooks, agents, skills and settings), `ecc:doc-updater` (generates `docs/CODEMAPS/*`, edits READMEs), `ecc:agent-sort`, `ecc:living-docs-governance`, and `ecc:skill-stocktake` (every run writes a results cache under `~/.claude/skills/skill-stocktake/`). `ecc:rules-distill` stays barred, as the table says.
 
 ### Extra review lenses
 
@@ -75,7 +73,7 @@ These agents are optional input for the author and the `reviewer` agent. They ad
 - `ecc:python-reviewer`: Python test tooling and scripts, such as `tests/target/` and `tests/build/`.
 - `ecc:silent-failure-hunter`: C error paths and scripts, for swallowed errors and bad fallbacks.
 - `ecc:pr-test-analyzer`: behavioural test coverage of a change.
-- `ecc:security-reviewer`: secure-management, TLS, SSH, credential and access code.
+- `ecc:security-reviewer`: secure-management, TLS, SSH, credential and access code. It is web and npm oriented (OWASP Top 10, `npm audit`), so its fit for embedded C is partial.
 
 `ecc:cpp-reviewer` and the `ecc:cpp-coding-standards` skill target C++, not this repository's C17 code. Use them only for C++ test code.
 
@@ -83,13 +81,14 @@ These agents are optional input for the author and the `reviewer` agent. They ad
 
 Do not install ECC `rules/` or load ECC `contexts/`. A plugin cannot distribute `rules/` (per the ECC README), and they conflict with this repository:
 
-- `rules/common/git-workflow.md` notes that ECC installs set `includeCoAuthoredBy` to false, so commits carry no `Co-Authored-By` trailer, and its PR steps say to push the branch, with no Gate 2 or protected-path rule.
+- `rules/common/git-workflow.md` notes that ECC installs set `includeCoAuthoredBy` to false, so commits carry no `Co-Authored-By` trailer (this repository's practice is to add one), and its PR steps say to push the branch, with no Gate 2 or protected-path rule.
 - `rules/common/agents.md` says to use `ecc:planner`, `ecc:code-reviewer`, `ecc:tdd-guide` and `ecc:architect` with "No user prompt needed".
-- `contexts/dev.md` says "Write code first, explain after", against TDD.
+- `contexts/dev.md` as a whole favours speed over process ("Write code first, explain after", "Get it working", "Run tests after changes") and has no test-first step, unlike the TDD rule.
 
 ### Session memory and learning
 
-- ECC's session-end hook writes summaries to `~/.claude/session-data/`. They hold the first 200 characters of each user message, edited file names and tool names (a model-written summary may be added). A session start can inject a "previous session" summary, and a parallel session or worktree of this repository can be its source. Treat it as stale and verify facts in the repository, issues and PRs. The Claude Code auto-memory is the record of owner decisions.
+- ECC's session-end hook writes summaries to `~/.claude/session-data/`. On every Stop event it updates them with the last 10 user messages, each cut to 200 characters, plus edited file names and tool names (a model-written summary may be added). A session start can inject a "previous session" summary, and a parallel session or worktree of this repository can be its source. Treat it as stale and verify facts in the repository, issues and PRs. The Claude Code auto-memory is the record of owner decisions.
 - Do not use `/resume-session`: with no argument it loads the newest file in the folder, whatever the project. Use `/sessions` to pick a file when needed.
 - Do not enable the background observer (`skills/continuous-learning-v2/config.json` has `observer.enabled: false`). Do not run `/evolve --generate`, `/promote` or `/instinct-import` without the owner's approval.
-- Propose learned patterns only through `/learn-eval`, which asks before saving. Save them project-scoped and only what the owner approves. Instincts are for tool-use habits. Owner decisions and preferences stay in the auto-memory.
+- Use `/learn-eval` only for proposed skills: it asks before each save, and the owner confirms each one. Project scope writes `.claude/skills/<pattern-name>/SKILL.md` in this repository, a protected path: keep it uncommitted unless a protected-path PR with the owner's approval covers it.
+- Instincts come from `continuous-learning-v2`, appear only through the observer or `/evolve`, and are reviewed with `/instinct-status` and `/prune`. Instincts are for tool-use habits. Owner decisions and preferences stay in the auto-memory.
