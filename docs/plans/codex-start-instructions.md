@@ -1,5 +1,7 @@
 # Original Codex Start Instructions (M0–M1; superseded)
 
+Status: historical record. Execution handoff for the Time Pilot milestones M0–M1, which are complete; kept as a record and superseded as its own title says.
+
 This file preserves the original M0–M1 execution handoff. Those milestones are complete; it no longer sets the active scope. Read `AGENTS.md` and `docs/implementation-status.md` for current authorization and evidence.
 
 ## Execution inputs
