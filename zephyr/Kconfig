@@ -206,7 +206,8 @@ config CRUX_FILE_FATFS_RT1060
       one RT1060-EVKB and one microSD card (docs/evidence/microsd-physical,
       microsd-power-cut and microsd-card-states-stack), with plain crux_file appends and
       reads. The replace-and-rename power-cut loop (microsd-replace-cut) called Zephyr
-      fs_rename directly, not crux_file. It qualifies neither the board, the card nor the
+      fs_rename directly, and the card-states-stack probe ran create, rename, stat, list and
+      remove through Zephyr fs_* directly (sample sd_probe.c), not crux_file. It qualifies neither the board, the card nor the
       Settings File backend. The roots, stat, size, rename and listing operations that
       crux_file gained later (#224) have no physical run.
 
