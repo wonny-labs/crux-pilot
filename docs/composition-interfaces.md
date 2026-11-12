@@ -4,7 +4,7 @@ Status: **adopted** by the owner's acceptance of [ADR-0001](decisions/0001-appli
 
 ## What a composition interface is
 
-A **composition interface** is the one formal way for a product's platform composition code to reach a Crux provider that must be bound to Zephyr resources: a root, a device, an instance. It is not a portable contract. It names the OS on purpose, so that the [native-free consumer check](native-interface-policy.md) rejects it in portable code. The first and so far only Zephyr example is `crux::file_zephyr` with `<crux/file_zephyr.h>`, described in [File root binding](file-composition-interface.md). The Linux Host counterpart is `crux::queue_linux`, see the [Linux Host nuance](#linux-host-composition-targets).
+A **composition interface** is the one formal way for a product's platform composition code to reach a Crux provider that must be bound to Zephyr resources: a root, a device, an instance. It is not a portable contract. It names the OS on purpose, so that the [native-free consumer check](native-interface-policy.md) rejects it in portable code. The first and so far only Zephyr example is `crux::file_zephyr` with `<crux/file_zephyr.h>`, described in [File root binding](file-composition-interface.md). The only Linux Host composition target is `crux::queue_linux`, see the [Linux Host nuance](#linux-host-composition-targets).
 
 A product has two routes to Zephyr, and neither is an exception to the [three layers](architecture.md#three-layers-for-a-product-adr-0001):
 
@@ -41,7 +41,7 @@ Rules 3, 4 and 6 also cover the Linux Host composition targets, such as `crux::q
 
 ## Adding a composition interface
 
-Use these rules for the next one, together with the steps in [Extending Crux](architecture.md#extending-crux): a real consumer needs it, and its minimum contract can be tested. A composition interface also needs the rule against pass-through wrappers of native APIs in [CONTRIBUTING](../CONTRIBUTING.md#making-changes): it must bind or select something, and add no behaviour of its own (rule 4).
+Use these rules for the next one, together with the steps in [Extending Crux](architecture.md#extending-crux): a real consumer needs it, and its minimum contract can be tested. The rule against pass-through wrappers of native APIs in [AGENTS.md](../AGENTS.md#engineering-approach) applies as well. This document's reading, not the ADR's text, is that a composition interface therefore must bind or select something and add no behaviour of its own (rule 4), and that it takes the Extending Crux steps like any new public interface.
 
 Before a new composition interface is proposed, check it against the table above, then add the same negative boundary test as `tests/build/test_file_zephyr_boundary.py` shows. A new public header, target or tier is a public interface decision, so it follows the escalation rules of [AGENTS.md](../AGENTS.md).
 
