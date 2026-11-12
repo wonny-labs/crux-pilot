@@ -60,23 +60,29 @@
     "password_length_max": 128
   },
   "patched_zephyr": {
+    "schema": 2,
     "decision": "D8",
     "marker_file": ".crux-wolf-tls",
     "zephyr_pin": "dccb09599635bdff17633fa7e9dab014b91dce90",
-    "patch_name": "zephyr-tls-4.4.1.patch",
-    "patch_sha256": "3d1cc0307bbeea5f000698bca5be717f73fdb8c47e90083b003336364e8fdbda",
-    "patched_file": "subsys/net/lib/sockets/sockets_tls.c",
-    "patched_file_sha256": "106acdbb725fc72e4eca242125fd02283b0cd67403b205c7c231b2db6328552a",
-    "isn_fail_closed": {
-      "decision": "D-c",
-      "row": "C11",
-      "marker_file": ".crux-isn-fail-closed",
-      "patch_name": "zephyr-isn-fail-closed.patch",
-      "patch_sha256": "831fecdbc6cfb23f47ace4dda662a95222b977977a167ef786ee02f33712de87",
-      "patched_file": "subsys/net/ip/tcp.c",
-      "original_file_sha256": "393b940e0d96adba9a0f7667c061b9e0e5d8d0ea2f49642e60f29ce1efdb7ad6",
-      "patched_file_sha256": "94642fe2257f80dd91b9e84d8c29459ca84144cb56af0cdfdd58039473e0e0cf",
-      "requires_setting": "NET_TCP_ISN_RFC6528"
-    }
+    "patches": [
+      {"name": "zephyr-tls-4.4.1.patch", "sha256": "3d1cc0307bbeea5f000698bca5be717f73fdb8c47e90083b003336364e8fdbda"},
+      {"name": "zephyr-isn-fail-closed.patch", "sha256": "831fecdbc6cfb23f47ace4dda662a95222b977977a167ef786ee02f33712de87"}
+    ],
+    "patched_files": [
+      {"path": "subsys/net/ip/tcp.c", "change": "modified",
+       "sha256": "94642fe2257f80dd91b9e84d8c29459ca84144cb56af0cdfdd58039473e0e0cf", "patches": ["zephyr-isn-fail-closed.patch"]},
+      {"path": "subsys/net/lib/sockets/sockets_tls.c", "change": "modified",
+       "sha256": "106acdbb725fc72e4eca242125fd02283b0cd67403b205c7c231b2db6328552a", "patches": ["zephyr-tls-4.4.1.patch"]}
+    ],
+    "tree": {"algorithm": "crux-zephyr-tree-v1", "sha256": null, "file_count": null},
+    "stock_sha256": {"subsys/net/ip/tcp.c": "393b940e0d96adba9a0f7667c061b9e0e5d8d0ea2f49642e60f29ce1efdb7ad6"},
+    "requires_settings": [
+      {"symbol": "NET_TCP_ISN_RFC6528", "patch": "zephyr-isn-fail-closed.patch", "decision": "D-c", "row": "C11",
+       "reason": "without it Zephyr takes the number from sys_rand32_get() and the patch protects nothing"}
+    ],
+    "open_items": [
+      "tree: sha256 and file_count are null on purpose. The digest crux-zephyr-tree-v1 of the real copy is declared only after two independent derivations on a real build copy agree (docs/rt1060-bench-freeze-and-capture-design.md, order of work 4). Until then the freeze and the image check refuse this block.",
+      "patched_files: zephyr-tls-4.4.1.patch is not in this repository (scripts/prepare-wolf-tls-zephyr.sh downloads it), so only sockets_tls.c is declared for it, as far as the repository supports. Its other files (new files, subsys/random) are unknown here, and the first real freeze refuses until they are listed."
+    ]
   }
 }

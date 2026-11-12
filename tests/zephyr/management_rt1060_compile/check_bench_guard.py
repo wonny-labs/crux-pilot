@@ -105,37 +105,57 @@ class Tree:
 # ---- CMake level -----------------------------------------------------------------------------------------------
 
 
-def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=None, states=None, edits=None,
-                     isn_marker=None, isn_text="isn patched"):
-    """A stand-in for the build-local Zephyr copy with both patches (D8 and row C11), and a declaration copy that names
-    the hashes of its two patched files."""
-    patch = tree.declaration["patched_zephyr"]
+ZEPHYR_REASON = "is not the build-local Zephyr copy with the declared patches"
+
+
+def sha256_text(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def declared_hashes(tree):
+    return [patch["sha256"] for patch in tree.declaration["patched_zephyr"]["patches"]]
+
+
+def marker_of(declaration_block, hashes=None, pin=None):
+    """The text of the one marker of the copy: the pin and the hashes of the patches in order of application."""
+    hashes = [p["sha256"] for p in declaration_block["patches"]] if hashes is None else hashes
+    return f"{pin or declaration_block['zephyr_pin']} {' '.join(hashes)}\n"
+
+
+def make_zephyr_base(tree, directory, marker=None, pin=None, states=None, edits=None, texts=None, missing=(),
+                     declaration_change=None, stray=()):
+    """A stand-in for the build-local Zephyr copy with every declared patch applied (D8, row C11): the one marker, and a file
+    for each patched file (none for a deleted one), plus a declaration copy that names the hashes of those files.
+
+    ``texts`` gives the copy's content for a path that differs from the declared one (or exists, for a deleted file),
+    ``missing`` the paths that are not made, ``stray`` the names of other markers, and ``declaration_change`` edits the
+    declaration copy first (a third patch, a deleted file)."""
     base = Path(directory) / "zephyr"
-    target = base / patch["patched_file"]
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(patched_text)
-    pin = pin or patch["zephyr_pin"]
-    if marker is not False:
-        (base / patch["marker_file"]).write_text(marker or f"{pin} {patch['patch_sha256']}\n")
-    isn = patch["isn_fail_closed"]
-    isn_target = base / isn["patched_file"]
-    isn_target.parent.mkdir(parents=True, exist_ok=True)
-    isn_target.write_text(isn_text)
-    if isn_marker is not False:
-        (base / isn["marker_file"]).write_text(isn_marker or f"{pin} {isn['patch_sha256']}\n")
+    base.mkdir(parents=True, exist_ok=True)
     declaration = declared_with(tree, states)
     for (section, key), value in (edits or {}).items():
         declaration[section][key] = value
-    declaration["patched_zephyr"]["patched_file_sha256"] = hashlib.sha256(patched_text.encode()).hexdigest()
-    declaration["patched_zephyr"]["isn_fail_closed"]["patched_file_sha256"] = hashlib.sha256(isn_text.encode()).hexdigest()
+    if declaration_change is not None:
+        declaration_change(declaration)
+    block = declaration["patched_zephyr"]
+    texts = texts or {}
+    for entry in block["patched_files"]:
+        path = entry["path"]
+        declared_text = f"patched {path}"
+        if entry["change"] != "deleted":
+            entry["sha256"] = sha256_text(declared_text)
+        if path in missing or (entry["change"] == "deleted" and path not in texts):
+            continue
+        target = base / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(texts.get(path, declared_text))
+    if marker is not False:
+        (base / block["marker_file"]).write_text(marker if marker is not None else marker_of(block, pin=pin))
+    for name in stray:
+        (base / name).write_text("another marker\n")
     declared = Path(directory) / "declaration.json"
     declared.write_text(json.dumps(declaration))
     return base, declared
-
-
-def isn_declared(tree):
-    """The declaration of the second patch of the build-local copy (row C11, D-c)."""
-    return tree.declaration["patched_zephyr"]["isn_fail_closed"]
 
 
 def declared_with(tree, states=None):
@@ -332,28 +352,76 @@ def cmake_cases(tree):
             cases.append((f"the test form {name} not set", {symbol: None}, "is declared selected"))
         else:
             cases.append((f"the reserved test form {name} set", {symbol: "y"}, "is reserved and nothing implements it"))
+    # T11 and row C11, D-c: the patch list of the build-local copy; the setting that makes the stack use the second patch's key; and
+    # the test stack that skips it.
+    cases.extend(patch_cases(tree))
     cases.extend([
-        ("no build-local Zephyr copy", {"ZEPHYR_BASE_BROKEN": "no marker"}, "is not the build-local Zephyr copy"),
-        ("a marker without the patched file", {"ZEPHYR_BASE_BROKEN": "no file"}, "is not the build-local Zephyr copy"),
-        ("a Zephyr copy on another pin", {"ZEPHYR_BASE_BROKEN": "pin"}, "is not the build-local Zephyr copy"),
-        ("a Zephyr copy with another patch", {"ZEPHYR_BASE_BROKEN": "file"}, "is not the build-local Zephyr copy"),
-    ])
-    # Row C11, D-c: the second patch of the copy, and the settings that make the stack use its key.
-    cases.extend([
-        ("a Zephyr copy without the initial sequence number marker", {"ZEPHYR_BASE_BROKEN": "no isn marker"},
-         "the fail-closed TCP initial sequence number patch (scripts/prepare-isn-fail-closed.py): .crux-isn-fail-closed is missing"),
-        ("a Zephyr copy without the patched tcp.c", {"ZEPHYR_BASE_BROKEN": "no isn file"},
-         "the fail-closed TCP initial sequence number patch (scripts/prepare-isn-fail-closed.py): .crux-isn-fail-closed is missing"),
-        ("an initial sequence number marker on another pin", {"ZEPHYR_BASE_BROKEN": "isn pin"},
-         "the marker .crux-isn-fail-closed differs"),
-        ("an initial sequence number marker of another patch", {"ZEPHYR_BASE_BROKEN": "isn patch"},
-         "the marker .crux-isn-fail-closed differs"),
-        ("a tcp.c that is not the patched one", {"ZEPHYR_BASE_BROKEN": "isn file"}, "subsys/net/ip/tcp.c differs"),
         ("no RFC 6528 initial sequence number", {"CONFIG_NET_TCP_ISN_RFC6528": None},
-         "CONFIG_NET_TCP_ISN_RFC6528 is required"),
+         "CONFIG_NET_TCP_ISN_RFC6528 is required, because without it Zephyr takes the number from sys_rand32_get()"),
         ("the test network stack", {"CONFIG_NET_TEST": "y"}, "skip tcp_init_isn() and are refused"),
         ("the test TCP protocol", {"CONFIG_NET_TEST_PROTOCOL": "y"}, "skip tcp_init_isn() and are refused"),
     ])
+    return cases
+
+
+def patched_files(tree):
+    return tree.declaration["patched_zephyr"]["patched_files"]
+
+
+def with_a_deleted_file_and_a_third_patch(declaration):
+    """A declaration with a third patch that deletes subsys/removed.c, which the first patch touched before: the shapes the
+    guard must read generally, and that the real declaration does not have."""
+    block = declaration["patched_zephyr"]
+    block["patches"].append({"name": "third.patch", "sha256": "7" * 64})
+    block["patched_files"].append({"path": "subsys/removed.c", "change": "deleted", "sha256": None, "patches": ["third.patch"]})
+    block["patched_files"][0]["patches"].append("third.patch")
+
+
+def patch_controls(tree):
+    """Declarations that the guard accepts, with the copy made to match."""
+    return [
+        ("a third patch, a file that it deletes (absent) and a file that two patches touch",
+         {"DECLARATION_CHANGE": with_a_deleted_file_and_a_third_patch}),
+    ]
+
+
+def patch_cases(tree):
+    """The patch list of the build-local copy (T11 of docs/rt1060-bench-freeze-and-capture-design.md): a missing, an extra, a
+    changed and a reordered patch, a patched file that differs or is missing, an unpatched tree, a marker that is wrong in any
+    part, another marker, and a deleted file that is still there. Each is a copy that the guard must refuse for its own reason."""
+    block = tree.declaration["patched_zephyr"]
+    hashes = declared_hashes(tree)
+    marker_name = block["marker_file"]
+    differs = f"the marker {marker_name} differs from the pin and the hashes of the patches in the declared order"
+    cases = [
+        ("no build-local Zephyr copy", {"COPY": dict(marker=False)}, f"the marker {marker_name} is missing"),
+        ("a Zephyr copy on another pin", {"COPY": dict(pin="0" * 40)}, differs),
+        ("an empty marker", {"COPY": dict(marker="\n")}, differs),
+        ("a marker with the pin only", {"COPY": dict(marker=f"{block['zephyr_pin']}\n")}, differs),
+        ("a missing patch: the marker of the first step only", {"COPY": dict(marker=marker_of(block, hashes[:1]))}, differs),
+        ("a missing patch: the marker of the second patch only", {"COPY": dict(marker=marker_of(block, hashes[1:]))}, differs),
+        ("an extra patch: one more hash", {"COPY": dict(marker=marker_of(block, hashes + ["7" * 64]))}, differs),
+        ("a changed patch: the last hash replaced", {"COPY": dict(marker=marker_of(block, hashes[:-1] + ["0" * 64]))}, differs),
+        ("a changed patch: the first hash replaced", {"COPY": dict(marker=marker_of(block, ["0" * 64] + hashes[1:]))}, differs),
+        ("a reordered patch list: the hashes in the other order", {"COPY": dict(marker=marker_of(block, list(reversed(hashes))))}, differs),
+        ("a marker on another pin and without its newline", {"COPY": dict(marker=marker_of(block, pin="1" * 40).rstrip("\n"))}, differs),
+        ("the marker of the earlier version of the second script beside the one marker", {"COPY": dict(stray=[".crux-isn-fail-closed"])},
+         "is a marker that the declaration does not name"),
+        ("another marker beside the one marker", {"COPY": dict(stray=[".crux-another-patch"])},
+         "is a marker that the declaration does not name"),
+        ("an unpatched tree with the right marker", {"COPY": dict(texts={f["path"]: "stock text" for f in patched_files(tree)})},
+         "differs from its declared final hash"),
+    ]
+    for entry in patched_files(tree):
+        cases.append((f"the patched file {entry['path']} missing", {"COPY": dict(missing={entry["path"]})}, f"{entry['path']} is missing"))
+        cases.append((f"the patched file {entry['path']} not the patched one", {"COPY": dict(texts={entry["path"]: "another file"})},
+                      f"{entry['path']} differs from its declared final hash"))
+    cases.append(("a file that the patches delete and that is still there",
+                  {"DECLARATION_CHANGE": with_a_deleted_file_and_a_third_patch,
+                   "COPY": dict(texts={"subsys/removed.c": "still here"})},
+                  "subsys/removed.c must be deleted by them and is there"))
+    cases.append(("a third patch declared and the marker of two", {"DECLARATION_CHANGE": with_a_deleted_file_and_a_third_patch,
+                                                                    "COPY": dict(marker=marker_of(block))}, differs))
     return cases
 
 
@@ -521,41 +589,24 @@ def check_cmake(tree):
                 failures.append(f"bench_guard.cmake refused {name}: {squeeze(result.stderr)}")
             else:
                 TRANSCRIPT.append(("CMake", f"control: {name}", "accepted"))
+        for index, (name, change) in enumerate(patch_controls(tree)):
+            control_dir = Path(scratch) / f"patch-control{index}"
+            control_dir.mkdir()
+            zephyr, declaration = make_zephyr_base(tree, control_dir, declaration_change=change["DECLARATION_CHANGE"])
+            result = run_cmake(tree, good_cmake_settings(tree), zephyr, declaration)
+            if result.returncode != 0 or "bench guard passed" not in result.stderr + result.stdout:
+                failures.append(f"bench_guard.cmake refused {name}: {squeeze(result.stderr)}")
+            else:
+                TRANSCRIPT.append(("CMake", f"control: {name}", "accepted"))
         for index, (name, change, reason) in enumerate(cmake_cases(tree)):
             states = change.get("DECLARATION_STATES")
             settings = good_cmake_settings(tree, declared_with(tree, states))
             case_dir = Path(scratch) / f"case{index}"
             case_dir.mkdir()
-            broken = change.get("ZEPHYR_BASE_BROKEN")
-            if broken == "no marker":
-                zephyr, declaration = make_zephyr_base(tree, case_dir, marker=False)
-            elif broken == "no file":
-                zephyr, declaration = make_zephyr_base(tree, case_dir)
-                (zephyr / tree.declaration["patched_zephyr"]["patched_file"]).unlink()
-            elif broken == "pin":
-                zephyr, declaration = make_zephyr_base(tree, case_dir, pin="0" * 40)
-            elif broken == "file":
-                zephyr, declaration = make_zephyr_base(tree, case_dir)
-                (zephyr / tree.declaration["patched_zephyr"]["patched_file"]).write_text("another file")
-            elif broken == "no isn marker":
-                zephyr, declaration = make_zephyr_base(tree, case_dir, isn_marker=False)
-            elif broken == "no isn file":
-                zephyr, declaration = make_zephyr_base(tree, case_dir)
-                (zephyr / isn_declared(tree)["patched_file"]).unlink()
-            elif broken == "isn pin":
-                zephyr, declaration = make_zephyr_base(tree, case_dir,
-                                                       isn_marker=f"{'0' * 40} {isn_declared(tree)['patch_sha256']}")
-            elif broken == "isn patch":
-                zephyr, declaration = make_zephyr_base(
-                    tree, case_dir, isn_marker=f"{tree.declaration['patched_zephyr']['zephyr_pin']} {'0' * 64}")
-            elif broken == "isn file":
-                zephyr, declaration = make_zephyr_base(tree, case_dir)
-                (zephyr / isn_declared(tree)["patched_file"]).write_text("another tcp.c")
-            else:
-                zephyr, declaration = make_zephyr_base(tree, case_dir, states=states,
-                                                       edits=change.get("DECLARATION_EDITS"))
+            zephyr, declaration = make_zephyr_base(tree, case_dir, states=states, edits=change.get("DECLARATION_EDITS"),
+                                                   declaration_change=change.get("DECLARATION_CHANGE"), **change.get("COPY", {}))
             for key, value in change.items():
-                if key in ("ZEPHYR_BASE_BROKEN", "DECLARATION_STATES", "DECLARATION_EDITS"):
+                if key in ("COPY", "DECLARATION_CHANGE", "DECLARATION_STATES", "DECLARATION_EDITS"):
                     continue
                 if value is None:
                     settings.pop(key, None)
@@ -572,13 +623,26 @@ def check_cmake(tree):
     return failures
 
 
-def run_manifest(tree, directory, hash_value):
+def expected_zephyr_block(declaration):
+    """The block of the manifest that the design asks for (schema 2), written here from the declaration, apart from
+    bench_guard.cmake: the declaration's keys of the same names, and the pin as "pin". Nothing of the declaration-only keys."""
+    block = declaration["patched_zephyr"]
+    return {"schema": 2, "decision": block["decision"], "marker_file": block["marker_file"], "pin": block["zephyr_pin"],
+            "patches": [{"name": p["name"], "sha256": p["sha256"]} for p in block["patches"]],
+            "patched_files": [{"path": f["path"], "change": f["change"], "sha256": f["sha256"], "patches": list(f["patches"])}
+                              for f in block["patched_files"]],
+            "tree": {"algorithm": block["tree"]["algorithm"], "sha256": block["tree"]["sha256"],
+                     "file_count": block["tree"]["file_count"]}}
+
+
+def run_manifest(tree, directory, hash_value, declaration=None):
     """crux_bench_manifest() in script mode, with the first account's hash recorded as prepare would, or not."""
     root = HERE.parents[2]
+    declaration = declaration or tree.root / "bench_declaration.json"
     with tempfile.NamedTemporaryFile("w", suffix=".cmake", delete=False) as script:
         script.write("cmake_minimum_required(VERSION 3.20.0)\n")
         script.write(f'set(CRUX_ROOT "{root}")\nset(CMAKE_BINARY_DIR "{directory}")\n')
-        script.write(f'set(CRUX_BENCH_DECLARATION_OVERRIDE "{tree.root / "bench_declaration.json"}")\n')
+        script.write(f'set(CRUX_BENCH_DECLARATION_OVERRIDE "{declaration}")\n')
         for symbol in tree.selected_forms():
             script.write(f'set(CONFIG_{symbol} "y")\n')
         script.write('set(CONFIG_NET_TCP_ISN_RFC6528 "y")\n')
@@ -611,22 +675,26 @@ def check_manifest(tree):
             failures.append("the manifest does not say that the first account's plaintext is in the image")
         if record["test_forms"]["first_account_file"].get("set") is not True:
             failures.append("the manifest does not show the first account form as set")
-        # Row C11, D-c: the second patch of the build-local copy and the setting it relies on are in the record.
-        recorded = record.get("patched_zephyr", {}).get("isn_fail_closed", {})
-        declared_isn = isn_declared(tree)
-        expected_isn = {
-            "decision": declared_isn["decision"], "row": declared_isn["row"],
-            "marker_file": declared_isn["marker_file"], "patch": declared_isn["patch_name"],
-            "patch_sha256": declared_isn["patch_sha256"], "patched_file": declared_isn["patched_file"],
-            "original_file_sha256": declared_isn["original_file_sha256"],
-            "patched_file_sha256": declared_isn["patched_file_sha256"],
-            "requires_setting": "CONFIG_" + declared_isn["requires_setting"]}
-        if recorded != expected_isn:
-            failures.append(f"the manifest does not record the second patch of the Zephyr copy as declared: {recorded}")
-        if record.get("settings", {}).get("CONFIG_" + declared_isn["requires_setting"]) != "y":
-            failures.append("the manifest does not record the RFC 6528 initial sequence number setting")
-        if record.get("patched_zephyr", {}).get("patch_sha256") != tree.declaration["patched_zephyr"]["patch_sha256"]:
-            failures.append("the manifest no longer records the first patch of the Zephyr copy (D8)")
+        # The patched Zephyr copy: the block of the design, with the lists, in order, and nothing of the declaration-only keys.
+        recorded = record.get("patched_zephyr")
+        if recorded != expected_zephyr_block(tree.declaration):
+            failures.append(f"the manifest does not record the patched Zephyr copy as the block of the design: {recorded}")
+        for requirement in tree.declaration["patched_zephyr"]["requires_settings"]:
+            if record.get("settings", {}).get("CONFIG_" + requirement["symbol"]) != "y":
+                failures.append(f"the manifest does not record CONFIG_{requirement['symbol']}, which {requirement['patch']} relies on")
+        # The same for shapes that the real declaration does not have: a third patch, a deleted file (a null hash), a derived digest.
+        shaped = json.loads(json.dumps(tree.declaration))
+        with_a_deleted_file_and_a_third_patch(shaped)
+        shaped["patched_zephyr"]["tree"] = {"algorithm": "crux-zephyr-tree-v1", "sha256": "c" * 64, "file_count": 12}
+        shaped_path = Path(scratch) / "shaped-declaration.json"
+        shaped_path.write_text(json.dumps(shaped))
+        shaped_dir = Path(scratch) / "shaped"
+        shaped_dir.mkdir()
+        result = run_manifest(tree, shaped_dir, expected, shaped_path)
+        if result.returncode != 0:
+            failures.append(f"crux_bench_manifest() failed for a declaration with a third patch and a deleted file: {squeeze(result.stderr)}")
+        elif json.loads((shaped_dir / "bench-manifest.json").read_text()).get("patched_zephyr") != expected_zephyr_block(shaped):
+            failures.append("the manifest does not record a third patch, a deleted file and a derived tree digest as declared")
         bare = Path(scratch) / "bare"
         bare.mkdir()
         result = run_manifest(tree, bare, None)
@@ -1054,25 +1122,33 @@ ARITHMETIC_MUTANTS = (
 )
 
 
-# Row C11 (D-c): the checks of the second patch of the build-local Zephyr copy and of the setting it relies on, in
-# bench_guard.cmake, each weakened once. Each must be seen by a case of check_cmake.
+# T11 and row C11 (D-c): the checks of the patch list of the build-local Zephyr copy and of the settings that a patch relies on, in
+# bench_guard.cmake, each weakened once. Each must be seen by a case or a control of check_cmake.
 ISN_MUTANTS = (
-    ("both the marker and the patched file must exist: only one is needed",
-     'if(NOT EXISTS "${isn_marker}" OR NOT EXISTS "${isn_patched}")', 'if(NOT EXISTS "${isn_marker}" AND NOT EXISTS "${isn_patched}")'),
-    ("the marker is not compared", 'if(NOT "${isn_marker_text}" STREQUAL "${BENCH_ZEPHYR_PIN} ${BENCH_ISN_PATCH_SHA256}")', "if(0)"),
-    ("the marker's pin is not compared", 'if(NOT "${isn_marker_text}" STREQUAL "${BENCH_ZEPHYR_PIN} ${BENCH_ISN_PATCH_SHA256}")',
-     'if(NOT "${isn_marker_text}" MATCHES "${BENCH_ISN_PATCH_SHA256}$")'),
-    ("the marker's patch hash is not compared", 'if(NOT "${isn_marker_text}" STREQUAL "${BENCH_ZEPHYR_PIN} ${BENCH_ISN_PATCH_SHA256}")',
-     'if(NOT "${isn_marker_text}" MATCHES "^${BENCH_ZEPHYR_PIN} ")'),
-    ("the patched file's hash is not compared", 'if(NOT "${isn_patched_hash}" STREQUAL "${BENCH_ISN_PATCHED_FILE_SHA256}")', "if(0)"),
-    ("the patched file's hash is compared with the first patch's file", 'STREQUAL "${BENCH_ISN_PATCHED_FILE_SHA256}")',
-     'STREQUAL "${BENCH_PATCHED_FILE_SHA256}")'),
-    ("the RFC 6528 setting is not required", "if(NOT CONFIG_${BENCH_ISN_REQUIRES_SETTING})", "if(0)"),
+    ("the marker need not exist", 'if(NOT EXISTS "${marker}")', "if(0)"),
+    ("the marker is not compared", 'if(NOT "${marker_text}" STREQUAL "${expected_marker}")', "if(0)"),
+    ("the marker is compared with the first patch's hash only", 'string(APPEND expected_marker " ${patch_hash}")',
+     'if("${patch_names}" STREQUAL "")\n            string(APPEND expected_marker " ${patch_hash}")\n        endif()'),
+    ("the marker is compared with the hashes of the patches in the other order", 'string(APPEND expected_marker " ${patch_hash}")',
+     'string(PREPEND expected_marker "${patch_hash} ")'),
+    ("the marker is compared without the pin", 'set(expected_marker "${BENCH_ZEPHYR_PIN}")', 'set(expected_marker "")'),
+    ("another marker is allowed", 'if(NOT "${stray}" STREQUAL "${BENCH_PATCH_MARKER}")', "if(0)"),
+    ("a patched file need not exist", 'if(NOT EXISTS "${patched}")', "if(0)"),
+    ("a patched file's hash is not compared", 'if(NOT "${patched_hash}" STREQUAL "${file_hash}")', "if(0)"),
+    ("a deleted file may stay", 'if(EXISTS "${patched}")', "if(0)"),
+    ("a deleted file is read as a modified one", 'if("${file_change}" STREQUAL "deleted")', "if(0)"),
+    ("only the first patched file is checked", "foreach(entry IN LISTS BENCH_PATCHED_FILES)\n        string(REPLACE \"|\" \";\" parts \"${entry}\")\n        list(GET parts 0 file_path)\n        list(GET parts 1 file_change)\n        list(GET parts 2 file_hash)\n        set(patched",
+     "foreach(entry IN LISTS BENCH_PATCHED_FILES)\n        if(NOT first_done)\n        set(first_done 1)\n        string(REPLACE \"|\" \";\" parts \"${entry}\")\n        list(GET parts 0 file_path)\n        list(GET parts 1 file_change)\n        list(GET parts 2 file_hash)\n        set(patched"),
+    ("the RFC 6528 setting is not required", "if(NOT CONFIG_${required_symbol})", "if(0)"),
     ("the test network stack is allowed", "if(CONFIG_NET_TEST OR CONFIG_NET_TEST_PROTOCOL)", "if(CONFIG_NET_TEST_PROTOCOL)"),
     ("the test TCP protocol is allowed", "if(CONFIG_NET_TEST OR CONFIG_NET_TEST_PROTOCOL)", "if(CONFIG_NET_TEST)"),
-    ("the manifest leaves out the second patch", 'string(JSON zephyr SET "${zephyr}" isn_fail_closed "${isn}")', ""),
-    ("the manifest records the wrong patch hash", r'string(JSON isn SET "${isn}" patch_sha256 "\"${BENCH_ISN_PATCH_SHA256}\"")',
-     r'string(JSON isn SET "${isn}" patch_sha256 "\"${BENCH_PATCH_SHA256}\"")'),
+    ("the manifest leaves out the patches", 'string(JSON zephyr SET "${zephyr}" patches "${listed_patches}")', ""),
+    ("the manifest leaves out the patched files", 'string(JSON zephyr SET "${zephyr}" patched_files "${listed_files}")', ""),
+    ("the manifest leaves out the tree", 'string(JSON zephyr SET "${zephyr}" tree', "set(unused"),
+    ("the manifest leaves out the marker", 'string(JSON zephyr SET "${zephyr}" marker_file "\\"${BENCH_PATCH_MARKER}\\"")', ""),
+    ("the manifest records a deleted file with an empty hash", 'set(shown_hash "null")', 'set(shown_hash "\\"\\"")'),
+    ("the manifest records the patches in the other order", 'string(JSON listed_patches SET "${listed_patches}" ${count}',
+     'string(JSON listed_patches SET "${listed_patches}" 0'),
     ("the manifest does not record the setting", "NET_TCP_MAX_|NET_TCP_ISN_RFC6528|", "NET_TCP_MAX_|"),
 )
 

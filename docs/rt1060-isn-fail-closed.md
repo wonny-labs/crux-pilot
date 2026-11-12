@@ -5,6 +5,8 @@ Refs #183.
 
 **Everything here ran on the Host, on `native_sim`, or as a compile and link for `mimxrt1060_evk@B//qspi`. Nothing ran on a board.**
 
+**Update (T11 of [the freeze design](rt1060-bench-freeze-and-capture-design.md)).** This row first shipped with a sibling declaration block `patched_zephyr.isn_fail_closed` and a second marker `.crux-isn-fail-closed` (decisions 8 and 10 below). T11 moved the patch into the design's ordered list and replaced the two markers by the **one** marker `.crux-wolf-tls` with `<pin> <tls sha256> <isn sha256>`, which `scripts/prepare-isn-fail-closed.py` now writes by extending the TLS step's marker, with the owner's approval of that one edit to a protected script ([the PR of T11](#how-this-relates-to-the-freeze-design)). The sections *How the copy is made*, *The guards* and *Decisions for review* are current. The *Proof* section and the evidence folder record what ran when the row merged, with two markers, and stay as they were.
+
 ## The owner's decision
 
 > Owner, 2026-11-09, in the session that manages stage 2 of the bench image: "1-8까지 너의 추천대로 진행해줘". The recommendation for D-c was: **patch** the bench image's build-local Zephyr copy, not a check in the composition and not acceptance.
@@ -95,24 +97,30 @@ The copy is a build-local tree outside the repository. A copy that other session
 flowchart LR
     pin["Zephyr checkout at the pin<br/>(west workspace, read-only)"] -->|git archive, no doc, samples, tests| copy["COPY<br/>(no .git)"]
     copy -->|"scripts/prepare-wolf-tls-zephyr.sh COPY<br/>wolfSSL TLS socket patch, D8"| tls["COPY + .crux-wolf-tls<br/>sockets_tls.c 106acdbb…"]
-    tls -->|"scripts/prepare-isn-fail-closed.py COPY<br/>this patch, D-c"| both["COPY + .crux-isn-fail-closed<br/>tcp.c 94642fe2…"]
-    both -->|ZEPHYR_BASE| build["bench build: the guards check both markers and both hashes at configuration"]
+    tls -->|"scripts/prepare-isn-fail-closed.py COPY<br/>this patch, D-c"| both["COPY + .crux-wolf-tls extended<br/>pin, tls sha, isn sha<br/>tcp.c 94642fe2…"]
+    both -->|ZEPHYR_BASE| build["bench build: the guards check the one marker and every patched file's hash at configuration"]
 ```
 
 | Step | Command | Checks |
 | --- | --- | --- |
 | 1 | `scripts/prepare-wolf-tls-zephyr.sh COPY` | The checkout is at the `west.yml` pin; the osp patch's SHA-256 `3d1cc030…`; `sockets_tls.c` SHA-256 `106acdbb…` |
-| 2 | `scripts/prepare-isn-fail-closed.py COPY` | `COPY` is not a Git checkout; the patch file's SHA-256 `831fecdb…`; `tcp.c` is the pinned file (`393b940e…`) before and `94642fe2…` after; a patched `tcp.c` without the marker is refused; a second run changes nothing |
-| 3 | Build with `ZEPHYR_BASE=COPY` | `bench_guard.cmake` reads both markers (`<pin> <patch sha256>`) and both patched files' hashes from `bench_declaration.json`, and refuses a copy that has only the first |
+| 2 | `scripts/prepare-isn-fail-closed.py COPY` | `COPY` is not a Git checkout; the patch file's SHA-256 `831fecdb…`; `.crux-wolf-tls` is exactly `<pin> <tls sha256>` and a copy with the earlier `.crux-isn-fail-closed` is refused, each with nothing written; `tcp.c` is the pinned file (`393b940e…`) before and `94642fe2…` after; the marker becomes `<pin> <tls sha256> <isn sha256>`; a patched `tcp.c` without that marker is refused; a second run changes nothing |
+| 3 | Build with `ZEPHYR_BASE=COPY` | `bench_guard.cmake` builds the expected marker from the declared ordered list (`<pin>` and the patches' hashes), compares the one marker, refuses any other `.crux-*` marker, and checks every patched file's final hash from `bench_declaration.json` |
 
-The order is the TLS patch first. The two patches touch different files; step 2 would refuse a TLS patch that had touched `tcp.c`, because it checks the original's hash. The manifest of the build records both (`patched_zephyr` and `patched_zephyr.isn_fail_closed`).
+The marker is the order of the patches: step 2 starts only from the marker that step 1 wrote, so a copy made in another order, with a step missing or with an extra one has another text, and the guard and the freeze refuse it.
+
+**Standalone mode.** `scripts/test-isn-fail-closed.sh` patches a bare copy of the pinned tree for `native_sim`, with no TLS marker. The script then applies the patch and writes **no marker at all** (no marker format is invented for it). The bench guard refuses such a copy because the marker is missing, and a second run of the script on it is refused, because a patched `tcp.c` with no marker cannot be told from a copy whose marker was removed.
+
+**Re-running step 1 on a finished copy** finds a marker that is not `<pin> <tls sha256>`, so it makes the copy again from the pinned tree, and step 2 must run again.
+
+The order is the TLS patch first. The two patches touch different files; step 2 would refuse a TLS patch that had touched `tcp.c`, because it checks the original's hash. The manifest of the build records the block of the design (`patched_zephyr`, schema 2).
 
 **What whoever builds the bench image next must do.** The board image is built later from a pinned commit by the main session. Make a **new** copy with the two commands above (do not use a copy that only has the TLS patch: configuration refuses it), build from the pinned commit, and keep the manifest. A freeze that pins stock Zephyr records a tree that was not compiled ([blocker B2](rt1060-bench-image-plan.md)): it now has two patches to account for, and the plan's options for the copy apply to both.
 
 ### How this relates to the freeze design
 
-[`rt1060-bench-freeze-and-capture-design.md`](rt1060-bench-freeze-and-capture-design.md) (merged as #373) proposes, for the later freeze of the copy, a declaration with an **ordered list** of patches and one marker that carries every patch's hash. Its finding F12 could not read the shape of this patch. Here it is: one file (`subsys/net/ip/tcp.c`), changed by this patch only and not by the TLS patch (the copy's `tcp.c` is the pinned file after the first patch, [evidence](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/copy/tls-copy-hashes.txt)), applied second.
-This row does **not** migrate to that shape: it keeps the existing D8 keys and the marker `.crux-wolf-tls` exactly as they are, and adds a sibling block `patched_zephyr.isn_fail_closed` with its own marker `.crux-isn-fail-closed`, because extending the first marker would change a check that must stay as it is. Two markers are what the freeze design's single marker replaces; the migration is a rewrite of the declaration block and of two guard checks, and is the freeze row's to do ([decision 10](#decisions-for-review)).
+[`rt1060-bench-freeze-and-capture-design.md`](rt1060-bench-freeze-and-capture-design.md) (merged as #373) specifies, for the freeze of the copy, a declaration with an **ordered list** of patches, a list of every patched file with its final hash, a declared tree digest and one marker that carries every patch's hash. The patch has one file (`subsys/net/ip/tcp.c`), changed by this patch only and not by the TLS patch (the copy's `tcp.c` is the pinned file after the first patch, [evidence](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/copy/tls-copy-hashes.txt)), applied second.
+T11 migrated this row to that shape: `bench_declaration.json` holds `patched_zephyr` with `"schema": 2`, the two patches in order, both patched files, the one marker file, and `requires_settings` (the RFC 6528 setting, decision D-c, row C11) and `stock_sha256` (`tcp.c` before the patch), which only the guard and the tests read. The block that `bench_guard.cmake` writes into the manifest has the design's keys. Two things are **not** done there, on purpose: the tree digest and its file count are `null` until two independent derivations on a real build copy agree, and the TLS patch (which is not in this repository) is declared only with the one file that the repository records for it, so the freeze and the image check refuse the declaration as it stands (`open_items` in the declaration says so).
 
 ## The guards
 
@@ -120,11 +128,12 @@ The existing guards keep every check. New checks, each with a case that fails wi
 
 | Level | New check | Case that must be refused |
 | --- | --- | --- |
-| CMake (`bench_guard.cmake`, step 9b) | `.crux-isn-fail-closed` exists with `<pin> <patch sha256>`; `subsys/net/ip/tcp.c` has the declared hash; `CONFIG_NET_TCP_ISN_RFC6528` is set; `CONFIG_NET_TEST` and `CONFIG_NET_TEST_PROTOCOL` are not (they make the stack skip `tcp_init_isn`) | A copy without the marker or without `tcp.c`, a marker on another pin or with another patch hash, another `tcp.c`, no RFC 6528 setting, either test setting |
+| CMake (`bench_guard.cmake`, step 9) | The one marker `.crux-wolf-tls` is `<pin> <hash 1> <hash 2>` in the declared order; no other `.crux-*` marker is there; every patched file has its declared final hash (a deleted one is absent) | A copy without the marker, on another pin, with a missing, an extra, a changed or a reordered patch hash, with another marker beside it (the earlier `.crux-isn-fail-closed` among them), with a patched file missing or different, an unpatched tree, a deleted file that is still there |
+| CMake (`bench_guard.cmake`, step 9b) | `CONFIG_NET_TCP_ISN_RFC6528` is set (`requires_settings`); `CONFIG_NET_TEST` and `CONFIG_NET_TEST_PROTOCOL` are not (they make the stack skip `tcp_init_isn`) | No RFC 6528 setting, either test setting |
 | C (`src/bench_guard.h`) | `#error` without `CONFIG_NET_TCP_ISN_RFC6528`, and with either test setting | The same three |
 | Kconfig (`Kconfig.bench`) | `CRUX_MANAGEMENT_BENCH_IMAGE depends on NET_TCP_ISN_RFC6528` | The setting off: the declaration and every test form drop to `n` |
-| Declaration | `patched_zephyr.isn_fail_closed`: decision, row, marker, patch name and hash, patched file, original and patched hashes, the required setting | `tests/build/test_management_bench_declaration.py` keeps it equal to the script, the patch file and `target.conf` |
-| Manifest | The block `patched_zephyr.isn_fail_closed` and `CONFIG_NET_TCP_ISN_RFC6528` in `settings` | `check_manifest` in `check_bench_guard.py` |
+| Declaration | `patched_zephyr` schema 2, with this patch as the second entry of `patches`, its file in `patched_files`, and `requires_settings` | `tests/build/test_management_bench_declaration.py` keeps it equal to the scripts, the patch file and `target.conf`, and the freeze's own `validate_block` reads the block it becomes |
+| Manifest | The block `patched_zephyr` (schema 2) and `CONFIG_NET_TCP_ISN_RFC6528` in `settings` | `check_manifest` in `check_bench_guard.py`, also for a third patch and a deleted file |
 
 `check_bench_guard.py` mutants: **127 of 127 killed**: the 104 of the earlier rows stay killed, and 23 are new (the new `message(FATAL_ERROR)` lines, and one weakening of each new comparison, condition and manifest line, in `bench_guard.cmake` and in `bench_guard.h`). The new cases were run first against the original guard files and all failed there ([red run](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/host/check-bench-guard-red-original-guards.txt))..
 
@@ -208,10 +217,10 @@ The call-site scan ([`call-sites.txt`](evidence/rt1060-management-image-feasibil
 | 3 | A refused passive open is a **RST** and a refused connect returns the error of the read (`-EIO`), sending nothing | These are the stack's own exits for a failed bind and for the early errors of `net_tcp_connect`. Dropping the SYN silently is the other choice: it needs a different exit and leaves the peer waiting |
 | 4 | The key is read again at **every** attempt until a read works, rather than latching the failure | A TRNG that works again is then used. The cost is one failing read per SYN |
 | 5 | The guards also refuse `CONFIG_NET_TEST` and `CONFIG_NET_TEST_PROTOCOL` | Both make the stack skip `tcp_init_isn()`, so the patch would protect nothing. Neither is in the bench |
-| 6 | The new script is `scripts/prepare-isn-fail-closed.py`, a new file, and it does **not** edit `prepare-wolf-tls-zephyr.sh`, which is on a protected path | The bench copy is made with two commands in a fixed order. A single script for both needs an approved edit of the protected one |
+| 6 | The new script is `scripts/prepare-isn-fail-closed.py`, a new file, and it does **not** edit `prepare-wolf-tls-zephyr.sh`, which is on a protected path (T11 edited the new script, and still not the TLS one) | The bench copy is made with two commands in a fixed order. A single script for both needs an approved edit of the protected one |
 | 7 | The script refuses a Git checkout and changes the tree **in place** | A copy that other sessions use as a read-only input is never changed: the next copy is made new |
-| 8 | The decision keeps the plan's label **D-c** and the declaration says `"row": "C11"`; the marker is `.crux-isn-fail-closed` | Names follow `.crux-wolf-tls` and the existing `D8` block |
+| 8 | The decision keeps the plan's label **D-c** and the declaration says `"row": "C11"`; the marker was `.crux-isn-fail-closed` (**superseded by T11**: the one marker `.crux-wolf-tls`, see decision 10) | Names follow `.crux-wolf-tls` and the existing `D8` block |
 | 9 | The native test classifies numbers by recomputing the hash. The passive path hashes with the port that `net_context_get` chose at random for the new context and `net_context_bind` writes back into `tcp_conn_new`'s address when its port is 0 (`net_context.c`, the `addr4->sin_port = net_sin_ptr(&context->local)->sin_port` line), so the test tries all 65,536 ports (a first version that assumed port 0 did not match the keyed number) | The port is not observable from outside; the cost is a fraction of a second |
-| 10 | **Two markers now, not the single extended marker of the freeze design (#373)** | The existing guard compares `.crux-wolf-tls` to one exact text and the task keeps the D8 entries and checks as they are. The freeze row can fold the two blocks into its ordered list |
+| 10 | **Two markers when the row merged, not the single extended marker of the freeze design (#373). Superseded by T11: one marker.** | The existing guard compared `.crux-wolf-tls` to one exact text and the row kept the D8 entries and checks as they were. T11 (owner's approval of one edit of `scripts/prepare-isn-fail-closed.py`, 2026-11-12 21:43:57 UTC, "Approve option B") made this script extend the TLS step's marker, and folded the two blocks into the ordered list. The TLS script is unchanged: its own "already prepared" test no longer matches a finished copy, so it makes the copy again (step 1 above) |
 
 Approvals needed: the owner's review of the PR and the independent review. A merge needs the owner's explicit authorisation (`AGENTS.md`).
