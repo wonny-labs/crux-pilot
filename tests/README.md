@@ -24,6 +24,7 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 | Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
 | Out-of-tree consumer, all software levels | Python `unittest`; its Zephyr levels are opt-in | Linux host and Zephyr `native_sim` |
 | Device-control tool | Python `unittest` with fake transports | Linux and macOS hosts; Windows not run |
+| Power-cut wrapper `scripts/power_cut.py` | Python `unittest` with fake commands, run by the Host workflow (`python3 -m unittest discover -s tests/power_cut -v`); no hub, probe or board | Linux host |
 
 ## Host: `time/` and `controller/`
 
