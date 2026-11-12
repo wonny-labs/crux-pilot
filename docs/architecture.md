@@ -228,7 +228,7 @@ The folder and the names are decided. The move is not, and nothing is moved by t
 
 ### Current capability integration
 
-This is a source/integration inventory, not a qualification matrix. “Host” means the Linux development configuration; Zephyr support is limited to the selected native_sim/board profiles in the linked records. Presence of portable code does not imply an adopted production backend or physical qualification.
+This is a source/integration inventory, not a qualification matrix. “Host” means the Linux development configuration; Zephyr support is limited to the selected native_sim/board profiles in the linked records. Presence of portable code does not imply an adopted production backend or physical qualification. For each component's Host provider, Zephyr composition, strongest recorded evidence, gaps and provisional stability tier in one table, see [Component readiness](component-readiness.md).
 
 | Capability | Purpose | Current integration and limits | Reference |
 | --- | --- | --- | --- |
@@ -317,6 +317,26 @@ Crux uses complementary forms of evidence:
 Run tests proportionate to the change. Preserve existing contract and boundary protections, including negative tests. Avoid repeating unrelated full test suites solely for a documentation change. Physical programming, reset and Flash operations require task-specific approval and verified target setup.
 
 Evidence and historical qualification records must retain their original source, board and toolchain identity. Earlier Time Pilot M0–M5 records in [implementation status](implementation-status.md) are **not** the same milestones as the current platform roadmap.
+
+### Status of a hypothesis or exit criterion
+
+This applies to a hypothesis, such as H1 to H4 of [ADR-0001](decisions/0001-application-boundary-and-api-stability.md#decision-5-crux-value-and-the-evidence-that-would-show-it), and to an exit criterion of a milestone, an issue or a decision record. It governs how new or edited records state a status. It does not restate any existing record, and it adds no approval: the gates in [AGENTS.md](../AGENTS.md#scope-and-authorisation) are unchanged.
+
+A criterion has one of four statuses: **Validated**, **Open**, **Blocked** or **Failed**.
+
+- **Open**: no result yet, or results that cover only part of what the criterion says.
+- **Blocked**: a recorded limitation stops the central claim from being tested or shown. The status names the limitation.
+- **Failed**: a result tested the central claim and contradicted it.
+- **Validated**: a result covers the criterion as worded, and no recorded limitation blocks its central claim.
+
+The rule:
+
+1. **A result that proves only a narrow slice stays labelled as that slice.** The label names the slice: the component, environment, configuration, board, client and revision. It travels with the result when another document cites it.
+2. **A recorded limitation that blocks the central hypothesis keeps the criterion Open, Blocked or Failed.** It is not counted as validated, whatever else passed.
+3. **A narrow success never closes a broader criterion.** A result for one environment does not close a criterion worded for another, and the [evidence kinds above](#engineering-and-validation-boundaries) do not imply one another. For example, a `native_sim` run of a management service is a `native_sim` result, and a criterion worded for a board stays Open or Blocked.
+4. **Limits are written next to the result they limit**: in the same row, paragraph or status line, not only in another document or a later section. A limitation found after a result was recorded is added next to that result in the maintained document that cites it, with a link to the evidence. Accepted evidence records stay unchanged, as `AGENTS.md` requires.
+
+Do not close an issue or a milestone on a criterion that is not Validated ([AGENTS.md](../AGENTS.md#autonomous-work-and-review-boundaries)). The [component readiness table](component-readiness.md) applies the same reading to each component's evidence.
 
 ## Extending Crux
 

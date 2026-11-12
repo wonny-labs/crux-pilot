@@ -40,6 +40,8 @@ See the [architecture overview](docs/architecture.md) for component ownership, p
 
 Host tests, `native_sim` runs and target cross-builds do not prove physical operation. The M4 Pilot has selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR. The Zephyr Settings File backend has been tested only on `native_sim`, with corrections staged in the test fixture; there is no Settings File target provider and the backend is not qualified. Physical microSD evidence (one board, one card) covers mount, reboot persistence, power cuts during plain File appends on FatFs and a repeat of the compaction's write, close and rename order (not the backend), and blank-card, wrong-layout, stack and card-removal runs; it is not a qualification of the board, the card or the Settings File backend. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
 
+For each component's Zephyr composition, strongest recorded evidence, gaps and provisional stability tier, see [Component readiness](docs/component-readiness.md).
+
 ## Getting started
 
 Use Docker and VS Code Dev Containers with the documented Linux amd64 environment. Run the commands below from the Crux repository root **inside the Dev Container**. See the [Build and Integration Guide](docs/build.md) for workspace setup, prerequisites and configuration options.
