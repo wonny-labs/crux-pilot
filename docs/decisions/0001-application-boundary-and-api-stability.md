@@ -1,6 +1,6 @@
 # ADR-0001: Application boundary and public API stability
 
-Status: **Proposed**, for the owner's decision. Date: 12 November 2026. Baseline: main `54cc83e`.
+Status: **Accepted** on 12 November 2026, with D10 limited to phase 1. See [the owner's decision](#the-owners-decision). Proposed: 12 November 2026. Baseline: main `54cc83e`.
 
 This record is documentation only. It changes no code, check, contract or protected path, and nothing in it binds until the owner accepts it. Each decision that it would put into effect needs its own change afterwards, listed under [Follow-up changes](#follow-up-changes). The facts and sources behind it are in the [research note](../research/app-boundary-and-api-stability.md).
 
@@ -441,7 +441,7 @@ The experiment runs in two phases:
 
 ## Follow-up changes
 
-None of these is part of this ADR. Each is its own reviewed change after acceptance, and the ones on protected paths need the owner's approval of that change.
+None of these is part of this ADR. Each is its own reviewed change after acceptance, and the ones on protected paths need the owner's approval of that change. None had started when the owner accepted this record. Item 7 covers phase 1 only, as [the owner's decision](#the-owners-decision) records.
 
 1. Update the [architecture](../architecture.md) and the [native-free consumer policy](../native-interface-policy.md) to name the three layers, ports and adapters, and to link this ADR.
 2. Write the composition interface rules into the [File root binding](../file-composition-interface.md) document or a short guide, and use them for the next composition interface. If the owner wants it, name the `ports/<os>/include/crux/` location in CONTRIBUTING, a protected path.
@@ -466,8 +466,25 @@ None of these is part of this ADR. Each is its own reviewed change after accepta
 | D9 | The three new rules before `v1.0` in 4.5: every breaking change raises `y` with a migration note, tiers from the first tag, one release of notice for Unstable. Also the five criteria for `v1.0` | Approve |
 | D10 | **The experiment:** run phase 1 (Host and `native_sim`, no hardware) in a new repository outside `crux-pilot`. Phase 2 needs an ADS112C04 breakout and board time | Approve phase 1. For phase 2, please decide whether to buy the part and when the board is free. Neither of those authorises the board run: phase 2 needs your explicit authorisation for that run when it happens |
 
+### The owner's decision
+
+The owner accepted the recommendations in the Crux Pilot main session chat on 12 November 2026 at 21:33:37 UTC. The time comes from the session transcript, and the owner's time zone was not recorded. The main session had listed D1 to D10 with the recommendation "D1 to D9 approve, D7 with the recommended numbers, D10 phase 1 only", and had flagged D4 as needing an explicit yes. The owner replied:
+
+> 추천대로 진행해줘. ecc 환경변수도 수정할수 있으면해줘.
+
+The first sentence means "Proceed as recommended". The second is about ECC environment variables and is not part of this record.
+
+| # | Decided |
+| --- | --- |
+| D1 to D6, D8, D9 | Approved as recommended |
+| D7 | Approved with the recommended numbers: after `v1.0`, at least two minor releases and at least six months; before `v1.0`, one tagged release for Unstable |
+| D10 | Phase 1 only: the Host and `native_sim` experiment, without hardware, in a new repository outside `crux-pilot`. Phase 2 is **not approved**. Buying the ADS112C04 breakout and the board time stay undecided, and no board run is authorised |
+
+The approval of D4 is read from "추천대로 진행해줘", given after a list that flagged D4 as needing an explicit yes. The removal itself is follow-up change 4, which touches `scripts/` and `.github/` and so needs the owner's approval of that change.
+
 ## Record
 
 - Author: Claude Code, model `claude-opus-5-5`, in a session started by the Crux Pilot main session.
 - Research: three subagents on the Sonnet model alias (exact model ID not reported), each limited to primary sources.
 - Review: the repository's `reviewer` agent; its verdict is recorded in the pull request.
+- Acceptance: recorded by Claude Code, `claude-opus-5-5`, from the owner's words as the Crux Pilot main session relayed them. The pull request that records it holds its review.
