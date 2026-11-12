@@ -37,7 +37,15 @@ SEAM = HERE / 'fixtures' / 'watch-seam'
 REPOSITORY = HERE.parents[1]
 
 
+class WatchFake(cap.FakeSpec, raw.WatchSpec):
+    """The recording fake of the program tests, of the watch window's type (the driver requires a WatchSpec)."""
+
+
 class Case(cap.Case):
+    def spec(self, watch=True, **options):
+        self.fake = (WatchFake if watch else cap.FakeSpec)(self, **options)
+        return self.fake
+
     """The fakes of the program tests. ``preconditions`` also records the guard time that a check asked for."""
 
     def setUp(self):
@@ -187,6 +195,12 @@ class Refusals(Case):
                 self.driver('watch', **options)
             self.assertFalse(self.directory.exists())
 
+    def test_the_watch_mode_takes_only_the_watch_window(self):
+        for name, spec in (('a program window', raw.CaptureSpec(180)), ('another object with seconds', self.spec(watch=False, seconds=WINDOW))):
+            with self.subTest(name), self.assertRaisesRegex(HardwareStop, 'needs a WatchSpec'):
+                self.driver('watch', capture=spec)
+            self.assertFalse(self.directory.exists())
+
     def test_the_program_mode_never_takes_the_watch_window(self):
         with self.assertRaisesRegex(HardwareStop, 'watch mode only'):
             self.driver('program', capture=raw.WatchSpec(WINDOW))
@@ -199,7 +213,7 @@ class Refusals(Case):
         self.assertEqual((self.commands, self.checks), ([], []))
 
     def test_watch_runs_only_in_the_watch_mode(self):
-        spec = self.spec(seconds=180)
+        spec = self.spec(watch=False, seconds=180)
         with self.assertRaisesRegex(HardwareStop, 'only in the watch mode'), self.driver('program', capture=spec) as driver:
             driver.watch(self.guard_window)
         self.assertEqual((self.commands, self.checks, spec.opened), ([], [], []))

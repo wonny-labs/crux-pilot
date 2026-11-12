@@ -170,6 +170,7 @@ class Driver:
         require(not isinstance(capture, WatchSpec) or mode == 'watch', 'The watch window is for the watch mode only')
         require(mode != 'watch' or (capture is not None and reverify is not None),
                 'The watch mode needs its capture window and the manifest re-verification')
+        require(mode != 'watch' or isinstance(capture, WatchSpec), 'The watch mode needs a WatchSpec window, never a program window')
         require(mode != 'watch' or (type(capture.seconds) is int and 1 <= capture.seconds <= MAX_WATCH_SECONDS),
                 'The watch window must be a whole number of seconds from 1 to %d' % MAX_WATCH_SECONDS)
         runner.validate_approval(approval, plan)       # also requires every plan operation to be approved
