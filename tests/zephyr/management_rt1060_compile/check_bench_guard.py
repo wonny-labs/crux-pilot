@@ -1131,7 +1131,11 @@ ISN_MUTANTS = (
      'if("${patch_names}" STREQUAL "")\n            string(APPEND expected_marker " ${patch_hash}")\n        endif()'),
     ("the marker is compared with the hashes of the patches in the other order", 'string(APPEND expected_marker " ${patch_hash}")',
      'string(PREPEND expected_marker "${patch_hash} ")'),
-    ("the marker is compared without the pin", 'set(expected_marker "${BENCH_ZEPHYR_PIN}")', 'set(expected_marker "")'),
+    # The next two keep the good copy passing, so that the extra-patch and the pin cases are needed on their own.
+    ("the marker is matched as a prefix", 'if(NOT "${marker_text}" STREQUAL "${expected_marker}")',
+     'if(NOT "${marker_text}" MATCHES "^${expected_marker}")'),
+    ("the marker's pin is not compared", 'if(NOT "${marker_text}" STREQUAL "${expected_marker}")',
+     'string(REPLACE "${BENCH_ZEPHYR_PIN}" "" expected_tail "${expected_marker}")\n    if(NOT "${marker_text}" MATCHES "^[0-9a-f]+${expected_tail}$")'),
     ("another marker is allowed", 'if(NOT "${stray}" STREQUAL "${BENCH_PATCH_MARKER}")', "if(0)"),
     ("a patched file need not exist", 'if(NOT EXISTS "${patched}")', "if(0)"),
     ("a patched file's hash is not compared", 'if(NOT "${patched_hash}" STREQUAL "${file_hash}")', "if(0)"),

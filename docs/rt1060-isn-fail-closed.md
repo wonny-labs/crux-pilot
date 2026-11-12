@@ -5,7 +5,7 @@ Refs #183.
 
 **Everything here ran on the Host, on `native_sim`, or as a compile and link for `mimxrt1060_evk@B//qspi`. Nothing ran on a board.**
 
-**Update (T11 of [the freeze design](rt1060-bench-freeze-and-capture-design.md)).** This row first shipped with a sibling declaration block `patched_zephyr.isn_fail_closed` and a second marker `.crux-isn-fail-closed` (decisions 8 and 10 below). T11 moved the patch into the design's ordered list and replaced the two markers by the **one** marker `.crux-wolf-tls` with `<pin> <tls sha256> <isn sha256>`, which `scripts/prepare-isn-fail-closed.py` now writes by extending the TLS step's marker, with the owner's approval of that one edit to a protected script ([the PR of T11](#how-this-relates-to-the-freeze-design)). The sections *How the copy is made*, *The guards* and *Decisions for review* are current. The *Proof* section and the evidence folder record what ran when the row merged, with two markers, and stay as they were.
+**Update (T11 of [the freeze design](rt1060-bench-freeze-and-capture-design.md)).** This row first shipped with a sibling declaration block `patched_zephyr.isn_fail_closed` and a second marker `.crux-isn-fail-closed` (decisions 8 and 10 below). T11 moved the patch into the design's ordered list and replaced the two markers by the **one** marker `.crux-wolf-tls` with `<pin> <tls sha256> <isn sha256>`, which `scripts/prepare-isn-fail-closed.py` now writes by extending the TLS step's marker, with the owner's approval of that one edit to a protected script (see [how this relates to the freeze design](#how-this-relates-to-the-freeze-design)). The sections *How the copy is made* and *Decisions for review* are current, and so is the table of *The guards*; its mutant count is the C11 figure at merge, and the T11 figure is stated beside it. The *Proof* section and the evidence folder record what ran when the row merged, with two markers, and stay as they were.
 
 ## The owner's decision
 
@@ -122,6 +122,13 @@ The order is the TLS patch first. The two patches touch different files; step 2 
 [`rt1060-bench-freeze-and-capture-design.md`](rt1060-bench-freeze-and-capture-design.md) (merged as #373) specifies, for the freeze of the copy, a declaration with an **ordered list** of patches, a list of every patched file with its final hash, a declared tree digest and one marker that carries every patch's hash. The patch has one file (`subsys/net/ip/tcp.c`), changed by this patch only and not by the TLS patch (the copy's `tcp.c` is the pinned file after the first patch, [evidence](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/copy/tls-copy-hashes.txt)), applied second.
 T11 migrated this row to that shape: `bench_declaration.json` holds `patched_zephyr` with `"schema": 2`, the two patches in order, both patched files, the one marker file, and `requires_settings` (the RFC 6528 setting, decision D-c, row C11) and `stock_sha256` (`tcp.c` before the patch), which only the guard and the tests read. The block that `bench_guard.cmake` writes into the manifest has the design's keys. Two things are **not** done there, on purpose: the tree digest and its file count are `null` until two independent derivations on a real build copy agree, and the TLS patch (which is not in this repository) is declared only with the one file that the repository records for it, so the freeze and the image check refuse the declaration as it stands (`open_items` in the declaration says so).
 
+Two things about the new marker flow are **unverified**:
+
+- **`patch --strip=1` against `git apply --no-index`.** The freeze re-derives the tree by applying every patch with the `patch --strip=1 --no-backup-if-mismatch --quiet` command line of the TLS script (design step 4(e)), while `scripts/prepare-isn-fail-closed.py` applies this patch with `git apply --no-index` (and checks the result's hash). Both are assumed to give the same `tcp.c`; that has not been shown for this patch.
+- **No real run.** The flow `prepare-wolf-tls-zephyr.sh`, then `prepare-isn-fail-closed.py`, with the guard and the freeze after it, has never run on a real copy with the real TLS script (which downloads its patch). The host tests use a synthetic TLS marker.
+
+**Crash and leftovers.** The script replaces `tcp.c` first and the marker second. A crash between the two writes leaves a patched `tcp.c` under the TLS-only marker: the script refuses that copy and it cannot be finished, so make a new copy. A stale `.crux-wolf-tls.new` that a crash leaves behind is a `.crux-*` file that is not the marker, so the bench guard refuses the copy for that reason too.
+
 ## The guards
 
 The existing guards keep every check. New checks, each with a case that fails without it and a mutant that is killed:
@@ -135,7 +142,9 @@ The existing guards keep every check. New checks, each with a case that fails wi
 | Declaration | `patched_zephyr` schema 2, with this patch as the second entry of `patches`, its file in `patched_files`, and `requires_settings` | `tests/build/test_management_bench_declaration.py` keeps it equal to the scripts, the patch file and `target.conf`, and the freeze's own `validate_block` reads the block it becomes |
 | Manifest | The block `patched_zephyr` (schema 2) and `CONFIG_NET_TCP_ISN_RFC6528` in `settings` | `check_manifest` in `check_bench_guard.py`, also for a third patch and a deleted file |
 
-`check_bench_guard.py` mutants: **127 of 127 killed**: the 104 of the earlier rows stay killed, and 23 are new (the new `message(FATAL_ERROR)` lines, and one weakening of each new comparison, condition and manifest line, in `bench_guard.cmake` and in `bench_guard.h`). The new cases were run first against the original guard files and all failed there ([red run](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/host/check-bench-guard-red-original-guards.txt))..
+**T11 figure (local, Host):** `check_bench_guard.py --skip-kconfig` kills **128 of 138 mutants (0 survived)**, and the 10 Kconfig mutants were skipped because Kconfiglib is not installed locally; the Kconfig level and CI have not been run for T11 yet.
+
+**C11 figure at merge (historical):** `check_bench_guard.py` mutants: **127 of 127 killed**: the 104 of the earlier rows stay killed, and 23 are new (the new `message(FATAL_ERROR)` lines, and one weakening of each new comparison, condition and manifest line, in `bench_guard.cmake` and in `bench_guard.h`). The new cases were run first against the original guard files and all failed there ([red run](evidence/rt1060-management-image-feasibility/isn-fail-closed-c11/host/check-bench-guard-red-original-guards.txt))..
 
 ## Proof
 

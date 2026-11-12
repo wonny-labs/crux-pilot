@@ -82,7 +82,8 @@
     ],
     "open_items": [
       "tree: sha256 and file_count are null on purpose. The digest crux-zephyr-tree-v1 of the real copy is declared only after two independent derivations on a real build copy agree (docs/rt1060-bench-freeze-and-capture-design.md, order of work 4). Until then the freeze and the image check refuse this block.",
-      "patched_files: zephyr-tls-4.4.1.patch is not in this repository (scripts/prepare-wolf-tls-zephyr.sh downloads it), so only sockets_tls.c is declared for it, as far as the repository supports. Its other files (new files, subsys/random) are unknown here, and the first real freeze refuses until they are listed."
+      "patched_files: zephyr-tls-4.4.1.patch is not in this repository (scripts/prepare-wolf-tls-zephyr.sh downloads it), so only sockets_tls.c is declared for it, as far as the repository supports. Its other files (new files, subsys/random) are unknown here, and the first real freeze refuses until they are listed.",
+      "unverified: the freeze re-derives the tree with `patch --strip=1` while scripts/prepare-isn-fail-closed.py applies its patch with `git apply --no-index`, and the one-marker flow (TLS script, then the ISN script) has never run on a real copy with the real TLS script."
     ]
   }
 }
