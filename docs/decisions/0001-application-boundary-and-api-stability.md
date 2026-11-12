@@ -52,12 +52,7 @@ The colleague's central point: **no general advantage over a well-structured Zep
 | --- | --- |
 | The native-free consumer policy: portable application logic uses public Crux targets and qualified standard APIs; native providers and platform composition use Zephyr | [Native-free consumer policy](../native-interface-policy.md), adopted under Issue #24 |
 | Lexical and build-graph checks of that policy on Crux's own trees | `scripts/check-native-interfaces.py`, `cmake/CruxConsumerBoundary.cmake` |
-Two composition targets:
-
-- `crux::file_zephyr` for Zephyr, with a negative boundary test.
-- `crux::queue_linux` for the Linux Host.
-
-| [File root binding](../file-composition-interface.md), [component ownership](../architecture.md#component-ownership-and-source-layout) |
+| Two composition targets: `crux::file_zephyr` (Zephyr, with a negative boundary test) and `crux::queue_linux` (Linux Host) | [File root binding](../file-composition-interface.md), [component ownership](../architecture.md#component-ownership-and-source-layout) |
 | A product-shaped consumer that already uses three checked trees | `crux-controller`, see [Crux today](../research/app-boundary-and-api-stability.md#crux-today) |
 | Version rules before `v1`, and a provisional compatibility table | [Versions](../product-composition.md#versions), [Compatibility table](../compatibility-table.md) |
 | `BREAKING CHANGE:` footers, and source compatibility without a binary ABI | [CONTRIBUTING](../../CONTRIBUTING.md#commit-messages), [Coding guidelines](../coding-guidelines.md#public-api-consistency) |
@@ -160,7 +155,7 @@ This refines the existing roles in the [architecture](../architecture.md#archite
 | 5 | It may include a Zephyr header or name a Zephyr type, such as `const struct device *`, only where the binding needs one. `<crux/file_zephyr.h>` needs none. | New. Composition code is Zephyr code already, so passing a device is more honest than inventing an identifier |
 | 6 | It follows the same stability tiers as any public interface ([Decision 4](#decision-4-api-stability-and-change-policy)). A change forced by a Zephyr baseline move is listed as a breaking change | New |
 
-Rules 2, 3, 4 and 6 also cover the Linux Host composition targets, such as `crux::queue_linux`, which name `linux` in place of `zephyr`.
+Rules 3, 4 and 6 also cover the Linux Host composition targets, such as `crux::queue_linux`, which name `linux` in place of `zephyr`. Rule 2 does not. On Linux Host no Kconfig selects a provider, so the composition target is the provider itself: `crux::queue_linux` is an alias of the static provider library `crux_queue_linux`.
 
 Rule 1 extends the placement that the [File root binding](../file-composition-interface.md#decisions-taken) justified for one header (its decision 5) to every composition interface. [CONTRIBUTING](../../CONTRIBUTING.md#public-headers-and-module-dependencies) places public headers in a component's `include/crux/`. Whether CONTRIBUTING should name this second location is a follow-up. CONTRIBUTING is a protected path, so that change needs the owner's approval.
 
