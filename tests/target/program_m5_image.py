@@ -167,6 +167,7 @@ class Driver:
                  clock=m3_clock.monotonic, series_seconds=900, capture=None):
         require(mode in MODES, 'Unknown mode')
         require(capture is None or mode in CAPTURE_MODES, 'A capture is allowed only for the program mode and the read-only watch mode')
+        require(not isinstance(capture, WatchSpec) or mode == 'watch', 'The watch window is for the watch mode only')
         require(mode != 'watch' or (capture is not None and reverify is not None),
                 'The watch mode needs its capture window and the manifest re-verification')
         require(mode != 'watch' or (type(capture.seconds) is int and 1 <= capture.seconds <= MAX_WATCH_SECONDS),

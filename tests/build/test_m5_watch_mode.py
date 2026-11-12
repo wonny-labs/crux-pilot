@@ -187,6 +187,11 @@ class Refusals(Case):
                 self.driver('watch', **options)
             self.assertFalse(self.directory.exists())
 
+    def test_the_program_mode_never_takes_the_watch_window(self):
+        with self.assertRaisesRegex(HardwareStop, 'watch mode only'):
+            self.driver('program', capture=raw.WatchSpec(WINDOW))
+        self.assertFalse(self.directory.exists())
+
     def test_run_refuses_any_probe_command_in_the_watch_mode(self):
         with self.watch_driver() as driver:
             with self.assertRaisesRegex(HardwareStop, 'runs no probe command'):
