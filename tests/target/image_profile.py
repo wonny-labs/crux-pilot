@@ -1,7 +1,8 @@
 """What differs between two images that share the reviewed board path. Never touches hardware.
 
 A profile names only image facts, and whether the UART of the freshly started image is recorded raw and for how long
-(``capture``, ``capture_seconds``: a bounded window, never a switch of a gate). The safety gates of the programming and restore driver (guard check before
+(``capture``, ``capture_seconds``: a bounded window, never a switch of a gate), and the window of the read-only ``watch``
+mode (``watch_seconds``, likewise bounded). The safety gates of the programming and restore driver (guard check before
 every command, ownership inventory, voltage check, bounded commands, no retry, identity-only probe, entry-image
 verify, restore of the accepted normal image) are not part of a profile and cannot be changed through one.
 """
@@ -13,6 +14,9 @@ from typing import Callable, Mapping, Optional, Tuple
 CAPTURE_MODES = ('none', 'raw')
 KNOWN_EXTRA_ROLES = ('bench_manifest', 'patched_zephyr')      # frozen roles that only some profiles have, see ``extra_roles``
 MAX_CAPTURE_SECONDS = 300                       # the window after the start command; 300 s plus the 30 s Commander run at 115200 baud is at most about 3.8 MB
+# The window of the read-only ``watch`` mode, which runs no probe command (blocker B4, option X; owner decision 2026-11-12).
+# Its own cap, never a relaxation of MAX_CAPTURE_SECONDS: 3,600 s plus the close at 115200 baud is at most about 41.5 MB.
+MAX_WATCH_SECONDS = 3600
 
 
 @dataclass(frozen=True)
@@ -41,6 +45,10 @@ class ImageProfile:
     # ``check_image`` as a REQUIRED keyword argument of the same name: a missing artefact is a refusal and never a skipped group.
     # ``patched_zephyr`` (the record of the patched Zephyr copy) needs ``bench_manifest`` (the block it is checked against).
     extra_roles: Tuple[str, ...] = ()
+    # Window of the read-only ``watch`` mode, which reads the same owned port after ``program`` has finished and released it,
+    # and runs no probe command. 0 (the default) means the profile has no watch; otherwise 1 to MAX_WATCH_SECONDS whole seconds,
+    # and only for a profile whose ``program`` mode captures raw (the watch continues that record across a seam).
+    watch_seconds: int = 0
 
     def __post_init__(self):
         problems = []
@@ -59,6 +67,10 @@ class ImageProfile:
                 problems.append('capture none has no window')
         elif type(self.capture_seconds) is not int or not 1 <= self.capture_seconds <= MAX_CAPTURE_SECONDS:
             problems.append('capture raw needs a window of 1 to %d whole seconds' % MAX_CAPTURE_SECONDS)
+        if type(self.watch_seconds) is not int or not 0 <= self.watch_seconds <= MAX_WATCH_SECONDS:
+            problems.append('watch_seconds must be 0 (no watch) or 1 to %d whole seconds' % MAX_WATCH_SECONDS)
+        elif self.watch_seconds and self.capture != 'raw':
+            problems.append('a watch window needs the raw capture of the program mode')
         if type(self.extra_roles) is not tuple or any(r not in KNOWN_EXTRA_ROLES for r in self.extra_roles) or \
                 len(set(self.extra_roles)) != len(self.extra_roles):
             problems.append('extra_roles is not a tuple of distinct roles out of ' + ', '.join(KNOWN_EXTRA_ROLES))
