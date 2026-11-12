@@ -9,7 +9,7 @@ A colleague reviewed Crux on 12 November 2026. A fact-check against main `54cc83
 - Crux is focused on Zephyr, and Linux Host is a development and test environment only.
 - The Crux I2C, SPI and GPIO APIs are narrow static bindings: one controller per bus, raw I2C addresses, one GPIO input line, and no device model.
 - A product IC such as the ADS112C04 needs Zephyr work that the product owns.
-- Zephyr composition is uneven. `zephyr/Kconfig` says Access and its event provider have no Zephyr composition.
+- Zephyr composition is uneven. `zephyr/Kconfig` says Access and a provider of the command line's event port have no Zephyr composition. Access is built only by compositions under `tests/`.
 - Secure management has never run on a board.
 - The Settings integration takes sources from `tests/`.
 
@@ -55,7 +55,7 @@ These facts are from this repository unless stated otherwise.
 | The sensor API has a fetch-and-get model and a newer read-and-decode model on RTIO. The page says the newer model is still stabilising and the older one will likely be deprecated. | [Sensors](https://docs.zephyrproject.org/latest/hardware/peripherals/sensor/index.html) |
 | API lifecycle: **experimental** (may change or go; needs docs, one implementation and one sample), **unstable** (may be removed without deprecation), **stable** (complete docs, test coverage, two development releases; a breaking change needs an RFC, a migration guide entry and maintainer approval, and raises the API's major version), **deprecated** (at least two full releases before removal, with a compiler attribute or Kconfig option, a named replacement and a migration guide entry). | [API lifecycle](https://docs.zephyrproject.org/latest/develop/api/api_lifecycle.html) |
 | The API overview lists a version for each API, and a version of 1.0 or higher means stable. I2C is 1.0.0, SPI 1.1.0, GPIO 1.0.0, sensor 1.0.0 and ADC 1.0.0. The fetch read only part of the page. | [API overview](https://docs.zephyrproject.org/latest/develop/api/overview.html) |
-| Zephyr releases about every six months. An LTS release comes every 2.5 to 3 years and is maintained for about five years. | [Release process](https://docs.zephyrproject.org/latest/project/release_process.html) |
+| Zephyr makes time-based releases. The research pass read the page as saying about every six months, but past releases came about every four months, so the current cadence is *unverified*. An LTS release comes every 2.5 to 3 years and is maintained for about five years. | [Release process](https://docs.zephyrproject.org/latest/project/release_process.html) |
 | No ADS112C04 driver or binding was found upstream. `dts/bindings/adc` on `main` lists other TI ADCs (ADS1112 to ADS1115, ADS1118, ADS1119, ADS1220 and others) and no `ti,ads112c04.yaml`, and that file name returned 404. The `drivers/adc` listing was partial. No full-text search was run. | [dts/bindings/adc](https://github.com/zephyrproject-rtos/zephyr/tree/main/dts/bindings/adc), [drivers/adc](https://github.com/zephyrproject-rtos/zephyr/tree/main/drivers/adc) |
 | Out-of-tree code joins a build as a module through `zephyr/module.yml`. The example-application repository shows an application with its own drivers, bindings and boards in the T2 west topology. That `dts_root` is the route for bindings is *unverified*. | [Modules](https://docs.zephyrproject.org/latest/develop/modules.html), [example-application](https://github.com/zephyrproject-rtos/example-application) |
 
