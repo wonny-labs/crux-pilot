@@ -10,17 +10,17 @@ Inspect the request, the issue or PR, existing decisions and installed skills, t
 
 | Work | Skill or agent | Model |
 |---|---|---|
-| Unclear requirements or a design decision | `mattpocock-skills:grilling` or `superpowers:brainstorming`, one of them. Suggest `mattpocock-skills:grill-me` to the user. | Opus for cross-cutting design, otherwise Sonnet |
-| Breaking large work into issues | Suggest `mattpocock-skills:to-tickets` to the user | Sonnet |
+| Unclear requirements or a design decision | No ECC equivalent for clarifying requirements: ask the user directly. Use `ecc:council` only to settle a choice between defined options. | Opus for cross-cutting design, otherwise Sonnet | `ecc:council` is not for code review, planning or architecture design. Its persistence rule may update GitHub issues: get approval first. |
+| Breaking large work into issues | Suggest `ecc:epic-decompose` to the user. It reconciles an existing epic issue, not free-form work. If none fits, do the work without a skill. | Sonnet | Adds and removes issue labels, sets status claimed or in-progress, writes a local store, and comment on the issue. It runs `node scripts/github-coordination.js`, which exists only in the plugin. Suggest it only with the user's approval for each issue write. |
 | Approved multi-step implementation | `superpowers:writing-plans`, then `superpowers:executing-plans` or `superpowers:subagent-driven-development` | Sonnet |
-| New behaviour, bug fixes, scripts and tests | `superpowers:test-driven-development` | Sonnet |
-| Failing checks or unexpected behaviour | `superpowers:systematic-debugging` | Sonnet, or Opus if the cause stays unclear |
-| Agent guidance and skills | `mattpocock-skills:writing-for-agents` | Sonnet |
+| New behaviour, bug fixes, scripts and tests | `ecc:tdd-workflow`. Add `ecc:cpp-testing` for C++ and `ecc:python-testing` for Python tests. | Sonnet | `ecc:tdd-workflow` makes a checkpoint commit per stage, runs a Node helper in Step 0 and expects Playwright E2E. Its Step 8 writes a TDD evidence report to `.github/tdd/`, `.claude/tdd/` or `docs/releases/`, and the first two are protected: write none there, and record evidence in the issue or PR. Its 80% coverage target is not a repository requirement. No ECC skill covers Ztest or Twister: use the repository's test runners. |
+| Failing checks or unexpected behaviour | `ecc:cpp-build` for CMake and linker errors, `ecc:agent-introspection-debugging` when the agent loops or stalls. No ECC equivalent for debugging failing tests or unexpected runtime behaviour: reproduce, isolate and fix directly under the TDD rule. | Sonnet, or Opus if the cause stays unclear | `ecc:cpp-build` and `ecc:build-fix` run `cmake -B build -S .` or npm and Cargo builds. Use the repository presets and `scripts/` checks instead, and keep each fix minimal. Prefer `ecc:cpp-build` to `ecc:build-fix`. |
+| Agent guidance and skills | No ECC equivalent for writing guidance: write it directly. `ecc:skill-comply` can measure compliance, but weakly. | Sonnet | `ecc:skill-comply` runs `claude -p` at cost and needs the user's approval. `ecc:rules-distill` targets ECC rule files through a path absent from a plugin install: do not use it. |
 | External research | `mattpocock-skills:research` | Sonnet |
 | Finding files or code | built-in `Explore` agent | Haiku |
 | Material review | `reviewer` agent | Opus, fixed in the agent |
 | Before claiming completion | `superpowers:verification-before-completion` | Same as the work |
-| Handoff to another session or agent | Suggest `mattpocock-skills:handoff` to the user | Same as the work |
+| Handoff to another session or agent | Suggest `ecc:save-session` to the user | Same as the work | Writes to `~/.claude/session-data/`, outside the repository. Record the handoff in the issue or PR as this file requires. |
 | Small or mechanical change | none | Sonnet |
 
 Skills and subagents add no approval or permissions. When a skill asks for confirmation, continue only if the task's approval and tool permissions already cover the action. A skill's default folders, commits, branches, PRs and clean-up give way to `AGENTS.md` and the task's approval. Record skill outputs such as designs, plans and research in the issue or in existing docs.
@@ -46,7 +46,7 @@ Record the revision, the checks as `AGENTS.md` requires, open findings, approval
 
 Since 2026-11-12 the owner is evaluating the everything-claude-code (ECC) plugin, and the `superpowers` and `mattpocock-skills` plugins are disabled. Use the ECC skill in the table below instead of each unavailable skill in the routing table. The model column is unchanged. When the evaluation ends, remove this whole section.
 
-Every skill below is exposed with the `ecc:` prefix. Each runs under the existing rule: a skill's default folders, commits, branches, PRs and clean-up give way to `AGENTS.md` and the task's approval. Where a skill's default conflicts with that, the table says so. Skip that default, or ask the user first.
+Every skill, command and agent below is named with the `ecc:` prefix. The table lists the main known conflicts, not all of them. `AGENTS.md` and the task's approval win over every default of any ECC skill, including its folders, commits, branches, PRs, installs and clean-up. Skip a conflicting default, or ask the user first. ECC hooks run by default (Bash, Edit, Write and Skill matchers). Note their effects in the evaluation record.
 
 | Work | ECC replacement | Model | Conflict with `AGENTS.md` |
 |---|---|---|---|
@@ -64,4 +64,4 @@ Every skill below is exposed with the `ecc:` prefix. Each runs under the existin
 | Handoff to another session or agent | Suggest `ecc:save-session` to the user | Same as the work | Writes to `~/.claude/session-data/`, outside the repository. Put nothing private in the repository. |
 | Small or mechanical change | none | Sonnet | None. |
 
-Do not use these ECC skills without the owner's approval. They commit, push, open PRs or send code outside the session: `ecc:astra-review` sends the diff to OpenAI, and the `ecc:orch-*` workflows, `ecc:prp-commit`, `ecc:prp-pr`, `ecc:pr` and `ecc:multi-*` commit, open PRs or call external models.
+Do not use these ECC skills without the owner's approval. They commit, push, open PRs, post reviews or send code outside the session: `ecc:astra-review` sends the diff to OpenAI, PR-mode `ecc:code-review` posts `gh pr review --approve` or `--request-changes`, which can look like an approval, and the `ecc:orch-*` workflows (some commit or open PRs), `ecc:prp-commit`, `ecc:prp-pr`, `ecc:pr` and `ecc:multi-*` commit, open PRs or call external models.
