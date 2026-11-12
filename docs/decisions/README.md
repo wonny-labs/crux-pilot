@@ -6,7 +6,7 @@ A decision record holds one platform-wide decision that stays in force: its cont
 
 | # | Title | Status |
 | --- | --- | --- |
-| [0001](0001-application-boundary-and-api-stability.md) | Application boundary and public API stability | Proposed |
+| [0001](0001-application-boundary-and-api-stability.md) | Application boundary and public API stability | Accepted, D10 phase 1 only |
 
 ## Convention
 
