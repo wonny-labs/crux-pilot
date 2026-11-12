@@ -78,7 +78,7 @@ One row per directory under `components/` (28), then the file variants and the m
 
 ## Notes
 
-- **E4 for current code is narrow.** `file` on the microSD has one board and one card. Netif and Sockets have one reduced, non-qualifying boot of the M5 image, whose source differs from the revision above. Every other E4 in this repository is a result for earlier code (Time, the controller sample). GPIO item P1 is a plan with no result.
+- **Board results are narrow.** `file` on the microSD has one board and one card at this revision. Netif and Sockets have one narrow E4, a reduced non-qualifying boot of the M5 image at an earlier source revision. The Time and controller-sample runs are of code since replaced by a redesign and are not counted. GPIO item P1 is a plan with no result.
 - **Management components.** Nothing ran on a board ([guide](management-in-a-product.md)). Every one is at most E3, and `reboot` is E1.
 - **E3 is a build.** The bench image compiles and links and refuses to start. It does not show that a handshake, a login, entropy or timing work on the board.
 - **Out-of-tree consumers.** `crux-controller` is a separate repository and was not examined. A composition there is not counted above. If one exists for a component marked Experimental, the label needs that record before it changes.
