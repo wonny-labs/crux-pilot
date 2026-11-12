@@ -1,6 +1,6 @@
 # Component readiness
 
-Last verified against main `6b215d9c76d63e2e929deda15475197a11c41eee`.
+Last verified against main `138f987045da0f2533b1cc3ead3859ade06e8f7c`.
 
 One table: what exists for each component, in which environments, with which evidence, and what is missing. It is a reading aid over the sources it cites, written from the files at the revision above. It adds no decision, no approval and no claim beyond those sources. A cell says `unknown` where the sources read do not settle it.
 
@@ -25,13 +25,13 @@ The validation limits are in the README ([Host tests, `native_sim` runs and targ
 - `none` means no Zephyr selection or port exists for it.
 - Compositions in other repositories, such as `crux-controller`, were not examined.
 
-**Provisional tier.** The tier is [ADR-0001 Decision 4](decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy) applied by the author to what this table records. It is provisional until a tier table and `Status:` lines exist in the public headers, which the ADR lists as follow-up changes. Only two outcomes appear, and nothing is Stable, because nothing is Stable before `v1.0`:
+**Provisional tier.** The tier is [ADR-0001 Decision 4](decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy) applied by the author to what this table records. It is provisional until a tier table and `Status:` lines exist in the public headers, which the ADR lists as follow-up changes. Nothing is Stable, because nothing is Stable before `v1.0`. Each row shows one of these outcomes:
 
 - **Experimental** where the rule forces it: no Zephyr composition outside `tests/` in this repository.
 - **Unstable** where the Zephyr composition outside `tests/` and the rest of the ADR's description ("an adopted contract with a consumer and tests") are all shown by the sources cited in the row.
 - **Unassigned** or **Internal** otherwise, as stated in the cell.
 
-At this revision the ADR's own status line reads Proposed. The tiers apply its rule as written there.
+The ADR's status line records whether the owner has accepted it. At this revision it reads Proposed. The tiers apply the rule as written in the ADR.
 
 ## Readiness table
 
