@@ -35,7 +35,7 @@ and changes none of its rules or checks. It prescribes no directory layout and a
 policy run on Crux's own trees as before. A product's own checks, an include check and a Host build of the domain, are
 the product's, and the product template does not yet carry an example of either.
 
-**Frozen interfaces.** Thread, Sync, Queue and Serial are frozen for new product code (approved 13 November 2026; see [Choosing an API](choosing-an-api.md)). The freeze changes no rule or check of this policy, and existing consumers, the `crux::queue_linux` composition target and their probes stay valid. A product template check that rejects `crux/thread.h`, `crux/sync.h`, `crux/queue.h` and `crux/serial.h` in a product's domain is planned, not implemented. The product's domain must not use these four headers even though the rules above would allow public `<crux/NAME.h>` headers.
+**Frozen interfaces.** Thread, Sync, Queue and Serial are frozen for new product code (approved 13 November 2026; see [Choosing an API](choosing-an-api.md)). The freeze adds no check to this policy, and existing consumers, the `crux::queue_linux` composition target and their probes stay valid. A product template check that rejects `crux/thread.h`, `crux/sync.h`, `crux/queue.h` and `crux/serial.h` in a product's domain is planned, not implemented. New product code must not use these four headers in its domain, although the rules above allow public `<crux/NAME.h>` headers. D10's Build B is exempt ([ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) P2).
 
 The ADR names three layers for product code. Each maps onto a role of the dependency policy:
 

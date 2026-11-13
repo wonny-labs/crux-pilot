@@ -2,7 +2,7 @@
 
 **Crux** is a reusable embedded software platform for controller and firmware applications. It provides portable C17 components and selected standard APIs, supported by OS-specific integration, build tools and tests. Portable application code remains separate from operating-system and board details.
 
-This repository is Crux's development and architecture-validation Pilot. It currently provides Zephyr integration and a Linux development/test environment. Embedded Linux is not planned for the foreseeable future; if it is ever needed, it is designed at the service boundary. Crux is not yet a production-qualified or installable SDK.
+This repository is Crux's development and architecture-validation Pilot. It currently provides Zephyr integration and a Linux development/test environment. Embedded Linux is not planned for the foreseeable future; if it is ever needed, it would be designed at the service boundary. Crux is not yet a production-qualified or installable SDK.
 
 ## Capabilities
 
