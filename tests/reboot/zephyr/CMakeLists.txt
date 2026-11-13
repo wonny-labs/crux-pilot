@@ -10,19 +10,17 @@
 #   sleep_provider  the sleep provider, whose link wraps crux_semaphore_take
 #   pending         the suite that takes the network settings and configuration saves as wait
 #                   sources, with crux_mutex_lock wrapped
+#   web             the two GET and POST /api/v1/system/reboot suites of tests/web/reboot, on the
+#                   real Web core and session module, with crux_web_respond and crux_mutex_lock wrapped
+#   web_no_service  the suite whose route table has no reboot route
 cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_reboot_native LANGUAGES C)
 
-set(REBOOT_IMAGE "core" CACHE STRING "Which suites this image holds: core, lock_faults, sleep_provider or pending")
+set(REBOOT_IMAGE "core" CACHE STRING "Which suites this image holds: core, lock_faults, sleep_provider, pending, web or web_no_service")
 set(repo "${CMAKE_CURRENT_LIST_DIR}/../../..")
 set(reboot_tests "${repo}/tests/reboot")
 set(access_tests "${repo}/tests/access")
-
-# A suite's main() is the Host entry. Here it is a function that the ztest case calls.
-function(reboot_suite_source file name)
-    set_source_files_properties("${file}" PROPERTIES COMPILE_DEFINITIONS "main=reboot_${name}_main")
-endfunction()
 
 target_sources(app PRIVATE main_${REBOOT_IMAGE}.c)
 # compat/ holds the pthread.h that the suites find first; see there for why.
@@ -34,7 +32,7 @@ target_include_directories(app PRIVATE ${reboot_tests} ${access_tests}
 target_link_libraries(app PRIVATE crux::thread crux::sync crux_service_priority_placement)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 
-if(REBOOT_IMAGE STREQUAL "core" OR REBOOT_IMAGE STREQUAL "lock_faults" OR REBOOT_IMAGE STREQUAL "pending")
+if(REBOOT_IMAGE MATCHES "^(core|lock_faults|pending|web|web_no_service)$")
     # The service and the Access core, as the Host test composition builds them.
     target_sources(app PRIVATE
         ${repo}/components/reboot/src/reboot.c
@@ -62,7 +60,6 @@ endif()
 if(REBOOT_IMAGE STREQUAL "core")
     foreach(suite IN ITEMS service steps concurrency reason)
         target_sources(app PRIVATE ${reboot_tests}/${suite}.c)
-        reboot_suite_source(${reboot_tests}/${suite}.c ${suite})
         set_source_files_properties(${reboot_tests}/${suite}.c PROPERTIES COMPILE_DEFINITIONS
             "main=reboot_${suite}_main;_GNU_SOURCE")
     endforeach()
@@ -97,6 +94,43 @@ elseif(REBOOT_IMAGE STREQUAL "pending")
     set_source_files_properties(${reboot_tests}/pending.c PROPERTIES COMPILE_DEFINITIONS
         "main=reboot_pending_main;_GNU_SOURCE")
     target_link_options(app PUBLIC -Wl,--wrap=crux_mutex_lock)
+elseif(REBOOT_IMAGE STREQUAL "web" OR REBOOT_IMAGE STREQUAL "web_no_service")
+    # The routes on the real Web core and session module, over the fake transport and fake session ports
+    # of tests/web, as crux_web_reboot_core() builds them for the Host.
+    set(web "${repo}/components/web")
+    set(web_tests "${repo}/tests/web")
+    include(${repo}/cmake/CruxWebRoutes.cmake)
+    target_sources(app PRIVATE
+        ${web}/src/web_core.c ${web}/src/web_response.c ${web}/src/web_route.c
+        ${web}/session/web_session.c ${web}/session/web_session_attempt.c ${web}/session/web_session_json.c
+        ${web_tests}/fake_transport.c ${web_tests}/session/session_test.c ${web_tests}/session/test_routes.c
+        ${web_tests}/reboot/reboot_web.c)
+    target_include_directories(app PRIVATE ${web_tests} ${web_tests}/session ${web_tests}/reboot
+        ${web}/src ${web}/include ${web}/adapter ${web}/session ${web}/management
+        ${repo}/components/configuration/src ${repo}/components/system/include)
+    target_compile_definitions(app PRIVATE CRUX_WEB_TESTING=1 CRUX_WEB_EXCHANGE_MAX=3 CRUX_WEB_SESSION_MAX=10
+        CRUX_WEB_BODY_BUFFER=1024u _GNU_SOURCE)
+    # session_test.c waits with the host's nanosleep(), which would block the whole simulation.
+    set_source_files_properties(${web_tests}/session/session_test.c PROPERTIES COMPILE_OPTIONS
+        "-include;${CMAKE_CURRENT_LIST_DIR}/compat/pthread.h")
+    set(routes ${web}/session/web_session_routes.c)
+    if(REBOOT_IMAGE STREQUAL "web")
+        list(APPEND routes ${web}/management/web_management_reboot.c)
+        target_sources(app PRIVATE ${web}/management/web_management_reboot.c)
+        foreach(suite IN ITEMS routes openapi_fixture)
+            target_sources(app PRIVATE ${web_tests}/reboot/${suite}.c)
+            set_source_files_properties(${web_tests}/reboot/${suite}.c PROPERTIES COMPILE_DEFINITIONS
+                "main=reboot_${suite}_main;_GNU_SOURCE")
+        endforeach()
+    else()
+        target_sources(app PRIVATE ${web_tests}/reboot/no_service.c)
+        set_source_files_properties(${web_tests}/reboot/no_service.c PROPERTIES COMPILE_DEFINITIONS
+            "main=reboot_no_service_main;_GNU_SOURCE")
+    endif()
+    target_sources(app PRIVATE ${web}/session/web_session_routes.c)
+    crux_web_routes(app SOURCES ${routes} ${web_tests}/session/test_routes.c
+        FAKE_MANIFEST REVIEWED ${web_tests}/reboot/reviewed-routes.txt)
+    target_link_options(app PUBLIC -Wl,--wrap=crux_web_respond -Wl,--wrap=crux_mutex_lock)
 elseif(REBOOT_IMAGE STREQUAL "sleep_provider")
     target_sources(app PRIVATE ${reboot_tests}/sleep_provider.c ${repo}/components/reboot/src/reboot_sleep.c)
     set_source_files_properties(${reboot_tests}/sleep_provider.c PROPERTIES COMPILE_DEFINITIONS
