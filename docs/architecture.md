@@ -92,9 +92,9 @@ flowchart TB
     subgraph CRUX["Crux platform software"]
         direction LR
         CON["Public contracts<br/>Time, Logging, File, Config, System, Sockets"]
-        MGT["12 management services<br/>built on Crux Sync"]
+        MGT["12 management services<br/>10 use Crux Sync"]
         FRZ["Frozen API<br/>Thread, Sync, Queue, Serial"]
-        MGT --> FRZ
+        MGT -->|"10 use Sync, cli uses Thread and Serial"| FRZ
     end
     subgraph VAR["Platform variants"]
         direction LR
@@ -104,15 +104,17 @@ flowchart TB
     end
     HW["Target hardware"]
     DOM -->|"uses"| CON
+    DOM -->|"uses service APIs"| MGT
     ADP -.->|"bypasses Crux"| ZEP
-    CON --> LIN
     CON --> ZEP
-    MGT --> ZEP
-    CON -.->|"not planned"| ELX
+    MGT -->|"ssh: native threads"| ZEP
+    FRZ --> ZEP
+    CRUX -->|"Host tests"| LIN
+    CRUX -.->|"not planned"| ELX
     ZEP --> HW
 ```
 
-The domain reaches the platform only through the public contracts, and the Linux providers let its tests run on a Host without Zephyr. The adapters use Zephyr threads, locks, queues, devices and buses directly and do not go through Crux (dashed). The management services and the frozen API run on Zephyr like the other contracts. Embedded Linux has no provider and no plan; the dashed edge marks where one would attach.
+The domain reaches the platform only through Crux's public contracts and service APIs, never Zephyr, and the Linux providers let its tests run on a Host without Zephyr. The adapters use Zephyr threads, locks, queues, devices and buses directly and do not go through Crux (dashed). Of the 12 management services, 10 use Crux Sync. `cli` uses Thread and Serial instead, and `ssh` uses native threads and none of the four frozen APIs. The Linux providers serve the services' Host tests. Sockets has no Crux Linux provider, as it uses the standard socket API of the C library. Embedded Linux has no provider and no plan. The dashed edge marks where one would attach.
 
 **What changed from the original goal.** Crux was first framed as a portability layer: one set of public interfaces over Zephyr and, later, Embedded Linux, so that firmware could move between them. ADR-0002 decided that Zephyr is the execution layer, that products use it directly for OS and hardware facilities, and that Crux keeps its services and public contracts, with Thread, Sync, Queue and Serial frozen for new product code. Embedded Linux is not planned and would be designed at the service boundary if ever needed, and the Linux providers remain as test providers.
 

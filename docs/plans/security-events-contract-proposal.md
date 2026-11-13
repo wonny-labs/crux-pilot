@@ -26,7 +26,7 @@ proposal's event port requires, because `crux_access_check` emits denials and ru
 
 It is not a promise of no wait at all. An emit makes Sync calls, listed under Ring and admission, and Sync's unlock and give take its global metadata lock with no timeout. `docs/thread-sync.md` says those calls carry no finite-wait guarantee. The wait is on other threads' short Sync bookkeeping, and it is unmeasured.
 
-> Note, 13 November 2026: after #391 Sync's unlock and give take no global metadata lock, and the wait on other threads' Sync bookkeeping described here and in the open-risk list below no longer arises from Sync. A Host semaphore's give still waits for that semaphore's internal lock. See [Sync slot metadata](../thread-sync.md#sync-slot-metadata). The proposal is unchanged and reads as written at its baseline.
+> Note, 13 November 2026: after #391 Sync's unlock and give take no global metadata lock, and the wait on other threads' Sync bookkeeping described here and in the Limits section below no longer arises from Sync. A Host semaphore's give still waits for that semaphore's internal lock. See [Sync slot metadata](../thread-sync.md#sync-slot-metadata). The proposal is unchanged and reads as written at its baseline.
 
 Lock order: an emit may be called with the access state lock held or not, so the ring lock is a leaf. Nothing is called while it is held, so it cannot take part in a
 cycle. An emit never calls back into `crux_access`.
