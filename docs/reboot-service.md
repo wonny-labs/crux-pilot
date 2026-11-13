@@ -41,9 +41,9 @@ application refuse, records the request, gives events and saves a bounded time, 
 | Event provider over the security events, and the pending-events question | **Built** | `ManagementProviders.events`, with the real mapping and the fake of the contract |
 | Probes of other components' saves | **Built, small** | `crux_network_settings_save_pending()` and `crux_web_management_save_pending()`: [decision 15](#decisions-taken-without-an-answer) |
 | A sleep that cannot sleep ends the request as failed, and `crux_reboot_start()` cannot be ignored | **Built** | `Reboot.steps`, `Reboot.nodiscard` |
-| Reset port over `crux_system_reset()`, and the sleep port over `k_msleep()` | **Built, thin**, linked by no suite | The Host `crux_system_reset()` returns not supported |
+| Reset port over `crux_system_reset()`, and the sleep port over `k_msleep()` | **Built, thin.** The reset port is linked by no suite; the sleep port is linked by the `sleep_provider` image of the `native_sim` run | The Host `crux_system_reset()` returns not supported |
 | A composition that serves the routes, links the service or states a policy | **Not here.** | |
-| `native_sim` | **Not run.** There is no composition, so there is nothing to run. | |
+| `native_sim` | **The suites run there** (`scripts/test-reboot-native.sh`, the pilot records), with fake ports and no composition. **No composition is run.** | |
 | RT1060 compile | **Not run.** | |
 | A real reset on RT1060-EVKB | **Not run.** It needs separately approved physical evidence. | |
 | The mock and the TypeScript client | **Unchanged.** They already follow this behaviour: [Specification, mock and client](#specification-mock-and-client). | |
@@ -474,7 +474,7 @@ results are in the pull request.
 | The cases of `Reboot.lock_faults`, the nested refusal, the nested worker, the busy answer of the routes and the late-lock probe | Host | Written after the first mutation run, which showed that nothing caught the mutations they now catch. They were green when first run. |
 | 75 mutations | Host | 73 caught, 1 equivalent and 1 not caught, as above |
 | `scripts/check-management-api.sh`, `npm run check`, the mock and the client | | **Not run, and not needed:** `web/` is unchanged |
-| `native_sim`, RT1060 compile, `host-sanitize` with clang, a browser against the routes, any board | | **Not run** |
+| `native_sim`, RT1060 compile, `host-sanitize` with clang, a browser against the routes, any board | | **Not run** when this change was made. Since then the suites run on `native_sim` (the pilot records); the rest is still not run |
 
 
 ## Decisions taken without an answer

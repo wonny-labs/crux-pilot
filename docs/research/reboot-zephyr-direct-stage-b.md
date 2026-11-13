@@ -55,15 +55,15 @@ From `git reflog`, UTC, 13 November: branch created 22:06; merge of main (#396) 
 
 Load. Cold batch (Stage A and B alternating): load average 2.87 at the start and 4.49 at the end, with another session's container running (`crux-reboot-native`, `docker ps` at the start); **measured under concurrent load**. Warm batch: 4.49 at the start, 1.27 at the end; the other container was running at the start and gone by 22:50; the later warm runs of both stages are faster, which is the load falling. **The Stage A and Stage B figures were taken in the same batches, so their difference is the better number; the absolute seconds are not idle numbers.** The Host batches ran at load 0.5 to 0.9 with no other container (checked): **idle**. The whole-preset run: load 0.8 at the start and 1.3 at the end, idle.
 
-**Stage B against Stage A:** cold 13 % faster (86 against 99 s), warm 19 % faster (50 against 62 s). The spread of each batch (13 to 20 s) is about as large as the difference, so I read this as "no slower, probably a little faster". The cause is that the Crux Thread and Sync providers are no longer linked into the `core` image, not anything in the tests.
+**Stage B against Stage A:** cold 13 % faster (86 against 99 s), warm 19 % faster (50 against 62 s). The spread of each batch (13 to 20 s) is about as large as the difference, so I read this as "no slower, probably a little faster". **Cause: a guess, not measured.** The Crux Thread and Sync providers may no longer be pulled into the `core` image because nothing there references them; they are still compiled (`CONFIG_CRUX_THREAD=y` in `prj.conf`), so the saving is at most link and start-up work. I did not probe it.
 
-**The ratio, two readings (D-D names the preset as `host-sanitize` and does not say which denominator):**
+**The ratio, two readings.** The protocol had already fixed the like-for-like denominator: Stage 0 of the pilot report (section 3.1) records the Host's `ctest -R '^(Reboot|Web\.reboot)'` on `host-sanitize` for the same suites, and M2 (section 3.2) compares native_sim with those Host numbers against P9's 2 times. That is the first row of each table below. The "whole preset" rows divide by the Host preset across every component (317 tests, 137 s here), while the native side runs only `reboot` and `web/reboot` (six images, 79 cases): **they are different test sets and the ratio is not a comparison of like with like.** With every service moved, the native side would grow by about an image set per service while the Host figure already covers everything (see the projection after round 2). Treat the whole-preset rows as context, not as a pass.
 
 | Reading | Stage B cold | Stage B warm |
 | --- | --- | --- |
 | Like-for-like: the same suites, native over Host (86 s over 4.5 s, 50 s over 2.6 s) | **about 19** | **about 19** |
-| The whole preset (137 s measured here) | 0.63 | 0.36 |
-| The whole preset, as Stage A recorded it (178 s local, 268 s CI run 43321893524) | 0.48 and 0.32 | 0.28 and 0.19 |
+| Whole preset, different test sets (137 s measured here) | 0.63 | 0.36 |
+| Whole preset, different test sets, as Stage A recorded it (178 s local, 268 s CI run 43321893524) | 0.48 and 0.32 | 0.28 and 0.19 |
 
 **Round 2, after merging Stage A's review fixes (79 cases, six images, the route suites included).** The same method: 5 cold and 5 warm runs, alternating, of the corrected Stage A head (`4282ade9`) and this branch's merged head (`aeba4b3f`).
 
@@ -79,10 +79,12 @@ Ratios in round 2, with the Host set after the swap (13 entries: 4.5 s cold, 2.6
 | Reading | Stage B cold | Stage B warm |
 | --- | --- | --- |
 | Like-for-like: native over Host, the same suites | **about 21** (95 s over 4.5 s) | **about 23** (61 s over 2.6 s) |
-| The whole preset (137 s measured here) | 0.69 | 0.45 |
-| The whole preset as Stage A recorded it (178 s local, 268 s CI) | 0.53 and 0.35 | 0.34 and 0.23 |
+| Whole preset, different test sets (137 s measured here) | 0.69 | 0.45 |
+| Whole preset, different test sets, as Stage A recorded it (178 s local, 268 s CI) | 0.53 and 0.35 | 0.34 and 0.23 |
 
-The like-for-like ratio measures the number of Zephyr images (four configurations of Kconfig and a kernel build, about 20 s each), not the tests: a case runs in about 0.1 s.
+**Projection for all services (inference, not measured).** Reboot's set is 6 images and takes 95 s cold and 61 s warm, so about 16 s and 10 s for an image. If each of the 12 services needed 3 to 6 images (reboot has 6; the web suites share one composition), native_sim would run 36 to 72 images: about 580 to 1150 s cold and 360 to 730 s warm, built one after another as the script does. Against the Host preset's 137 s that is **4.2 to 8.4 cold and 2.6 to 5.3 warm**; against CI's 268 s, 2.2 to 4.3 cold and 1.3 to 2.7 warm. So on a like-for-like footing for the whole platform the ratio stays above 2 in every case but the warm low end against CI's figure. Building images in parallel on 8 CPUs would lower it; I did not try.
+
+The like-for-like ratio measures the number of Zephyr images (six configurations of Kconfig and a kernel build, about 20 s each), not the tests: a case runs in about 0.1 s.
 
 ## M3 lines by zone
 
@@ -91,23 +93,32 @@ The like-for-like ratio measures the number of Zephyr images (four configuration
 | Zone | Added / removed | Note |
 | --- | --- | --- |
 | Portable (`src`, `include`) | 0 / 23 | `src/reboot_sleep.c` is replaced; `src/reboot.c` leaves `src` (444 lines) |
-| `ports/zephyr` | 474 new files | `reboot_zephyr.c` is a rename of `src/reboot.c`: **47 added and 31 removed lines** inside it (460 lines now, 444 before); `reboot_sleep_zephyr.c` 14 |
+| `ports/zephyr` | 474 lines in two new files | `reboot_zephyr.c` is a rename of `src/reboot.c`: **47 added and 31 removed lines** inside it (460 lines now, 444 before); `reboot_sleep_zephyr.c` 14 |
 | Tests, new | 49 + 113 + 68 | `fault_bridge.c`, `kernel_stub.c`, the stub's `kernel.h` |
 | Tests, changed | 27/12 + 25/15 + 88/5 + 1/0 + 8/5 + 31/6 + 11/7 | `tests/reboot/CMakeLists.txt`, `tests/reboot/zephyr/CMakeLists.txt`, `main_sleep_provider.c`, `prj.conf`, `tests/web/reboot/CMakeLists.txt`, `check_placement.py`, `test_check_placement.py`; **no assertion source of a suite changed** |
 | CMake and Kconfig (non-test) | 11/20 + 28/8 | `components/reboot/CMakeLists.txt`, `zephyr/Kconfig` |
 | Protected | **0 new** | `scripts/test-reboot-native.sh` and one `zephyr.yml` step are Stage A's two, unchanged |
-| Docs | 17/5 + 1/1 + 8 + 192 (this file) | `docs/reboot-service.md`, `docs/thread-sync.md`, `tests/README.md` |
+| Docs | 17/5 + 1/1 + 8 + 210 (this file at head `3fd43ce6`) | `docs/reboot-service.md`, `docs/thread-sync.md`, `tests/README.md` |
 
 Lines no longer needed in Crux Sync and Thread for this service: **13 lexical Crux Sync or Thread references** leave the service (10 in `reboot.c`, 3 in `reboot_sleep.c`), against 9 `k_*` references in the new files. **Provider lines freed: 0.** The Linux Sync and Thread providers, the Zephyr ones (241 lines) and the common ones (546) are all still used by 10 other services, so none can go until the last of them moves.
 
-**Test-only kernel shims, for the 302-line cap of D-D:**
+**Test-only kernel shims, for the 302-line cap of D-D.** One counting rule, the one Stage A used: everything test-only that the pilot needs to run its suites in an environment, **including the per-case harness** (`zephyr_case.c`, which does what `fork()` did).
 
-| Shim | Lines | Used for |
+| Piece | Lines | Needed in |
 | --- | --- | --- |
-| `tests/reboot/zephyr/compat/pthread.h` and `compat_pthread.c` (Stage A, `wc -l` of the merged head) | 209 (75 + 134) | the pthread calls of `Reboot.concurrency` on `native_sim` |
-| `tests/reboot/zephyr/zephyr_case.c` (Stage A, one case for each process) | 103 | what `fork()` did on the Host |
-| `tests/reboot/fault_bridge.c` | 49 | `crux_mutex_lock` wraps to `z_impl_k_mutex_lock` |
-| `tests/reboot/host_kernel/` | 181 | the Host build of the core |
+| `tests/reboot/zephyr/compat/pthread.h` and `compat_pthread.c` (Stage A, `wc -l` of the merged head) | 209 (75 + 134) | native_sim |
+| `tests/reboot/zephyr/zephyr_case.c` (one case for each process) | 103 | native_sim |
+| `tests/reboot/fault_bridge.c` | 49 | native_sim and Host |
+| `tests/reboot/host_kernel/` | 181 | Host |
+
+| Environment | Total | Against 302 |
+| --- | --- | --- |
+| native_sim: 209 + 103 + 49 | **361** | over |
+| Host: 181 + 49 | **230** | under |
+| Both: 209 + 103 + 49 + 181 | **542** | over |
+| pthread compat and Host stub, without harness and bridge | 390 | over |
+
+Stage A's own figure under the same rule was 312. **The row trips "keep O4" under any counting that includes native_sim, which the Stage A gate requires for the services' concurrency tests.** It passes only if the owner rules that the cap applies to the Host stub alone, as the shim of a Host-only environment. That is a choice for the owner, and I do not make it.
 
 ## M4 behaviour and tests identical
 
@@ -145,7 +156,7 @@ Host = `host-sanitize` replica (clang-18) over the kernel stub, `ctest` of 9 reb
 | Z1 (new): the worker created at priority 5, not the Kconfig value | `ServicePriority` checks fail | 1 case fails, which can only be the `sleep_provider` image (the script prints no name for it); `check_placement.py` fails |
 | Z2 (new): a woken sleep counts as a sleep (`== 0` to `>= 0`) | not seen (the Host uses the fake port) | 1 case fails, the `sleep_provider` image |
 
-R2 on the Host is caught by `Reboot.concurrency` now, which Stage A (Host over the real Crux Sync) recorded as 0 of 100; the cause is the stub's raw pthreads, over which the unlocked service really runs concurrently. I did not investigate whether it is a data-race effect or a crash. On `native_sim` a data race is still not seen, as at Stage A: one Zephyr thread runs at a time and there is no ThreadSanitizer. So nothing the Host caught is lost for `reboot`, race coverage is missing on both, and the Host over the stub is in fact the stronger one for races.
+R2 on the Host is caught by `Reboot.concurrency` now, which Stage A (Host over the real Crux Sync) recorded as 0 of 100; the cause is the stub's raw pthreads, over which the unlocked service really runs concurrently. I did not investigate whether it is a data-race effect or a crash. On `native_sim` a data race is still not seen, as at Stage A: one Zephyr thread runs at a time and there is no ThreadSanitizer. So nothing the Host caught is lost for `reboot`, and race coverage is missing on both. **Guess:** the Host over the stub may be the stronger of the two for races; that rests on one mutant (R2) whose cause I did not investigate.
 
 ## M8 footprint (measured: `size` on native_sim objects; RT1060 not measured)
 
@@ -155,7 +166,7 @@ R2 on the Host is caught by `Reboot.concurrency` now, which Stage A (Host over t
 | the service's object (text / data / bss) | 7663 / 8048 / 672 | 7551 / 7656 / 17024 |
 | the sleep port's object | one Crux semaphore, created at the first sleep | 156 / 8 / 0 |
 
-The image figures are mostly not the service: the Crux Thread provider (a test-configured pool of 8 stacks of 16 KiB) is no longer linked into the `core` image, because nothing in it creates a Crux thread any more, which a product image with other Crux workers would not see. The service's own bss is 17024 bytes in this test configuration, which sets the worker stack to 16384; at the default of 4096 it is about 4.7 KiB. On a product image that still has Crux Thread users, reboot gives back one Thread pool slot (`CRUX_THREAD_STACK_BYTES`, default 4096) and one Sync mutex slot and two semaphore slots, and takes a dedicated 4096-byte stack and a `k_thread`, `k_mutex` and `k_sem`: the RAM is about the same, as the pilot report predicted (inference). **RT1060 flash and RAM need the ARM cross-build in CI; the container has no ARM Zephyr SDK.**
+The image figures are mostly not the service: the Crux Thread provider (a test-configured pool of 8 stacks of 16 KiB) is most likely no longer pulled into the `core` image, because nothing in it creates a Crux thread any more (inference; the measured part is the size difference), which a product image with other Crux workers would not see. The service's own bss is 17024 bytes in this test configuration, which sets the worker stack to 16384; at the default of 4096 it is about 4.7 KiB. On a product image that still has Crux Thread users, reboot gives back one Thread pool slot (`CRUX_THREAD_STACK_BYTES`, default 4096) and one Sync mutex slot and two semaphore slots, and takes a dedicated 4096-byte stack and a `k_thread`, `k_mutex` and `k_sem`: the RAM is about the same, as the pilot report predicted (inference). **RT1060 flash and RAM need the ARM cross-build in CI; the container has no ARM Zephyr SDK.**
 
 ## Extrapolation to the other 11 services (inference, labelled)
 
@@ -177,7 +188,7 @@ Range. **(a) From the measured agent time:** the first green run took 0.3 h for 
 | Criterion | Verdict | Evidence |
 | --- | --- | --- |
 | M4 identical: no public change, no deleted assertion | **FAIL, narrowly** | Public header diff empty, no assertion source changed or deleted. But the 9 checks of `sleep_provider.c` are no longer run, which is a deleted assertion in effect. If the owner takes the third option under M4 (a `k_sem_take`-based port and a second bridge) this row passes |
-| M2 ratio of 2 or less to `host-sanitize` | **FAIL like-for-like (about 19 to 23); PASS against the whole preset (0.36 to 0.69 with my 137 s, 0.19 to 0.53 with Stage A's 178 s and 268 s)** | M2. Which denominator D-D means is the owner's to say |
+| M2 ratio of 2 or less to `host-sanitize` | **FAIL on the protocol's own basis (Stage 0: the same Host suites): about 19 to 23.** The whole-preset ratio (0.19 to 0.69 over all denominators) divides different test sets and is not a pass; projected for all services (inference) it is 2.6 to 8.4 against 137 s | M2. The owner may still rule on the denominator, with the mismatch above in view |
 | M5 passes | **PASS** | 100 of 100, 200 of 200 |
 | M6: every wrapped fault case reproducible on `native_sim` | **FAIL, narrowly** | 13 of 13 mutex-wrapped cases pass; the 9 checks of the semaphore-take wrap cannot exist. Same item as M4 |
 | Effort extrapolates within 4 person-weeks for the other 11 services | **Not decidable here; PASS on agent hours (4 to 20 h), FAIL on the report's person estimate (6.8 to 11 person-weeks); my judgement 1 to 4 person-weeks** | Extrapolation |
@@ -188,23 +199,33 @@ Range. **(a) From the measured agent time:** the first green run took 0.3 h for 
 | Criterion | Verdict | Evidence |
 | --- | --- | --- |
 | Stage A fails its gate | no | Stage A passed its gate (its independent review asked for a corrected record, which the Stage A session is writing) |
-| M2 ratio above 2 | **yes, like-for-like (about 19 to 23); no, whole preset** | M2, rounds 1 and 2 |
-| A test-only kernel shim larger than the Linux Sync and Thread providers (302 lines) | **no on one environment, yes counting everything** | `native_sim`: 209 (pthread) + 49 (bridge) = 258. Host: 181 + 49 = 230. Both environments with the per-case harness: 209 + 103 + 49 + 181 = 542 (Stage A's reading, 312 with the harness, is already above 302). The shim of Stage A is not a Zephyr provider; the stub and the bridge are |
+| M2 ratio above 2 | **yes** on the protocol's basis (about 19 to 23), and yes on the all-services projection (inference); the whole-preset division of different sets is 0.19 to 0.69 and is not evidence either way | M2, rounds 1 and 2 |
+| A test-only kernel shim larger than the Linux Sync and Thread providers (302 lines) | **yes** under one counting rule (harness included, as Stage A counted): native_sim 361, both environments 542; **no** only for the Host stub alone (230), if the owner rules the cap applies per Host environment | See the shim tables in M3. Stage A's figure was 312 |
 | M5 flakes | no | |
 | The owner refuses B1's exemption and wants Host coverage of services | not asked | the Host stub keeps coverage at the stated cost |
 
-**Inconclusive** (Stage A passes, Stage B passes, but B4 is open): applies to the whole-preset reading of M2.
+**Inconclusive** (Stage A passes, Stage B passes, but B4 is open): no longer applies to M2, since the whole-preset division is not a valid pass. It would apply only if the owner rules both on the denominator (the whole preset) and on the shim cap (per Host environment).
 
-**Conclusion by D-D as written (inference from the table).** O2 is **not** chosen under either reading: M4 and M6 each fail on one suite, and the blockers have no owner answer. O4 is chosen under the like-for-like reading of M2, and the result is "inconclusive, run a second pilot on `config_service` or `mgmt_status` for B4" under the whole-preset reading. The swap itself is not what decides it: the service changed by 47 and 31 lines, no suite but one lost a case, and the `native_sim` suites were as quick and as stable as on Stage A. What decides it is that **the Host and native_sim runs need three pieces of test machinery (a 49-line fault bridge, a 181-line Host stub, a placement check) that O4 does not, one suite has no equivalent, and the measured ratio of the like-for-like reading is about 19 to 23**.
+**Conclusion by D-D as written (inference from the table).** O2 is **not** chosen: M4 and M6 each fail on one suite, and the blockers have no owner answer. O4 is chosen on three counts that do not depend on the denominator question: the M2 ratio on the protocol's Stage 0 basis (about 19 to 23), the same ratio projected for all services (2.6 to 8.4, inference), and the shim size (361 on native_sim, 542 for both), unless the owner rules that the cap applies to the Host stub alone (230). Only if the owner rules for the whole-preset denominator **and** for a per-Host-environment cap does the result become "inconclusive, run a second pilot on `config_service` or `mgmt_status` for B4". The swap itself is not what decides it: the service changed by 47 and 31 lines, no suite but one lost a case, and the `native_sim` suites were as quick and as stable as at Stage A. What decides it is the test side: **native_sim needs 361 lines of test-only shim and harness, the Host needs a 181-line stub of its own, one suite has no equivalent, and the like-for-like turnaround is about 19 to 23 times the Host's.**
+
+## Behaviour differences that the tests do not catch
+
+- **Worker stack.** The Crux Thread worker took `CRUX_THREAD_STACK_BYTES`; the Zephyr-direct worker has its own `CONFIG_CRUX_REBOOT_WORKER_STACK_SIZE`, default 4096. A product that raised `CRUX_THREAD_STACK_BYTES` for its policy callbacks (`crux-controller`'s `s2.conf` does raise it) silently gets 4096. The native_sim suites use 16384, so 4096 under a real policy callback is never exercised.
+- **ISR calls.** `k_mutex_lock` in an interrupt is invalid; Crux Sync answered `BUSY`. The service is documented as thread context only, and no test calls it from an ISR.
+- **Thread name.** The new worker has no name, and neither had the old one (`grep thread_name components/thread` finds nothing), so a debugger shows the same; not a difference, checked.
+- **The `sleep_provider` image counts as one case.** The protected script counts that image as one case whatever it contains, so "79 of 79" cannot tell the old suite from the new three cases. The change is visible only in this record and in the PR.
+- **A gate changed.** `tests/service_priority/check_placement.py` gained an exemption for Zephyr-direct workers (`NATIVE_WORKERS`): a thread may now be created without a placement call if it takes its priority from its Kconfig symbol in `k_thread_create`. This is a check, not a protected path, but the owner should note it.
+- The unused `CRUX_SERVICE_THREAD_REBOOT_WORKER` entry remains in `components/service_priority` (see Limits).
 
 ## Limits
 
 - One arm64 container, Zephyr 4.4.0, gcc 13, clang 18; CI (amd64, Zephyr SDK, 4.4.2) will differ. No CI figure is in this file.
+- **Revisions of each local run.** Host suites, the Host whole preset, the mutants, the bridge control, M5 and M8: `cf8f223b` (the code). Native 79 of 79, and M2 round 2: `aeba4b3f` (the merged head). M2 round 1: `cf8f223b` against `cb0fda6f`. The commits after `aeba4b3f` up to `3fd43ce6` change only this record (`git diff --name-only aeba4b3f 3fd43ce6` lists it alone). Between `cf8f223b` and `aeba4b3f` the merge changed only `tests/reboot/zephyr` (the Stage A session's web images and my conflict resolution), the script, `tests/README.md` and two Stage A records, so the Host figures hold for the later head.
 - Stage A and Stage B figures of M2 come from the same alternating batches, under another session's load for part of them. Host figures are idle. The whole-preset figure is one run with `ctest -j2`.
 - `native_sim` runs one Zephyr thread at a time and has no ThreadSanitizer: M5 and M7 say nothing about data races on `native_sim`.
 - Zephyr-specific behaviour not exercised: `k_mutex` priority inheritance under contention, ISR use, a stack overflow of the dedicated stack, the real worker thread under a different priority than 6.
 - The Host stub's `k_thread_create`, `k_sem_take` and `k_mutex_lock` are minimal, and no case checks the stub against Zephyr. Their purpose is to let the route and single-thread suites run; the kernel's behaviour is held by `native_sim`.
-- `scripts/test-reboot.sh` (protected) was not changed and was not run: its target list still exists after the swap. Its clang-tidy line also lists `components/reboot/src/*.c`, which no longer holds the core. `clang-tidy-18` on the new core, the bridge and the stub, run by me with the Host compile database, reports no finding after two fixes of the stub (`NOLINT` and `_GNU_SOURCE`).
+- `scripts/test-reboot.sh` (protected) was not changed and was not run: its target list still exists after the swap. **Merge-readiness note (not for now):** it would need an approved edit, because it runs clang-tidy over `tests/reboot/*.c`, which includes `sleep_provider.c` (in no compile database now), and over `components/reboot/src/*.c`, which no longer holds the core. `clang-tidy-18` on the new core, the bridge and the stub, run by me with the Host compile database, reports no finding after two fixes of the stub (`NOLINT` and `_GNU_SOURCE`).
 - The placement table of `components/service_priority` still has an entry for the reboot worker (`CRUX_SERVICE_THREAD_REBOOT_WORKER`), now unused, because removing it would change the assertions of `tests/service_priority/zephyr`. A product with the default sees no difference.
-- Three cases of `tests/service_priority/test_check_placement.py` were retargeted from the reboot worker to the network settings and web session workers, with the same defect injected; one case was added for the Zephyr-direct worker. No case was removed.
+- Four cases of `tests/service_priority/test_check_placement.py` were changed: `test_a_missing_placement` now removes the network settings worker's placement instead of the reboot worker's; `test_a_placement_after_other_work` inserts the web session identifier instead of the reboot one as its constant; `test_a_new_zephyr_image_without_the_placement` and `test_a_host_test_needs_no_placement` name `CRUX_NETWORK_SETTINGS_SOURCES` instead of `CRUX_REBOOT_SOURCES`. The same defect is injected in each. One case was added for the Zephyr-direct worker, and none was removed.
 - Stage A's review fixes (branch `claude/pilot-reboot-native-sim-5cd9d1` at `4282ade9`) are merged into this branch, without a rebase. The merge conflicted once, in `tests/reboot/zephyr/CMakeLists.txt` (their web images and my bridge), and I resolved it by keeping both; the `web` images link the bridge too. `scripts/test-reboot-native.sh` in this branch is theirs, unchanged by Stage B. If they push further fixes, merge them additively again.
