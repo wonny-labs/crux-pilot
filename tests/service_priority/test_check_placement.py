@@ -69,7 +69,8 @@ class PlacementCheck(unittest.TestCase):
         self.assert_caught("CRUX_REBOOT_WORKER_PRIORITY must default to 6")
 
     def test_a_wrong_map(self):
-        self.edit(check.PLACEMENT, "CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY", "CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY")
+        self.edit(check.PLACEMENT, "[CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER] = CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY",
+                  "[CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER] = CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY")
         self.assert_caught("CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER must map to")
 
     def test_an_unplaced_worker(self):

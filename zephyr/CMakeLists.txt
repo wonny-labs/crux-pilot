@@ -24,6 +24,13 @@ if(CONFIG_CRUX_THREAD)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/thread/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/thread")
     cmake_language(DEFER CALL crux_assert_portable_usage crux::thread)
+    # The services' workers are Crux Thread workers, and compositions compile the services' sources
+    # into their own targets. Every one of them gets the placement, so that each worker runs at its
+    # CONFIG_CRUX_<SERVICE>_<ROLE>_PRIORITY (ADR-0002 P3) whichever composition built it.
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/service_priority"
+        "${CMAKE_CURRENT_BINARY_DIR}/service_priority")
+    zephyr_compile_definitions(CRUX_SERVICE_PRIORITY_PLACEMENT=1)
+    zephyr_include_directories("${CMAKE_CURRENT_LIST_DIR}/../components/service_priority/src")
 endif()
 if(CONFIG_CRUX_SYNC)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/sync/ports/zephyr"

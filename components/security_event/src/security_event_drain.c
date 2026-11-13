@@ -4,6 +4,9 @@
 #endif
 
 #include <crux/thread.h>
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+#include "service_priority.h"
+#endif
 #include <crux/time.h>
 
 #define STATE crux_security_event_state
@@ -124,6 +127,10 @@ static bool drain_should_run(void)
 static void drain_main(void *argument)
 {
     (void)argument;
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+    /* First, so that the worker does its work at its per-service priority (ADR-0002 P3). */
+    crux_service_priority_place(CRUX_SERVICE_THREAD_SECURITY_EVENT_DRAIN);
+#endif
     const crux_duration_t pause = crux_duration_from_ms(CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS);
     /* A burst spans wakes, so that small batches cannot overrun a small log buffer any more than a
      * full ring can. These two say how much of it is used. */

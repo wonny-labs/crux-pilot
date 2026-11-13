@@ -2,10 +2,11 @@
  * Per-service priorities of Crux's service workers (ADR-0002 P3), read back from the kernel.
  *
  * Each service worker is a Crux Thread at the LOW class, and its entry first calls
- * crux_service_priority_place() with its own identifier. This suite does the same from a Crux Thread
- * worker and reads the priority before and after, so it checks the class mapping, the Kconfig value
- * and the placement together. Which entry calls which identifier is checked statically by
- * tests/service_priority/check_placement.py, since the services need their whole composition.
+ * crux_service_priority_place() with its own identifier. This suite does the same from a Crux
+ * Thread worker and reads the priority before and after, so it checks the class mapping, the
+ * Kconfig value and the placement together. Which entry calls which identifier is checked
+ * statically by tests/service_priority/check_placement.py, since the services need their whole
+ * composition.
  */
 #include "service_priority.h"
 
@@ -70,8 +71,8 @@ ZTEST(service_priority, test_each_worker_runs_at_its_setting)
     for (int which = 0; which < CRUX_SERVICE_THREAD_COUNT; ++which) {
         probe_t probe = run_probe(CRUX_THREAD_PRIORITY_LOW, (crux_service_thread_t)which, true);
         zassert_equal(probe.before, 6, "worker %d did not start at the LOW class", which);
-        zassert_equal(probe.after, expected((crux_service_thread_t)which),
-                      "worker %d runs at %d", which, probe.after);
+        zassert_equal(probe.after, expected((crux_service_thread_t)which), "worker %d runs at %d",
+                      which, probe.after);
     }
 }
 
