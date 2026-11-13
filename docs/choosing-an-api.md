@@ -1,6 +1,6 @@
 # Choosing an API for product code
 
-**Status: developer rule, approved by the owner on 13 November 2026 (platform direction review, decisions P1 and P2).** This guide tells an application developer where each kind of code goes. It adds no check and no public interface. The reasoning, the alternatives and the evidence are in the [platform direction review](research/platform-direction-review.md). The three layers it builds on are in [Three layers for a product](architecture.md#three-layers-for-a-product-adr-0001).
+**Status: developer rule, approved by the owner on 13 November 2026 (decisions P1 and P2 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md)).** This guide tells an application developer where each kind of code goes. It adds no check and no public interface. The reasoning, the alternatives and the evidence are in the [platform direction review](research/platform-direction-review.md). The three layers it builds on are in [Three layers for a product](architecture.md#three-layers-for-a-product-adr-0001).
 
 ## The rule: three questions
 

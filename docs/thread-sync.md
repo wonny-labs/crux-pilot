@@ -1,6 +1,6 @@
 # Thread and Sync contract
 
-**Freeze notice (13 November 2026).** Thread and Sync are frozen for new product code: no new features and no real-time extension. New product code uses Zephyr directly for threads, locks, queues and UARTs; see [Choosing an API](choosing-an-api.md). This adds no promise and removes none. The contract below and its tests and evidence stay as they are, and existing users keep working. Whether the interface is deprecated waits for a later decision. A product template check that rejects the header is planned, not implemented.
+**Freeze notice (13 November 2026).** Thread and Sync are frozen for new product code: no new features and no real-time extension. New product code uses Zephyr directly for threads, locks, queues and UARTs; see [Choosing an API](choosing-an-api.md). This adds no promise and removes none. The contract below and its tests and evidence stay as they are, and existing users keep working. Whether the interface is deprecated waits for a later decision under P9 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md). A product template check that rejects the header is planned, not implemented.
 
 **Status: implemented contract.** This is the current consumer contract for the
 independent Thread and Sync components. It consolidates the adopted behavioral
