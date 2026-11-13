@@ -253,7 +253,11 @@ from an inherited priority, also when a waiter times out during another Sync cal
 wake-ups are not deferred, that a thread switch after the native unlock cannot corrupt a
 slot, that a woken thread's destroy returns busy until the give or unlock that woke it
 has returned, and that every configured mutex slot works, at the default and the largest
-pool. Common conformance and Host failure/poll regressions run in the standard
+pool. It also runs `tests/service_priority/zephyr`, which reads back on `native_sim` the
+per-service priorities of Crux's service workers, at their defaults and moved, and checks
+that the class mapping stays 4/5/6. Its static half, `tests/service_priority/check_placement.py`,
+runs in the Host CTest set as `ServicePriority.*` (see
+[Priority map of Crux threads](../docs/thread-sync.md#priority-map-of-crux-threads)). Common conformance and Host failure/poll regressions run in the standard
 Host debug/sanitizer checks. Private admission tests prove lifecycle races without
 adding production test hooks. See the [current Thread/Sync contract](../docs/thread-sync.md) for semantics and
 provider limits, and the [historical validation record](../docs/history/execution-validation.md)

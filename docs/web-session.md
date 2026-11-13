@@ -118,7 +118,7 @@ declared limit.
 | Platform | What happens during one verification | Source |
 | --- | --- | --- |
 | `native_sim` | A thread that computes is never preempted, so the server thread waits for the whole attempt | Measured for failed logins, below |
-| A target, by the source, not run | The HTTP server thread runs at the lowest preemptive priority, `K_PRIO_PREEMPT(CONFIG_NUM_PREEMPT_PRIORITIES - 1)`, and `crux_thread` priorities map to 6, 5 and 4. That is `K_LOWEST_APPLICATION_THREAD_PRIO`, so no thread can run below it. The worker, at `LOW`, preempts the server thread for the whole attempt too. With `NET_TC_THREAD_COOPERATIVE` the server thread is cooperative and would preempt the worker instead. | Zephyr v4.4.2 `http_server_core.c`, `components/thread/ports/zephyr/thread_native.c` |
+| A target, by the source, not run | The HTTP server thread runs at the lowest preemptive priority, `K_PRIO_PREEMPT(CONFIG_NUM_PREEMPT_PRIORITIES - 1)`, and `crux_thread` priorities map to 6, 5 and 4. That is `K_LOWEST_APPLICATION_THREAD_PRIO`, so no thread can run below it. The worker, at `LOW` and at the default of `CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY` ([Priority map of Crux threads](thread-sync.md#priority-map-of-crux-threads)), preempts the server thread for the whole attempt too. With `NET_TC_THREAD_COOPERATIVE` the server thread is cooperative and would preempt the worker instead. | Zephyr v4.4.2 `http_server_core.c`, `components/thread/ports/zephyr/thread_native.c` |
 
 **Declared limit: another client waits at most one attempt's work on the worker, plus the requests ahead of it.** An
 attempt is one of these:

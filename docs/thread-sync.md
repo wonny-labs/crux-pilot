@@ -111,7 +111,9 @@ not transfer join ownership or extend resource lifetime.
   Requests below that capacity use the whole static slot. Host rounds up to at
   least its documented native minimum/default; actual allocations are recorded.
 - Zephyr maps high/normal/low to preemptive priorities 4/5/6 in the current profile;
-  configuration must reject an unsupported mapping. Host uses unprivileged normal
+  configuration must reject an unsupported mapping. Crux's own service workers can be
+  moved away from their class's number by Kconfig: see
+  [Priority map of Crux threads](#priority-map-of-crux-threads). Host uses unprivileged normal
   scheduling for all classes. Classes express Zephyr ordering and Host functional
   acceptance, not matching Host priorities, preemption or realtime behavior. No
   cooperative/user-mode threads or runtime priority changes are promised.
@@ -123,6 +125,53 @@ not transfer join ownership or extend resource lifetime.
   deadlock detection, or forced reclamation. A new create after join is a new lifetime.
 - A join timeout is a failed wait, not a stopped worker. The application chooses
   retry or its own cooperative stop protocol; this API cannot reclaim a stuck task.
+
+## Priority map of Crux threads
+
+Decision P3 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) gives every thread that Crux itself creates on Zephyr its own priority setting, so that a product can place Crux's threads in its one priority map ([coexistence rule 1](choosing-an-api.md#coexistence-in-one-image)). Each default is the priority that the thread has today, so an image that sets none of them is unchanged. Thread's API, its three classes and their 4/5/6 mapping do not change: Thread is frozen.
+
+**Threads that Crux creates on Zephyr:**
+
+| Thread | Started by | Today's priority | Setting | Default |
+| --- | --- | --- | --- | --- |
+| Security event drain | `crux_security_event_start()` | 6, a `LOW` Crux Thread worker | `CONFIG_CRUX_SECURITY_EVENT_DRAIN_PRIORITY` | 6 |
+| Reboot service worker | `crux_reboot_start_worker()` | 6, `LOW` | `CONFIG_CRUX_REBOOT_WORKER_PRIORITY` | 6 |
+| Network settings service worker | `crux_network_settings_start_worker()` | 6, `LOW` | `CONFIG_CRUX_NETWORK_SETTINGS_WORKER_PRIORITY` | 6 |
+| Web session login worker | `crux_web_session_start_worker()` | 6, `LOW` | `CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY` | 6 |
+| Web management save worker | `crux_web_management_start_worker()` | 6, `LOW` | `CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY` | 6 |
+| SSH listener | the SSH provider's start, a native `k_thread` | `K_LOWEST_APPLICATION_THREAD_PRIO`, which is `CONFIG_NUM_PREEMPT_PRIORITIES - 1` (14 at Zephyr's default of 15) | `CONFIG_CRUX_SSH_LISTENER_PRIORITY` | -1, the same |
+| SSH connection workers, up to `CONFIG_CRUX_SSH_MAX_CONNECTIONS` | the listener, one per connection, native `k_thread`s | The same | `CONFIG_CRUX_SSH_WORKER_PRIORITY` | -1, the same |
+| A product's own Crux Thread workers (existing users) | `crux_thread_create()` | 4, 5 or 6 by class | None: the class decides | — |
+
+The command line's serial console runs on the thread that the composition calls `crux_cli_console_run()` from, and SSH commands run on their connection's worker. A status read runs on its caller's thread. None of them creates a thread. The web adapter's HTTP server thread is Zephyr's: it runs at the lowest preemptive priority, or cooperatively with `CONFIG_NET_TC_THREAD_COOPERATIVE` (see [Web sessions](web-session.md)), and Crux has no setting for it. Zephyr's network, logging and work queue threads are set by Zephyr's own Kconfig. The product's map lists them too.
+
+**Values.** Each setting is a Zephyr preemptive priority, from 0 to `CONFIG_NUM_PREEMPT_PRIORITIES - 1`, where a lower number runs first. The two SSH settings also take -1, their default, which keeps `K_LOWEST_APPLICATION_THREAD_PRIO` and so follows `CONFIG_NUM_PREEMPT_PRIORITIES`. Kconfig cannot subtract, so each range ends at `CONFIG_NUM_PREEMPT_PRIORITIES`, the idle thread's priority. A value above the range or below it fails Kconfig, and the idle priority itself fails a `BUILD_ASSERT` in `components/service_priority` or in the SSH provider. Cooperative (negative) priorities are refused, as Crux's workers have always been preemptible and Thread promises no cooperative threads. Thread itself still requires more than six preemptive levels for its 4/5/6 mapping, whatever these settings are.
+
+**Why numbers, not classes.** A setting names a Zephyr priority, not one of Thread's three classes. A class would tie the setting to the shim and to 4, 5 and 6, which is the per-class alternative that P3 did not choose. A number places a worker anywhere in the map, for example below the product's real-time threads, and it keeps its meaning if the workers later become native threads under P9.
+
+**How a setting is applied.** Each service worker is still created by `crux_thread_create()` at the `LOW` class. On Zephyr its entry first calls a private placement, `crux_service_priority_place()` in `components/service_priority`, which sets the calling thread's priority to the setting. At the default the priority is already 6 and nothing changes. The Crux module builds the placement with Crux Thread and gives every Zephyr target that links `zephyr_interface` its include directory and `CRUX_SERVICE_PRIORITY_PLACEMENT`, so a composition that compiles a service's sources needs nothing more. A target that compiled them without `zephyr_interface` would leave the workers at 6. The Linux Host calls nothing, as Host Thread has no priorities. Two limits follow from the frozen Thread API:
+
+- Until a worker first runs, it is at 6. A worker set below 6 can therefore run its first instructions, the placement call, at 6 before it drops to its setting. A worker set above 6 starts when 6 is next scheduled. The workers are started once by the composition and never joined, so this happens once per worker per boot.
+- The workers take slots from `CONFIG_CRUX_THREAD_COUNT` and stacks of `CONFIG_CRUX_THREAD_STACK_BYTES`, as before. The product sets those budgets ([coexistence rule 2](choosing-an-api.md#coexistence-in-one-image)).
+
+**Declaring the map.** A product writes its map once, with these settings in the image's `prj.conf` next to its own threads' priorities. For example, with real-time threads at 2 to 5:
+
+```
+CONFIG_NUM_PREEMPT_PRIORITIES=15
+CONFIG_CRUX_SECURITY_EVENT_DRAIN_PRIORITY=10
+CONFIG_CRUX_REBOOT_WORKER_PRIORITY=10
+CONFIG_CRUX_NETWORK_SETTINGS_WORKER_PRIORITY=10
+CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY=11
+CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY=11
+CONFIG_CRUX_SSH_LISTENER_PRIORITY=12
+CONFIG_CRUX_SSH_WORKER_PRIORITY=13
+```
+
+The numbers are an illustration, not a measured recommendation. The web session worker at 11 still preempts the HTTP server thread at 14, as it does at its default.
+
+**Stability.** These are Kconfig symbols, which are interface under rule 5 of [ADR-0001 Decision 4](decisions/0001-application-boundary-and-api-stability.md#42-change-rules). The services they place are started only by images under `tests/` today, so by [Decision 4.1](decisions/0001-application-boundary-and-api-stability.md#41-tiers) they start as Experimental. `components/service_priority` is private.
+
+**Evidence.** `tests/service_priority/zephyr` reads the priorities back with `k_thread_priority_get()` on `native_sim`, from a `LOW` Crux Thread worker that places itself as a service worker does, at the defaults and with every worker moved (0 to 14). It also checks that the class mapping stays 4/5/6. The services and the SSH provider are not started there, as they need their whole composition and SSH needs wolfSSH, so `tests/service_priority/check_placement.py` checks statically which entry calls which identifier, the defaults, the SSH provider's two priorities and that no service creates a thread outside this table. Nothing has been measured on a target.
 
 ## Current-thread sleep
 
@@ -252,6 +301,8 @@ Limits:
 Zephyr Thread and Sync each require multithreading and select 64-bit timeouts.
 Thread selects Time for monotonic sleep without requiring RTC.
 Thread requires more than six preemptive priority levels for its 4/5/6 mapping.
+The per-service priority settings of Crux's own workers and SSH threads are in
+[Priority map of Crux threads](#priority-map-of-crux-threads).
 The native Thread port owns static worker stacks; the Sync port owns native
 identity and synchronization. Native include paths and private implementation
 configuration are not consumer interfaces. Use the [component build definitions](../components/thread/CMakeLists.txt),
