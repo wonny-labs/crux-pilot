@@ -104,7 +104,8 @@ for entry in "${images[@]}"; do
         fi
         for ((index = 0; index < listed; ++index)); do
             total=$((total + 1))
-            # The Host gives a case 240 s. A hang must not stall the CI job.
+            # ctest gives a Host suite 240 s (60 s for Reboot.sleep_provider and Web.reboot_no_service),
+            # so a case gets 240 s here. A hang must not stall the CI job.
             if ! timeout 240 "$exe" -test="$filter" -reboot-case="$index" >"$out-case.log" 2>&1 ||
                ! grep -q 'PROJECT EXECUTION SUCCESSFUL' "$out-case.log"; then
                 failed=$((failed + 1))
