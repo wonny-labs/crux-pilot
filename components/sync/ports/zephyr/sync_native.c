@@ -4,8 +4,10 @@
 #include <limits.h>
 #include <stdatomic.h>
 
-/* Common code stores the mutex owner atomically; a lock behind it would be a hidden lock. */
-BUILD_ASSERT(ATOMIC_POINTER_LOCK_FREE == 2, "Sync needs lock-free pointer atomics");
+/* Common code keeps the mutex owner, and this port the semaphore token count, in C11 atomics
+ * rather than Zephyr atomic_t, whose C fallback takes a global spinlock. */
+BUILD_ASSERT(ATOMIC_POINTER_LOCK_FREE == 2 && ATOMIC_INT_LOCK_FREE == 2,
+             "Sync needs lock-free pointer and int atomics");
 
 bool crux_sync_context_allowed(void)
 {
@@ -84,7 +86,7 @@ crux_status_t crux_semaphore_impl_create(sync_native_semaphore_t *semaphore, uin
                                          uint32_t maximum)
 {
     semaphore->maximum = maximum;
-    atomic_set(&semaphore->tokens, (atomic_val_t)initial);
+    atomic_store(&semaphore->tokens, initial);
     return k_sem_init(&semaphore->object, initial, maximum) == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
 
@@ -93,7 +95,7 @@ crux_status_t crux_semaphore_impl_take(sync_native_semaphore_t *semaphore,
 {
     int result = k_sem_take(&semaphore->object, deadline->timeout);
     if (result == 0) {
-        (void)atomic_dec(&semaphore->tokens);
+        (void)atomic_fetch_sub(&semaphore->tokens, 1U);
     }
     return native_wait_result(result);
 }
@@ -107,15 +109,12 @@ crux_status_t crux_semaphore_impl_take(sync_native_semaphore_t *semaphore,
  */
 crux_status_t crux_semaphore_impl_give(sync_native_semaphore_t *semaphore)
 {
-    for (;;) {
-        atomic_val_t tokens = atomic_get(&semaphore->tokens);
-        if (tokens >= (atomic_val_t)semaphore->maximum) {
+    unsigned int tokens = atomic_load(&semaphore->tokens);
+    do {
+        if (tokens >= semaphore->maximum) {
             return CRUX_ERR_BUSY;
         }
-        if (atomic_cas(&semaphore->tokens, tokens, tokens + 1)) {
-            break;
-        }
-    }
+    } while (!atomic_compare_exchange_weak(&semaphore->tokens, &tokens, tokens + 1U));
     k_sem_give(&semaphore->object);
     return CRUX_OK;
 }
