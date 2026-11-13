@@ -11,6 +11,7 @@ typedef k_tid_t sync_native_identity_t;
 typedef struct k_mutex sync_native_mutex_t;
 typedef struct {
     struct k_sem object;
+    atomic_t tokens; /* Reserved by give before k_sem_give, removed by take after k_sem_take. */
     uint32_t maximum;
 } sync_native_semaphore_t;
 #endif

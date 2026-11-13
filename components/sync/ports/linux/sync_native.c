@@ -3,38 +3,16 @@
 
 #include <errno.h>
 #include <limits.h>
-
-static pthread_mutex_t sync_metadata = PTHREAD_MUTEX_INITIALIZER;
+#include <stdatomic.h>
 
 _Static_assert(sizeof(time_t) == sizeof(int64_t), "Host provider requires 64-bit time_t");
+/* Common code stores the mutex owner atomically; glibc's pthread_t is an unsigned long. */
+_Static_assert(sizeof(pthread_t) == sizeof(unsigned long) && ATOMIC_LONG_LOCK_FREE == 2,
+               "Host provider requires lock-free pthread_t atomics");
 
 bool crux_sync_context_allowed(void)
 {
     return !crux_is_in_isr();
-}
-
-void sync_native_metadata_lock(void)
-{
-    (void)pthread_mutex_lock(&sync_metadata);
-}
-
-crux_status_t sync_native_metadata_lock_until(const sync_native_deadline_t *deadline)
-{
-    int result = deadline->poll ? pthread_mutex_trylock(&sync_metadata)
-                                : pthread_mutex_clocklock(&sync_metadata, CLOCK_MONOTONIC,
-                                                          &deadline->absolute);
-    if (result == 0) {
-        return CRUX_OK;
-    }
-    if (result == ETIMEDOUT) {
-        return CRUX_ERR_TIMEOUT;
-    }
-    return result == EBUSY ? CRUX_ERR_BUSY : CRUX_ERR_IO;
-}
-
-void sync_native_metadata_unlock(void)
-{
-    (void)pthread_mutex_unlock(&sync_metadata);
 }
 
 crux_status_t crux_sync_make_deadline(uint32_t timeout_ms, sync_native_deadline_t *out)
