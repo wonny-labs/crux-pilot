@@ -115,7 +115,12 @@ class TemplateFilesTest(unittest.TestCase):
                 self.assertRegex(kconfig, rf"(?m)^config {option}$")
 
     def test_source_includes_only_public_crux_headers(self):
-        self.assertNotRegex(self.source, r'#\s*include\s*"', "no private or local headers")
+        # The shell may name a header of the product's own domain, and no other quoted header.
+        for header in re.findall(r'#\s*include\s*"([^"]+)"', self.source):
+            with self.subTest(header=header):
+                resolved = (TEMPLATE / "app/src" / header).resolve()
+                self.assertTrue(resolved.is_file())
+                self.assertTrue(resolved.is_relative_to((TEMPLATE / "domain").resolve()))
         headers = re.findall(r"#\s*include\s*<(crux/[^>]+)>", self.source)
         self.assertTrue(headers)
         for header in headers:
@@ -139,7 +144,9 @@ class TemplateLocationTest(unittest.TestCase):
 
     def test_the_template_files_are_under_templates_product(self):
         for name in (".gitignore", "README.md", "RELEASE.md", "west.yml",
-                     "app/CMakeLists.txt", "app/prj.conf", "app/src/main.c"):
+                     "app/CMakeLists.txt", "app/prj.conf", "app/src/main.c",
+                     "domain/product_domain.h", "domain/product_domain.c",
+                     "domain/product_port.h", "check_domain_includes.py"):
             with self.subTest(name=name):
                 self.assertTrue((REPO / "templates/product" / name).is_file())
 
@@ -172,6 +179,253 @@ class TemplateScriptTest(unittest.TestCase):
         text = (REPO / "scripts/test-product-template.sh").read_text()
         self.assertIn('(cd "$workspace" && west crux-pins)', text)
         self.assertLess(text.index("west crux-pins"), text.index("west build -p always"))
+
+
+FROZEN_CRUX_HEADERS = ("crux/thread.h", "crux/sync.h", "crux/queue.h", "crux/serial.h")
+ZEPHYR_HEADERS = ("zephyr/kernel.h", "zephyr/sys/printk.h", "zephyr/device.h", "zephyr/net/socket.h")
+
+
+def load_domain_check():
+    spec = importlib.util.spec_from_file_location(
+        "check_domain_includes", TEMPLATE / "check_domain_includes.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class TemplateDomainSplitTest(unittest.TestCase):
+    """The template has a plain C domain and a shell that calls it through one product-owned port."""
+
+    def setUp(self):
+        self.domain = TEMPLATE / "domain"
+        self.shell = (TEMPLATE / "app/src/main.c").read_text()
+        self.cmake = (TEMPLATE / "app/CMakeLists.txt").read_text()
+
+    def test_the_domain_has_one_port_header_and_no_zephyr_or_frozen_include(self):
+        self.assertEqual(["product_domain.c", "product_domain.h", "product_port.h"],
+                         sorted(path.name for path in self.domain.iterdir()))
+        for path in self.domain.iterdir():
+            with self.subTest(path=path.name):
+                text = path.read_text()
+                self.assertNotRegex(text, r"zephyr|\bk_[a-z]+_\w+|CONFIG_", "plain C only")
+                self.assertNotRegex(text, r"crux/(thread|sync|queue|serial)\.h")
+
+    def test_the_domain_declares_what_it_needs_in_the_port_and_the_shell_provides_it(self):
+        port = (self.domain / "product_port.h").read_text()
+        names = re.findall(r"\b(product_port_\w+)\s*\(", port)
+        self.assertTrue(names)
+        for name in names:
+            with self.subTest(name=name):
+                self.assertRegex(self.shell, rf"(?m)^\w[\w \*]*\b{name}\(")
+                self.assertRegex((self.domain / "product_domain.c").read_text(), rf"\b{name}\(")
+        domain_header = (self.domain / "product_domain.h").read_text()
+        self.assertNotRegex(domain_header, r"product_port_\w+\(", "the header does not define the port")
+
+    def test_the_build_compiles_the_domain_sources_without_adding_include_paths(self):
+        self.assertIn("../domain/product_domain.c", self.cmake)
+        self.assertNotRegex(self.cmake, r"target_include_directories|zephyr_include_directories")
+
+    def test_the_shell_calls_the_domain_and_takes_no_frozen_header(self):
+        self.assertIn("product_domain_step(", self.shell)
+        for header in FROZEN_CRUX_HEADERS:
+            with self.subTest(header=header):
+                self.assertNotIn(f"<{header}>", self.shell)
+
+    @unittest.skipUnless(shutil.which("cc"), "needs a host C compiler")
+    def test_the_domain_builds_and_behaves_on_the_host_with_a_fake_port(self):
+        fake = r'''
+#include <stdio.h>
+#include "product_domain.h"
+#include "product_port.h"
+static const int32_t script[] = {300000, 300000, 340000, 340000, 340000, 340000, 340000, 340000};
+static unsigned next;
+int product_port_read_temperature(int32_t *millikelvin)
+{
+    if (next >= sizeof script / sizeof script[0]) {
+        return -1;
+    }
+    *millikelvin = script[next++];
+    return 0;
+}
+int main(void)
+{
+    struct product_domain d;
+    product_domain_init(&d, 320000);
+    for (int i = 0; i < 8; i++) {
+        int rc = product_domain_step(&d);
+        printf("%d %d %d\n", rc, (int)product_domain_filtered(&d), product_domain_alarm(&d) ? 1 : 0);
+    }
+    product_domain_set_limit(&d, 500000);
+    next = 0;
+    product_domain_step(&d);
+    printf("limit %d\n", product_domain_alarm(&d) ? 1 : 0);
+    return 0;
+}
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "fake.c"
+            source.write_text(fake)
+            binary = Path(tmp) / "fake"
+            subprocess.run(["cc", "-std=c17", "-Wall", "-Wextra", "-Werror", "-I", str(self.domain),
+                            str(source), str(self.domain / "product_domain.c"), "-o", str(binary)],
+                           check=True)
+            lines = subprocess.run([str(binary)], check=True, capture_output=True,
+                                   text=True).stdout.splitlines()
+        steps = [line.split() for line in lines[:8]]
+        self.assertEqual(["0", "300000", "0"], steps[0])
+        self.assertEqual("0", steps[1][0])
+        self.assertEqual("0", steps[2][2], "one hot sample is filtered below the limit")
+        self.assertEqual("1", steps[-1][2], "a sustained hot input raises the alarm")
+        self.assertEqual("limit 0", lines[8], "a new limit applies to the state at once")
+
+
+class DomainIncludeCheckTest(unittest.TestCase):
+    """The check rejects the four frozen Crux headers and every Zephyr header in the domain."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.check = load_domain_check()
+
+    def domain_copy(self, tmp):
+        root = Path(tmp) / "domain"
+        shutil.copytree(TEMPLATE / "domain", root)
+        return root
+
+    def run_cli(self, *args):
+        return subprocess.run([sys.executable, str(TEMPLATE / "check_domain_includes.py"), *args],
+                              capture_output=True, text=True)
+
+    def violations_of(self, text, name="product_domain.c", prepend=True):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.domain_copy(tmp)
+            path = root / name
+            path.write_text(text + path.read_text() if prepend else path.read_text() + text)
+            return self.check.check(root)
+
+    def test_the_template_as_shipped_passes(self):
+        self.assertEqual([], self.check.check(TEMPLATE / "domain"))
+
+    def test_the_command_passes_on_the_template_as_shipped(self):
+        result = self.run_cli()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("passed", result.stdout)
+
+    def test_each_frozen_crux_header_fails(self):
+        for header in FROZEN_CRUX_HEADERS:
+            with self.subTest(header=header):
+                found = self.violations_of(f"#include <{header}>\n")
+                self.assertEqual([header], [v.include for v in found])
+                self.assertIn("frozen", found[0].reason)
+
+    def test_each_zephyr_header_fails(self):
+        for header in ZEPHYR_HEADERS:
+            with self.subTest(header=header):
+                found = self.violations_of(f"#include <{header}>\n")
+                self.assertEqual([header], [v.include for v in found])
+                self.assertIn("Zephyr", found[0].reason)
+
+    def test_the_quoted_form_fails_too(self):
+        for header in (FROZEN_CRUX_HEADERS[0], ZEPHYR_HEADERS[0]):
+            with self.subTest(header=header):
+                found = self.violations_of(f'#include "{header}"\n')
+                self.assertEqual([header], [v.include for v in found])
+
+    def test_a_header_file_and_a_file_of_any_suffix_are_checked(self):
+        found = self.violations_of("#include <crux/queue.h>\n", "product_domain.h")
+        self.assertEqual(["product_domain.h"], [Path(v.path).name for v in found])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.domain_copy(tmp)
+            (root / "helper.inc").write_text("#include <zephyr/kernel.h>\n")
+            self.assertEqual(["helper.inc"], [Path(v.path).name for v in self.check.check(root)])
+
+    def test_directive_spellings_that_a_compiler_accepts_fail(self):
+        spellings = (
+            "  #  include <crux/thread.h>\n",
+            "%:include <crux/thread.h>\n",
+            "??=include <crux/thread.h>\n",
+            "#include_next <crux/thread.h>\n",
+            "#import <crux/thread.h>\n",
+            "#include <crux/\\\nthread.h>\n",
+            "#include <crux/thread.h> // trailing comment\n",
+            "/* note */ #include <crux/thread.h>\n",
+            "#include <crux/thread.h>\r\n",
+        )
+        for text in spellings:
+            with self.subTest(text=text):
+                found = self.violations_of(text)
+                self.assertEqual(["crux/thread.h"], [v.include for v in found])
+
+    def test_a_header_named_only_in_a_comment_or_string_passes(self):
+        text = '/* never #include <crux/thread.h> or <zephyr/kernel.h> here */\n// <crux/sync.h>\n'
+        self.assertEqual([], self.violations_of(text))
+        self.assertEqual([], self.violations_of('static const char *note = "#include <crux/queue.h>";\n'))
+
+    def test_the_other_public_crux_headers_and_iso_c_stay_allowed(self):
+        text = "#include <crux/time.h>\n#include <crux/status.h>\n#include <stdint.h>\n#include <stdbool.h>\n"
+        self.assertEqual([], self.violations_of(text))
+
+    def test_an_include_that_cannot_be_read_or_leaves_the_tree_fails(self):
+        for text in ("#define H <crux/thread.h>\n#include H\n",
+                     '#include "../app/src/main.c"\n',
+                     '#include "missing.h"\n'):
+            with self.subTest(text=text):
+                self.assertTrue(self.violations_of(text), text)
+
+    def test_the_command_names_the_file_line_and_header_and_exits_nonzero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.domain_copy(tmp)
+            path = root / "product_domain.c"
+            path.write_text(path.read_text() + "#include <zephyr/kernel.h>\n")
+            line = len(path.read_text().splitlines())
+            result = self.run_cli(str(root))
+        self.assertEqual(1, result.returncode)
+        self.assertIn(f"product_domain.c:{line}: zephyr/kernel.h", result.stdout)
+
+    def test_a_missing_domain_directory_is_an_error_not_a_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_cli(str(Path(tmp) / "nowhere"))
+        self.assertEqual(2, result.returncode)
+        self.assertNotIn("passed", result.stdout)
+
+
+class SharedStatePatternTest(unittest.TestCase):
+    """The shell shows the pattern of docs/choosing-an-api.md: one owner, snapshot reads, message writes."""
+
+    def setUp(self):
+        self.shell = (TEMPLATE / "app/src/main.c").read_text()
+
+    def function(self, name):
+        match = re.search(rf"(?ms)^[\w \*]*\b{name}\([^)]*\)\s*\{{(.*?)^\}}", self.shell)
+        self.assertIsNotNone(match, f"the shell defines {name}")
+        return match.group(1)
+
+    def test_one_owner_thread_runs_the_domain_and_nothing_else_does(self):
+        self.assertIn("K_THREAD_DEFINE(", self.shell)
+        pattern = r"\bproduct_domain_(init|step|set_limit)\("
+        owner = self.function("product_owner_entry")
+        self.assertTrue(re.search(pattern, owner))
+        self.assertEqual(len(re.findall(pattern, self.shell)), len(re.findall(pattern, owner)),
+                         "only the owner thread calls the domain")
+
+    def test_a_status_read_is_a_snapshot_read_with_an_atomic_and_takes_no_lock(self):
+        body = self.function("product_status_read")
+        self.assertIn("atomic_load", body)
+        self.assertNotRegex(body, r"k_mutex|k_sem|k_msgq|irq_lock|product_domain_")
+
+    def test_the_owner_publishes_the_snapshot_with_an_atomic_store(self):
+        self.assertIn("atomic_store", self.function("product_owner_entry"))
+
+    def test_a_command_is_a_message_to_the_owner_queue_that_never_blocks(self):
+        body = self.function("product_command_set_limit")
+        self.assertIn("k_msgq_put", body)
+        self.assertIn("K_NO_WAIT", body)
+        self.assertNotRegex(body, r"product_domain_")
+        self.assertIn("K_MSGQ_DEFINE(", self.shell)
+
+    def test_the_owner_applies_messages_between_steps(self):
+        body = self.function("product_owner_entry")
+        self.assertIn("k_msgq_get", body)
+        self.assertLess(body.index("k_msgq_get"), body.index("product_domain_step"))
 
 
 class GuideTest(unittest.TestCase):
