@@ -22,7 +22,7 @@ All listed components have implemented source, but available OS implementations 
 
 ## Architecture
 
-Crux separates reusable platform components and portable application code from **platform composition**: the board/project-specific configuration and initialisation that select OS implementations and bind hardware resources. Applications use Crux public APIs or documented standard API subsets. OS and device services remain within the selected platform integration.
+Crux separates reusable platform components and portable application code from **platform composition**: the board/project-specific configuration and initialisation that select OS implementations and bind hardware resources. Applications use Crux public APIs or documented standard API subsets, except that `thread`, `sync`, `queue` and `serial` are frozen for new product code (existing users keep working; see [Choosing an API](docs/choosing-an-api.md)). OS and device services remain within the selected platform integration.
 
 See the [architecture overview](docs/architecture.md) for component ownership, portability boundaries and build dependencies.
 

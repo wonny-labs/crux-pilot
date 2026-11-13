@@ -149,6 +149,12 @@ Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT
 
 ### Complete Queue, Time and Thread example
 
+This example shows how an external consumer selects components and links their
+targets. It is not a model for new product code: Thread, Sync, Queue and Serial are
+frozen for new product code, so a new product uses Zephyr threads and message queues
+in its own Zephyr code (see [Choosing an API](choosing-an-api.md)). Existing users
+keep working, and the build mechanics below are unchanged.
+
 Create an application directory outside the Crux source tree. Add the following
 three files; the example follows the [tested external fixture](../tests/external_application/CMakeLists.txt)
 and selects Queue, Time and Thread. The portable logic sends and receives one

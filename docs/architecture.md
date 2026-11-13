@@ -77,6 +77,47 @@ Where Zephyr is allowed (Decision 2):
 
 In a product, the ADR recommends two checks: a lexical include check per zone, and a Host build of the domain. A Zephyr header does not exist in a Linux Host build, so a Zephyr include in the domain then fails to compile. The product owns both checks and may make them stricter. Lexical checks can be bypassed and need review, as the [native-free consumer policy](native-interface-policy.md#three-layers-and-ports-adr-0001) states.
 
+### Current platform structure (ADR-0002)
+
+**Source and status.** This subsection draws the structure that [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) accepted on 13 November 2026. It adds no interface and no check. The [developer rule](choosing-an-api.md) is the same decision in words.
+
+```mermaid
+flowchart TB
+    subgraph PRODUCT["Product software"]
+        direction LR
+        DOM["Product domain<br/>plain C, host-tested"]
+        ADP["Adapters<br/>call Zephyr directly"]
+        DOM <-->|"ports the product owns"| ADP
+    end
+    subgraph CRUX["Crux platform software"]
+        direction LR
+        CON["Public contracts<br/>Time, Logging, File, Config, System, Sockets"]
+        MGT["12 management services<br/>10 use Crux Sync"]
+        FRZ["Frozen API<br/>Thread, Sync, Queue, Serial"]
+        MGT -->|"10 use Sync, cli uses Thread and Serial"| FRZ
+    end
+    subgraph VAR["Platform variants"]
+        direction LR
+        LIN["Linux providers<br/>host test runs, not a product target"]
+        ELX["Embedded Linux<br/>deferred, would plug in<br/>at the service boundary"]
+        ZEP["Zephyr<br/>kernel, drivers, BSP, vendor HALs"]
+    end
+    HW["Target hardware"]
+    DOM -->|"uses"| CON
+    DOM -->|"uses service APIs"| MGT
+    ADP -.->|"bypasses Crux"| ZEP
+    CON --> ZEP
+    MGT -->|"ssh: native threads"| ZEP
+    FRZ --> ZEP
+    CRUX -->|"Host tests"| LIN
+    CRUX -.->|"not planned"| ELX
+    ZEP --> HW
+```
+
+The domain reaches the platform only through Crux's public contracts and service APIs, never Zephyr, and the Linux providers let its tests run on a Host without Zephyr. The adapters use Zephyr threads, locks, queues, devices and buses directly and do not go through Crux (dashed). Of the 12 management services, 10 use Crux Sync. `cli` uses Thread and Serial instead, and `ssh` uses native threads and none of the four frozen APIs. The Linux providers serve the services' Host tests. Sockets has no Crux Linux provider, as it uses the standard socket API of the C library. Embedded Linux has no provider and no plan. The dashed edge marks where one would attach.
+
+**What changed from the original goal.** Crux was first framed as a portability layer: one set of public interfaces over Zephyr and, later, Embedded Linux, so that firmware could move between them. ADR-0002 decided that Zephyr is the execution layer, that products use it directly for OS and hardware facilities, and that Crux keeps its services and public contracts, with Thread, Sync, Queue and Serial frozen for new product code. Embedded Linux is not planned and would be designed at the service boundary if ever needed, and the Linux providers remain as test providers.
+
 ## Component ownership and source layout
 
 Each component owns its applicable public contract, common code, private helpers, build definitions and optional OS-specific implementations:
