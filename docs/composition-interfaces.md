@@ -48,5 +48,5 @@ Before a new composition interface is proposed, check it against the table above
 ## What this document does not do
 
 - It adds no composition interface, check or test, and changes no file under `components/`, `tests/` or a protected path.
-- It does not assign stability tiers (ADR follow-up 5) or add the product template's example include check and Host build of the domain (follow-up 3).
+- It does not assign stability tiers (ADR follow-up 5) or add the product template's example include check and Host build of the domain (follow-up 3). The template's include check was added later, under P2 and P4 of ADR-0002.
 - It does not change CONTRIBUTING (see [Where the header lives](#where-the-header-lives)).

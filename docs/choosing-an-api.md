@@ -1,6 +1,6 @@
 # Choosing an API for product code
 
-**Status: developer rule, approved by the owner on 13 November 2026 (decisions P1 and P2 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md); the shared-state pattern and coexistence rules follow P3 and P4).** This guide tells an application developer where each kind of code goes. It is documentation only: it adds no check and no public interface, and the template check, template example and per-service priority settings are later work. The reasoning, the alternatives and the evidence are in the [platform direction review](research/platform-direction-review.md). The three layers it builds on are in [Three layers for a product](architecture.md#three-layers-for-a-product-adr-0001).
+**Status: developer rule, approved by the owner on 13 November 2026 (decisions P1 and P2 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md); the shared-state pattern and coexistence rules follow P3 and P4).** This guide tells an application developer where each kind of code goes. It adds no public interface. The product template carries the domain include check and the shared-state example; per-service priority settings are later work. The reasoning, the alternatives and the evidence are in the [platform direction review](research/platform-direction-review.md). The three layers it builds on are in [Three layers for a product](architecture.md#three-layers-for-a-product-adr-0001).
 
 ## The rule: three questions
 
@@ -26,7 +26,7 @@ Do not use `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` or `<crux/serial
 - **Frozen means:** no new features and no real-time extension. It adds no promise and removes none. The contracts, tests and evidence stay as they are, and existing users keep working.
 - **Why:** threads and locks decide scheduling, through priorities, inheritance and pools. Two kinds of them in one image is a design problem. Time, Logging, File, Configuration and System carry policy or serve both of today's product consumers, and none of them decides scheduling, so they stay public contracts.
 - **Not decided yet:** whether these four are deprecated or become Crux-internal. That decision (P9 of ADR-0002) waits for D10 phase 1, a `native_sim` sanitizer probe and a slim-Sync spike. Until then nothing is removed.
-- **Planned, not implemented:** the product template will reject these four headers in a product's domain. Today the freeze is a documented rule only.
+- **Checked in the template:** `templates/product/check_domain_includes.py` rejects these four headers, and every Zephyr header, in a product's domain, and the template's tests run it. Nothing checks the rest of the product's code, and Crux's own trees and D10's Build B are exempt.
 
 ## Coexistence in one image
 
@@ -49,7 +49,7 @@ Crux services call product code on other threads: a command handler on the threa
 3. **Writes by message.** Command and web handlers post a request to the owner's `k_msgq` through an adapter. The owner applies it between steps. A handler that needs a result waits for a reply with a timeout.
 4. **Locks live in adapters.** The domain's Host tests stay single-threaded and deterministic.
 
-An example of this pattern in the product template is planned, not present.
+The product template shows the pattern in `templates/product/app/src/main.c`: one owner thread, a status read by a C11 atomic, and a command by a `k_msgq` message. See its [README](../templates/product/README.md#shared-state-example).
 
 ## See also
 
