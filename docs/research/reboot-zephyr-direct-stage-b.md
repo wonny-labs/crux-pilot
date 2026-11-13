@@ -29,7 +29,7 @@ Part of the P9 evidence of [ADR-0002](../decisions/0002-platform-direction-zephy
 
 ## M1 effort (measured, agent wall clock; no human hours)
 
-From `git reflog`, UTC, 13 November: branch created 22:06; merge of main (#396) 22:11; container and Zephyr tools ready, Stage A re-run as a baseline 22:14; source, Kconfig and CMake 22:16 to 22:20; placement check and its test 22:19 to 22:21; Host stub, bridge, native project 22:21 to 22:23; first green native run (54 cases) about 22:23; code and tests committed 22:24. **Source, tests and a green run: about 0.3 h.** Measurement batches, mutants, the Host whole-preset run, the record and the PR: about 1.2 h more. The report's estimate for Stage B was 22 to 36 h (a person's hours); the agent's time is not comparable to it (see the extrapolation).
+From `git reflog`, UTC, 13 November: branch created 22:06; merge of main (#396) 22:11; container and Zephyr tools ready, Stage A re-run as a baseline 22:14; source, Kconfig and CMake 22:16 to 22:20; placement check and its test 22:19 to 22:21; Host stub, bridge, native project 22:21 to 22:23; first green native run (54 cases) about 22:23; code and tests committed 22:24. **Source, tests and a green run: about 0.3 h.** Measurement batches (two M2 rounds, M5, M7, M8, the Host whole preset), the record and the merge of Stage A's fixes: about 1.3 h more, so **about 1.6 h of wall clock to the last commit of the record**, before the PR text. The report's estimate for Stage B was 22 to 36 h (a person's hours); the agent's time is not comparable to it (see the extrapolation).
 
 | Phase | Agent time |
 | --- | --- |
@@ -38,8 +38,8 @@ From `git reflog`, UTC, 13 November: branch created 22:06; merge of main (#396) 
 | Source swap, Kconfig, CMake | 0.1 h |
 | Test side (bridge, Host stub, native project, placement check) | 0.1 h |
 | Docs | 0.1 h |
-| Measurement (M2, M5, M7, M8, Host whole preset) | about 0.8 h, most of it waiting for builds |
-| Record and PR | 0.3 h |
+| Measurement (two M2 rounds, M5, M7, M8, Host whole preset) | about 1.0 h, most of it waiting for builds (round 2 alone 0.5 h) |
+| Record, merge of Stage A's fixes | 0.3 h (phases overlap, so the rows add to more than 1.6 h) |
 
 ## M2 turnaround (measured, local)
 
@@ -168,7 +168,7 @@ What Stage B shows about cost, which the straight proportion does not:
 3. **Assertions that cannot run, per service.** This pilot found one suite (9 checks). The services that wrap `crux_mutex_create` on purpose (`config_service`, `credential`, `mgmt_status`) assert a create failure that static objects cannot have: those are the pilot report's B3 case, an owner decision for each, and they are not in the pilot.
 4. **What the pilot did not exercise:** ThreadSanitizer suites (B4: `config_service_concurrency`, `mgmt_status_snapshot`, the SSH CLI), test hooks that hand out Crux handles (B5), context rules for ISRs (B6), `k_condvar` or recursive-lock needs, and a mixed-kind image beyond `pending`'s reboot next to Crux-Sync network settings (which passed).
 
-Range. **(a) From the measured agent time:** the first green run took 0.3 h for 12.4 reboots-worth, so 3.7 h; with the whole 1.5 h of this pilot as the unit, 19 h. **That is 4 to 19 agent hours, about 0.1 to 0.5 weeks if a week is 40 hours of the same work**, and it excludes owner decisions, independent review rounds, CI runs and the per-service blockers of point 3 and 4. **(b) From the report's pre-registered person estimate** (22 to 36 h for Stage B): 12.4 × 22 to 36 = 273 to 446 h, **6.8 to 11 person-weeks.** The pre-registered numbers were already 10 to 100 times above what Stage A (0.8 h against 8 to 14 h) and Stage B (0.3 to 1.5 h against 22 to 36 h) cost an agent, so (b) is an upper bound that a person doing this work by hand might still approach. Subtracting the once-only parts for the later services lowers both. I do not have a measured human-to-agent ratio, and the cap's unit (person-weeks) cannot be compared with agent hours without one. **The range I would defend: 1 to 4 person-weeks of person-led work for the 11 services plus their owner decisions, with the TSan and create-wrap services as the uncertain part.** That sentence is a judgement and not a measurement.
+Range. **(a) From the measured agent time:** the first green run took 0.3 h for 12.4 reboots-worth, so 3.7 h; with the whole 1.6 h of this pilot as the unit, 20 h. **That is 4 to 20 agent hours, about 0.1 to 0.5 weeks if a week is 40 hours of the same work**, and it excludes owner decisions, independent review rounds, CI runs and the per-service blockers of point 3 and 4. **(b) From the report's pre-registered person estimate** (22 to 36 h for Stage B): 12.4 × 22 to 36 = 273 to 446 h, **6.8 to 11 person-weeks.** The pre-registered numbers were already 10 to 100 times above what Stage A (0.8 h against 8 to 14 h) and Stage B (0.3 to 1.6 h against 22 to 36 h) cost an agent, so (b) is an upper bound that a person doing this work by hand might still approach. Subtracting the once-only parts for the later services lowers both. I do not have a measured human-to-agent ratio, and the cap's unit (person-weeks) cannot be compared with agent hours without one. **The range I would defend: 1 to 4 person-weeks of person-led work for the 11 services plus their owner decisions, with the TSan and create-wrap services as the uncertain part.** That sentence is a judgement and not a measurement.
 
 ## Exit criteria of the report section 3.5 (D-D, approved 2026-11-13 21:02:50 UTC)
 
@@ -180,7 +180,7 @@ Range. **(a) From the measured agent time:** the first green run took 0.3 h for 
 | M2 ratio of 2 or less to `host-sanitize` | **FAIL like-for-like (about 19 to 23); PASS against the whole preset (0.36 to 0.69 with my 137 s, 0.19 to 0.53 with Stage A's 178 s and 268 s)** | M2. Which denominator D-D means is the owner's to say |
 | M5 passes | **PASS** | 100 of 100, 200 of 200 |
 | M6: every wrapped fault case reproducible on `native_sim` | **FAIL, narrowly** | 13 of 13 mutex-wrapped cases pass; the 9 checks of the semaphore-take wrap cannot exist. Same item as M4 |
-| Effort extrapolates within 4 person-weeks for the other 11 services | **Not decidable here; PASS on agent hours (4 to 19 h), FAIL on the report's person estimate (6.8 to 11 person-weeks); my judgement 1 to 4 person-weeks** | Extrapolation |
+| Effort extrapolates within 4 person-weeks for the other 11 services | **Not decidable here; PASS on agent hours (4 to 20 h), FAIL on the report's person estimate (6.8 to 11 person-weeks); my judgement 1 to 4 person-weeks** | Extrapolation |
 | Blockers B1 to B4 have an owner answer | **FAIL, no answer exists** | B1: D-A works without a protected edit, but is an unapproved assumption. B2: a 181-line Host stub or `native_sim` keeps the suites, an owner choice (D-C). B3: the `crux_mutex_lock` wraps work through the bridge; the `crux_mutex_create` wraps of three services are not in the pilot. B4 (TSan): untouched by this pilot |
 
 **Keep the slim shim (O4) if any of these:**
