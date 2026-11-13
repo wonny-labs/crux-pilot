@@ -82,9 +82,9 @@ Ratios in round 2, with the Host set after the swap (13 entries: 4.5 s cold, 2.6
 | Whole preset, different test sets (137 s measured here) | 0.69 | 0.45 |
 | Whole preset, different test sets, as Stage A recorded it (178 s local, 268 s CI) | 0.53 and 0.35 | 0.34 and 0.23 |
 
-**Projection for all services (inference, not measured).** Reboot's set is 6 images and takes 95 s cold and 61 s warm, so about 16 s and 10 s for an image. If each of the 12 services needed 3 to 6 images (reboot has 6; the web suites share one composition), native_sim would run 36 to 72 images: about 580 to 1150 s cold and 360 to 730 s warm, built one after another as the script does. Against the Host preset's 137 s that is **4.2 to 8.4 cold and 2.6 to 5.3 warm**; against CI's 268 s, 2.2 to 4.3 cold and 1.3 to 2.7 warm. So on a like-for-like footing for the whole platform the ratio stays above 2 in every case but the warm low end against CI's figure. Building images in parallel on 8 CPUs would lower it; I did not try.
+**Projection for all services (inference, not measured).** Reboot's set is 6 images and takes 95 s cold and 61 s warm, so about 16 s and 10 s for an image. If each of the 12 services needed 3 to 6 images (reboot has 6; the web suites share one composition), native_sim would run 36 to 72 images: about 580 to 1150 s cold and 360 to 730 s warm, built one after another as the script does. Against the Host preset's 137 s that is **4.2 to 8.4 cold and 2.6 to 5.3 warm**; against CI's 268 s, 2.2 to 4.3 cold and 1.3 to 2.7 warm. So on a like-for-like footing for the whole platform the ratio stays above 2 in every case but the warm low end against CI's figure. The warm ratios divide warm native times by the Host's single cold figure of 137 s; the Host's warm figure (about 122 s of `ctest`, the build being incremental) would make the warm ratios slightly higher, so the stated ones are conservative. Building images in parallel on 8 CPUs would lower it; I did not try. The projection is indicative only.
 
-The like-for-like ratio measures the number of Zephyr images (six configurations of Kconfig and a kernel build, about 20 s each), not the tests: a case runs in about 0.1 s.
+The like-for-like ratio measures the number of Zephyr images (six configurations of Kconfig and a kernel build, about 16 s cold and 10 s warm each), not the tests: a case runs in about 0.1 s.
 
 ## M3 lines by zone
 
@@ -116,9 +116,10 @@ Lines no longer needed in Crux Sync and Thread for this service: **13 lexical Cr
 | native_sim: 209 + 103 + 49 | **361** | over |
 | Host: 181 + 49 | **230** | under |
 | Both: 209 + 103 + 49 + 181 | **542** | over |
-| pthread compat and Host stub, without harness and bridge | 390 | over |
+| native_sim without the harness: 209 + 49 | 258 | under |
+| Both environments without the harness: 209 + 49 + 181 | 439 | over |
 
-Stage A's own figure under the same rule was 312. **The row trips "keep O4" under any counting that includes native_sim, which the Stage A gate requires for the services' concurrency tests.** It passes only if the owner rules that the cap applies to the Host stub alone, as the shim of a Host-only environment. That is a choice for the owner, and I do not make it.
+Stage A's own figure under the same rule was 312. **Under this rule (per-case harness included, as Stage A counted) the row trips "keep O4" for native_sim (361) and for both environments (542); the Host alone (230) is under.** Two rulings by the owner would pass it: (1) the cap applies to the Host stub alone (230); (2) the 103-line per-case harness `zephyr_case.c`, which replaces `fork()`, is not a kernel shim, which makes native_sim 258 and the Host 230, each under 302 (both environments together would still be 439). That is a choice for the owner, and I do not make it.
 
 ## M4 behaviour and tests identical
 
@@ -188,7 +189,7 @@ Range. **(a) From the measured agent time:** the first green run took 0.3 h for 
 | Criterion | Verdict | Evidence |
 | --- | --- | --- |
 | M4 identical: no public change, no deleted assertion | **FAIL, narrowly** | Public header diff empty, no assertion source changed or deleted. But the 9 checks of `sleep_provider.c` are no longer run, which is a deleted assertion in effect. If the owner takes the third option under M4 (a `k_sem_take`-based port and a second bridge) this row passes |
-| M2 ratio of 2 or less to `host-sanitize` | **FAIL on the protocol's own basis (Stage 0: the same Host suites): about 19 to 23.** The whole-preset ratio (0.19 to 0.69 over all denominators) divides different test sets and is not a pass; projected for all services (inference) it is 2.6 to 8.4 against 137 s | M2. The owner may still rule on the denominator, with the mismatch above in view |
+| M2 ratio of 2 or less to `host-sanitize` | **FAIL on the protocol's own basis (Stage 0: the same Host suites): about 19 to 23.** The whole-preset ratio (0.19 to 0.69 over all denominators) divides different test sets and is not a pass; the all-services projection (inference, indicative only) is 2.6 to 8.4 against the same 137 s | M2. The owner may still rule on the denominator, with the mismatch above in view |
 | M5 passes | **PASS** | 100 of 100, 200 of 200 |
 | M6: every wrapped fault case reproducible on `native_sim` | **FAIL, narrowly** | 13 of 13 mutex-wrapped cases pass; the 9 checks of the semaphore-take wrap cannot exist. Same item as M4 |
 | Effort extrapolates within 4 person-weeks for the other 11 services | **Not decidable here; PASS on agent hours (4 to 20 h), FAIL on the report's person estimate (6.8 to 11 person-weeks); my judgement 1 to 4 person-weeks** | Extrapolation |
@@ -199,14 +200,14 @@ Range. **(a) From the measured agent time:** the first green run took 0.3 h for 
 | Criterion | Verdict | Evidence |
 | --- | --- | --- |
 | Stage A fails its gate | no | Stage A passed its gate (its independent review asked for a corrected record, which the Stage A session is writing) |
-| M2 ratio above 2 | **yes** on the protocol's basis (about 19 to 23), and yes on the all-services projection (inference); the whole-preset division of different sets is 0.19 to 0.69 and is not evidence either way | M2, rounds 1 and 2 |
-| A test-only kernel shim larger than the Linux Sync and Thread providers (302 lines) | **yes** under one counting rule (harness included, as Stage A counted): native_sim 361, both environments 542; **no** only for the Host stub alone (230), if the owner rules the cap applies per Host environment | See the shim tables in M3. Stage A's figure was 312 |
+| M2 ratio above 2 | **yes** on the protocol's basis (about 19 to 23), the whole-preset division, a different test set, is 0.19 to 0.69 (not above 2); the all-services projection (inference, 2.6 to 8.4) is indicative only and is not counted as a trip | M2, rounds 1 and 2 |
+| A test-only kernel shim larger than the Linux Sync and Thread providers (302 lines) | **yes** under the rule Stage A used (harness included): native_sim 361, both environments 542. **No** if the owner rules that the cap applies to the Host stub alone (230), or that the per-case harness is not a kernel shim (native_sim 258, Host 230) | See the shim tables in M3. Stage A's figure was 312 |
 | M5 flakes | no | |
 | The owner refuses B1's exemption and wants Host coverage of services | not asked | the Host stub keeps coverage at the stated cost |
 
-**Inconclusive** (Stage A passes, Stage B passes, but B4 is open): no longer applies to M2, since the whole-preset division is not a valid pass. It would apply only if the owner rules both on the denominator (the whole preset) and on the shim cap (per Host environment).
+**Inconclusive** (Stage A passes, Stage B passes, but B4 is open): applies only if the owner rules for the whole-preset denominator on M2 **and** passes the shim row by one of the two rulings above.
 
-**Conclusion by D-D as written (inference from the table).** O2 is **not** chosen: M4 and M6 each fail on one suite, and the blockers have no owner answer. O4 is chosen on three counts that do not depend on the denominator question: the M2 ratio on the protocol's Stage 0 basis (about 19 to 23), the same ratio projected for all services (2.6 to 8.4, inference), and the shim size (361 on native_sim, 542 for both), unless the owner rules that the cap applies to the Host stub alone (230). Only if the owner rules for the whole-preset denominator **and** for a per-Host-environment cap does the result become "inconclusive, run a second pilot on `config_service` or `mgmt_status` for B4". The swap itself is not what decides it: the service changed by 47 and 31 lines, no suite but one lost a case, and the `native_sim` suites were as quick and as stable as at Stage A. What decides it is the test side: **native_sim needs 361 lines of test-only shim and harness, the Host needs a 181-line stub of its own, one suite has no equivalent, and the like-for-like turnaround is about 19 to 23 times the Host's.**
+**Conclusion by D-D as written (inference from the table).** O2 is **not** chosen: M4 and M6 each fail on one suite, and the blockers have no owner answer. Whether O4 follows depends on two rulings that are the owner's. On the Stage 0 reading of M2 the measured ratio (about 19 to 23) trips O4 by itself. On the whole-preset reading the measured M2 does not trip it (0.19 to 0.69, but over different test sets), and O4 then follows only from the shim row, which trips under Stage A's counting (361 on native_sim) unless the owner rules that the cap applies to the Host stub alone or that the per-case harness is not a kernel shim. Only if the owner takes the whole-preset denominator **and** one of those two shim rulings is the result "inconclusive, run a second pilot on `config_service` or `mgmt_status` for B4". The all-services projection (2.6 to 8.4, inference) is indicative only and is not one of the trips; it suggests that the whole-preset ratio would not stay under 2 as more services move. The swap itself is not what decides it: the service changed by 47 and 31 lines, no suite but one lost a case, and the `native_sim` suites were as quick and as stable as at Stage A. What decides it is the test side: **native_sim needs 361 lines of test-only shim and harness, the Host needs a 181-line stub of its own, one suite has no equivalent, and the like-for-like turnaround is about 19 to 23 times the Host's.**
 
 ## Behaviour differences that the tests do not catch
 
