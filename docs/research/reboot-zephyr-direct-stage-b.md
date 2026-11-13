@@ -79,7 +79,7 @@ The like-for-like ratio measures the number of Zephyr images (four configuration
 | Tests, changed | 27/12 + 25/15 + 88/5 + 1/0 + 8/5 + 31/6 + 11/7 | `tests/reboot/CMakeLists.txt`, `tests/reboot/zephyr/CMakeLists.txt`, `main_sleep_provider.c`, `prj.conf`, `tests/web/reboot/CMakeLists.txt`, `check_placement.py`, `test_check_placement.py`; **no assertion source of a suite changed** |
 | CMake and Kconfig (non-test) | 11/20 + 28/8 | `components/reboot/CMakeLists.txt`, `zephyr/Kconfig` |
 | Protected | **0 new** | `scripts/test-reboot-native.sh` and one `zephyr.yml` step are Stage A's two, unchanged |
-| Docs | 17/5 + 1/1 + 10 + this file | `docs/reboot-service.md`, `docs/thread-sync.md`, `tests/README.md` |
+| Docs | 17/5 + 1/1 + 8 + 192 (this file) | `docs/reboot-service.md`, `docs/thread-sync.md`, `tests/README.md` |
 
 Lines no longer needed in Crux Sync and Thread for this service: **13 lexical Crux Sync or Thread references** leave the service (10 in `reboot.c`, 3 in `reboot_sleep.c`), against 9 `k_*` references in the new files. **Provider lines freed: 0.** The Linux Sync and Thread providers, the Zephyr ones (241 lines) and the common ones (546) are all still used by 10 other services, so none can go until the last of them moves.
 
