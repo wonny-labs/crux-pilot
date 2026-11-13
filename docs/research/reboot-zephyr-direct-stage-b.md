@@ -1,6 +1,6 @@
 # Reboot pilot, Stage B: the reboot service on Zephyr kernel objects
 
-Part of the P9 evidence of [ADR-0002](../decisions/0002-platform-direction-zephyr-execution-crux-services.md) (keep a slim Sync/Thread shim, O4, or move services to Zephyr-direct, O2). [Stage A](reboot-native-sim-stage-a.md) ran the 54 existing `reboot` cases on `native_sim/native/64` over the unchanged Crux Thread and Sync providers. Stage B swaps the service to `k_mutex`, `k_sem`, `k_thread` and `k_msleep` and runs the same suites again. **This is a Draft PR that is not merged before the owner decides P9.**
+Part of the P9 evidence of [ADR-0002](../decisions/0002-platform-direction-zephyr-execution-crux-services.md) (keep a slim Sync/Thread shim, O4, or move services to Zephyr-direct, O2). [Stage A](reboot-native-sim-stage-a.md) ran the existing `reboot` cases on `native_sim/native/64` over the unchanged Crux Thread and Sync providers (54 cases at its first head, 79 after its review fixes added the three `Web.reboot_*` route suites, which this branch has merged: see M4). Stage B swaps the service to `k_mutex`, `k_sem`, `k_thread` and `k_msleep` and runs the same suites again. **This is a Draft PR that is not merged before the owner decides P9.**
 
 **Labels.** *Measured (local)* = measured by the author in one native arm64 `ubuntu:24.04` container (Docker VM with 8 CPUs, `ZEPHYR_TOOLCHAIN_VARIANT=host`, gcc 13.3, clang-18 for the Host build, Zephyr **4.4.0**; the repository pins 4.4.2, so `CruxZephyrBaseline` warns that its evidence does not apply to this build). *Inference* = my reading, labelled each time. *CI* = the GitHub Actions run of this PR, which is **not in this file** and must be added from that run. Nothing here is a physical-board result and nothing ran on RT1060.
 
@@ -24,7 +24,7 @@ Part of the P9 evidence of [ADR-0002](../decisions/0002-platform-direction-zephy
 ## Assumptions the owner has not approved
 
 - **D-A:** the Zephyr-direct code lives under `components/reboot/ports/zephyr/` and the service is Zephyr only.
-- **D-C, not applied as written.** A fake `crux_reboot_*` for `tests/web/reboot` would have to re-implement the state machine to keep 65 `CHECK`s unchanged: the route suites call `crux_reboot_work_once()`, read the order of steps, the policy calls, the reset calls and the events, and fail the service's own lock for `503 busy`. I did not write it. The real core builds on the Host over a 181-line kernel stub (`tests/reboot/host_kernel`) and the route suites run on it with their sources unchanged. The stub is a test-only pthread stand-in, not a Crux interface. Whether to keep it, or to write the fake, or to move the route suites to `native_sim` is the owner's choice (D-C stays open).
+- **D-C, not applied as written.** A fake `crux_reboot_*` for `tests/web/reboot` would have to re-implement the state machine to keep 65 `CHECK`s unchanged: the route suites call `crux_reboot_work_once()`, read the order of steps, the policy calls, the reset calls and the events, and fail the service's own lock for `503 busy`. I did not write it. Two things made it unnecessary. The real core builds on the Host over a 181-line kernel stub (`tests/reboot/host_kernel`), and the route suites run on it with their sources unchanged. And Stage A's review fixes run the same route suites on `native_sim` (the `web` and `web_no_service` images), which with this branch's bridge pass over the Zephyr-direct service as well: so D-C's alternative, "move those suites to `native_sim`", works. The stub is a test-only pthread stand-in, not a Crux interface, and it is only needed to keep `Reboot.*` and `Web.reboot_*` on the Host. Whether to keep it, to write the fake, or to drop Host coverage of this service is the owner's choice (D-C stays open).
 - The worker's own stack is a dedicated one (`CONFIG_CRUX_REBOOT_WORKER_STACK_SIZE`, default 4096, the default of `CRUX_THREAD_STACK_BYTES`), not a slot of the Crux Thread pool.
 
 ## M1 effort (measured, agent wall clock; no human hours)
@@ -43,7 +43,7 @@ From `git reflog`, UTC, 13 November: branch created 22:06; merge of main (#396) 
 
 ## M2 turnaround (measured, local)
 
-`scripts/test-reboot-native.sh` as a whole (four image builds and 54 case runs, ASan + UBSan), 5 runs each, Stage A (`cb0fda6f`) and Stage B alternating in the same container.
+**Round 1, before Stage A's review fixes (54 cases, four images).** `scripts/test-reboot-native.sh` as a whole (four image builds and 54 case runs, ASan + UBSan), 5 runs each, Stage A (`cb0fda6f`) and Stage B (`cf8f223b`) alternating in the same container.
 
 | Build | Cold, median (min to max) | Warm, median (min to max) |
 | --- | --- | --- |
@@ -64,6 +64,23 @@ Load. Cold batch (Stage A and B alternating): load average 2.87 at the start and
 | Like-for-like: the same suites, native over Host (86 s over 4.5 s, 50 s over 2.6 s) | **about 19** | **about 19** |
 | The whole preset (137 s measured here) | 0.63 | 0.36 |
 | The whole preset, as Stage A recorded it (178 s local, 268 s CI run 43321893524) | 0.48 and 0.32 | 0.28 and 0.19 |
+
+**Round 2, after merging Stage A's review fixes (79 cases, six images, the route suites included).** The same method: 5 cold and 5 warm runs, alternating, of the corrected Stage A head (`4282ade9`) and this branch's merged head (`aeba4b3f`).
+
+| Build | Cold, median (min to max) | Warm, median (min to max) |
+| --- | --- | --- |
+| native_sim ASan + UBSan, **Stage A** at `4282ade9`, 79 cases | 101 s (100 to 111) | 69 s (68 to 70) |
+| native_sim ASan + UBSan, **Stage B** at `aeba4b3f`, 79 cases | 95 s (94 to 105) | 61 s (61 to 62) |
+
+Load for round 2: no other container on the VM at 23:10, 23:27 and 23:38 (`docker ps` on the host showed only mine); the load average was 1.9 at the start of the cold batch, 2.9 at its end and 1.2 at the end of the warm batch, which is my own builds. **Idle apart from the measurement itself.** Stage B is 6 % faster cold (95 against 101 s) and 12 % faster warm (61 against 69 s). The warm spread is 1 to 2 s, so the warm difference is outside the noise; the cold one (6 s) is about the spread of the Stage A runs.
+
+Ratios in round 2, with the Host set after the swap (13 entries: 4.5 s cold, 2.6 s warm, idle):
+
+| Reading | Stage B cold | Stage B warm |
+| --- | --- | --- |
+| Like-for-like: native over Host, the same suites | **about 21** (95 s over 4.5 s) | **about 23** (61 s over 2.6 s) |
+| The whole preset (137 s measured here) | 0.69 | 0.45 |
+| The whole preset as Stage A recorded it (178 s local, 268 s CI) | 0.53 and 0.35 | 0.34 and 0.23 |
 
 The like-for-like ratio measures the number of Zephyr images (four configurations of Kconfig and a kernel build, about 20 s each), not the tests: a case runs in about 0.1 s.
 
@@ -87,7 +104,7 @@ Lines no longer needed in Crux Sync and Thread for this service: **13 lexical Cr
 
 | Shim | Lines | Used for |
 | --- | --- | --- |
-| `tests/reboot/zephyr/compat/pthread.h` and `compat_pthread.c` (Stage A) | 204 | the pthread calls of `Reboot.concurrency` on `native_sim` |
+| `tests/reboot/zephyr/compat/pthread.h` and `compat_pthread.c` (Stage A, `wc -l` of the merged head) | 209 (75 + 134) | the pthread calls of `Reboot.concurrency` on `native_sim` |
 | `tests/reboot/zephyr/zephyr_case.c` (Stage A, one case for each process) | 103 | what `fork()` did on the Host |
 | `tests/reboot/fault_bridge.c` | 49 | `crux_mutex_lock` wraps to `z_impl_k_mutex_lock` |
 | `tests/reboot/host_kernel/` | 181 | the Host build of the core |
@@ -96,7 +113,7 @@ Lines no longer needed in Crux Sync and Thread for this service: **13 lexical Cr
 
 - `git diff origin/main -- components/reboot/include`: empty. `docs/reboot-service.md`: the behaviour tables and the error rows are unchanged; a note at the top says what became impossible, and four rows that named Sync, the sleep provider or the low class were reworded.
 - No existing assertion source changed: the diff of `tests/reboot/*.c`, `tests/web/reboot/*.c` and `tests/access` against Stage A plus main is empty. `CHECK(` counts of the sources: service 108, steps 135, concurrency 37, reason 8, lock_faults 25, reboot_test.c 5, pending 84, web 65.
-- `native_sim`: 54 of 54 cases pass, as at Stage A. The 54th is not the same case: the image `sleep_provider` runs 3 new ztest cases (below), not the 9 checks of `sleep_provider.c`.
+- `native_sim`: 54 of 54 cases pass before the merge of Stage A's review fixes and **79 of 79 after it** (the three route suites, 17 + 6 + 2 cases, over the Zephyr-direct service), as at Stage A. One of them is not the same case: the image `sleep_provider` runs 3 new ztest cases (below), not the 9 checks of `sleep_provider.c`.
 - Host, after the swap: `Reboot.service`, `steps`, `concurrency`, `reason`, `lock_faults`, `pending`, `nodiscard`, `Web.reboot_routes`, `no_service`, `openapi` and `ManagementProviders.events` all pass (ASan + UBSan, clang-18); the whole preset passes, 317 of 317. `Reboot.sleep_provider` no longer exists as a ctest entry.
 - **What became impossible, the one place that needs an owner decision.** `tests/reboot/sleep_provider.c` has 9 `CHECK`s in 1 case. It wraps `crux_semaphore_take()` to give a take's answers (timeout, `ERR_IO`, `ERR_INVALID_ARGUMENT`, `ERR_INVALID_STATE`, `OK`) to the old provider and expects false for all but the timeout. The new port is `k_msleep()` and has no take, so none of the nine can run. I did not delete or edit the file; it is built nowhere. The new image holds three cases in their place (it sleeps the time asked in simulated time; a sleep that `k_wakeup()` ended early says false; the worker runs at the Kconfig priority, which is 6). The pilot report said that no test asserts a create-failure path, and that is true of the service: no `crux_*_create` wrap exists in `tests/reboot` or `tests/web/reboot`. It did not foresee this suite, which asserts the provider's reading of the take's failures. **Decision for the owner:** delete the file, or keep it as a record of the Crux provider's contract, or implement the port on a never-given `k_sem` so that the nine checks survive behind a second bridge for `z_impl_k_sem_take` (about 20 lines; I did not do it because the brief names `k_msleep`).
 
@@ -111,6 +128,7 @@ Lines no longer needed in Crux Sync and Thread for this service: **13 lexical Cr
 | `crux_mutex_lock`, the service's lock (`lock_faults`, 4 cases; waits of 20 ms and 1000 ms and the Nth wait) | 4 of 4 | **4 of 4**, through `z_impl_k_mutex_lock` told by the lock's address (`CRUX_REBOOT_TESTING` exposes it) |
 | `crux_mutex_lock`, the other services' locks (`pending`, 9 cases, wait of 20 ms) | 9 of 9 | **9 of 9**; the bridge is linked too, so the service's own 20 ms waits are hit as at Stage A |
 | `crux_semaphore_take`, the sleep provider's take (`sleep_provider`, 9 checks) | passes | **cannot run** (M4) |
+| `crux_mutex_lock`, the service's lock for the answer `503 busy` (`web` image, `reboot_web.c`) | passes | passes, through the same bridge |
 | Fake-sleep failures in `steps` (the port seam) | pass | pass |
 
 Cases that needed the pointer-discriminated wrap: all of `lock_faults` and the 20 ms waits of `pending` that reach the service's lock. **Negative control:** with the `--wrap=z_impl_k_mutex_lock` link option removed from the `lock_faults` image, all 4 cases fail, so the bridge is what holds the cases. The bridge wraps one kernel function and creates one proxy Crux mutex so that the suite's wrapper can answer for a handle; passed-through waits take the proxy and release it at once. It exists because the suites could not be changed, and a suite written for Zephyr would wrap `z_impl_k_mutex_lock` directly.
@@ -159,7 +177,7 @@ Range. **(a) From the measured agent time:** the first green run took 0.3 h for 
 | Criterion | Verdict | Evidence |
 | --- | --- | --- |
 | M4 identical: no public change, no deleted assertion | **FAIL, narrowly** | Public header diff empty, no assertion source changed or deleted. But the 9 checks of `sleep_provider.c` are no longer run, which is a deleted assertion in effect. If the owner takes the third option under M4 (a `k_sem_take`-based port and a second bridge) this row passes |
-| M2 ratio of 2 or less to `host-sanitize` | **FAIL like-for-like (about 19); PASS against the whole preset (0.36 to 0.63, and 0.19 to 0.48 against Stage A's figures)** | M2. Which denominator D-D means is the owner's to say |
+| M2 ratio of 2 or less to `host-sanitize` | **FAIL like-for-like (about 19 to 23); PASS against the whole preset (0.36 to 0.69 with my 137 s, 0.19 to 0.53 with Stage A's 178 s and 268 s)** | M2. Which denominator D-D means is the owner's to say |
 | M5 passes | **PASS** | 100 of 100, 200 of 200 |
 | M6: every wrapped fault case reproducible on `native_sim` | **FAIL, narrowly** | 13 of 13 mutex-wrapped cases pass; the 9 checks of the semaphore-take wrap cannot exist. Same item as M4 |
 | Effort extrapolates within 4 person-weeks for the other 11 services | **Not decidable here; PASS on agent hours (4 to 19 h), FAIL on the report's person estimate (6.8 to 11 person-weeks); my judgement 1 to 4 person-weeks** | Extrapolation |
@@ -170,14 +188,14 @@ Range. **(a) From the measured agent time:** the first green run took 0.3 h for 
 | Criterion | Verdict | Evidence |
 | --- | --- | --- |
 | Stage A fails its gate | no | Stage A passed its gate (its independent review asked for a corrected record, which the Stage A session is writing) |
-| M2 ratio above 2 | **yes, like-for-like (about 19); no, whole preset** | M2 |
-| A test-only kernel shim larger than the Linux Sync and Thread providers (302 lines) | **no on one environment, yes counting everything** | `native_sim`: 204 (pthread) + 49 (bridge) = 253. Host: 181 + 49 = 230. Both environments with the per-case harness: 204 + 103 + 49 + 181 = 537 (Stage A's reading, 307 with the harness, is already above 302). The shim of Stage A is not a Zephyr provider; the stub and the bridge are |
+| M2 ratio above 2 | **yes, like-for-like (about 19 to 23); no, whole preset** | M2, rounds 1 and 2 |
+| A test-only kernel shim larger than the Linux Sync and Thread providers (302 lines) | **no on one environment, yes counting everything** | `native_sim`: 209 (pthread) + 49 (bridge) = 258. Host: 181 + 49 = 230. Both environments with the per-case harness: 209 + 103 + 49 + 181 = 542 (Stage A's reading, 312 with the harness, is already above 302). The shim of Stage A is not a Zephyr provider; the stub and the bridge are |
 | M5 flakes | no | |
 | The owner refuses B1's exemption and wants Host coverage of services | not asked | the Host stub keeps coverage at the stated cost |
 
 **Inconclusive** (Stage A passes, Stage B passes, but B4 is open): applies to the whole-preset reading of M2.
 
-**Conclusion by D-D as written (inference from the table).** O2 is **not** chosen under either reading: M4 and M6 each fail on one suite, and the blockers have no owner answer. O4 is chosen under the like-for-like reading of M2, and the result is "inconclusive, run a second pilot on `config_service` or `mgmt_status` for B4" under the whole-preset reading. The swap itself is not what decides it: the service changed by 47 and 31 lines, no suite but one lost a case, and the `native_sim` suites were as quick and as stable as on Stage A. What decides it is that **the Host and native_sim runs need three pieces of test machinery (a 49-line fault bridge, a 181-line Host stub, a placement check) that O4 does not, one suite has no equivalent, and the measured ratio of the like-for-like reading is about 19**.
+**Conclusion by D-D as written (inference from the table).** O2 is **not** chosen under either reading: M4 and M6 each fail on one suite, and the blockers have no owner answer. O4 is chosen under the like-for-like reading of M2, and the result is "inconclusive, run a second pilot on `config_service` or `mgmt_status` for B4" under the whole-preset reading. The swap itself is not what decides it: the service changed by 47 and 31 lines, no suite but one lost a case, and the `native_sim` suites were as quick and as stable as on Stage A. What decides it is that **the Host and native_sim runs need three pieces of test machinery (a 49-line fault bridge, a 181-line Host stub, a placement check) that O4 does not, one suite has no equivalent, and the measured ratio of the like-for-like reading is about 19 to 23**.
 
 ## Limits
 
@@ -189,4 +207,4 @@ Range. **(a) From the measured agent time:** the first green run took 0.3 h for 
 - `scripts/test-reboot.sh` (protected) was not changed and was not run: its target list still exists after the swap. Its clang-tidy line also lists `components/reboot/src/*.c`, which no longer holds the core. `clang-tidy-18` on the new core, the bridge and the stub, run by me with the Host compile database, reports no finding after two fixes of the stub (`NOLINT` and `_GNU_SOURCE`).
 - The placement table of `components/service_priority` still has an entry for the reboot worker (`CRUX_SERVICE_THREAD_REBOOT_WORKER`), now unused, because removing it would change the assertions of `tests/service_priority/zephyr`. A product with the default sees no difference.
 - Three cases of `tests/service_priority/test_check_placement.py` were retargeted from the reboot worker to the network settings and web session workers, with the same defect injected; one case was added for the Zephyr-direct worker. No case was removed.
-- Stage A's fixes after review (#398, the three `Web.reboot_*` route suites on `native_sim`) are not in this branch yet. They are additive to it; a merge is expected to conflict in `tests/reboot/zephyr/CMakeLists.txt` and `scripts/test-reboot-native.sh`.
+- Stage A's review fixes (branch `claude/pilot-reboot-native-sim-5cd9d1` at `4282ade9`) are merged into this branch, without a rebase. The merge conflicted once, in `tests/reboot/zephyr/CMakeLists.txt` (their web images and my bridge), and I resolved it by keeping both; the `web` images link the bridge too. `scripts/test-reboot-native.sh` in this branch is theirs, unchanged by Stage B. If they push further fixes, merge them additively again.
