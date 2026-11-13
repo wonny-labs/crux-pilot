@@ -272,7 +272,14 @@ Limits:
   on ARMv6-M. There is no CPU-count, meta-IRQ or scheduler assumption and no scheduler
   or interrupt lock. A compare-and-swap loop runs again only after another thread
   changed the same word or, on load-linked/store-conditional processors, after a
-  spurious failure; no Sync call waits for another.
+  spurious failure. Sync's own admission and bookkeeping therefore never wait on a
+  lock, and no Sync call waits for Sync state held by another. This does not make
+  every call non-waiting. Mutex lock and semaphore take wait for the native resource
+  up to their timeout, and the native objects keep their own locks. On Host, a
+  semaphore give waits for that semaphore's internal lock, and a finite take waits
+  for it too; a poll only tries it and returns busy. On Zephyr, the kernel's
+  semaphore and mutex calls take the kernel's own brief internal locking, which
+  Sync neither adds to nor bounds.
 - Destroy no longer waits for an operation in progress. It returns busy while another
   thread's call on the same object has not returned, including a give or unlock that
   has already woken the destroying thread: on Zephyr a higher-priority waiter runs
