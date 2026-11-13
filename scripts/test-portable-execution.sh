@@ -48,6 +48,7 @@ unset ZEPHYR_EXTRA_MODULES EXTRA_ZEPHYR_MODULES
     -T "$repo/tests/portable_execution/zephyr" -T "$repo/tests/execution_runtime/zephyr" \
     -T "$repo/tests/thread_sync_consumer/zephyr" \
     -T "$repo/tests/thread/zephyr" -T "$repo/tests/sync/zephyr" \
+    -T "$repo/tests/service_priority/zephyr" \
     -O "$repo/build/zephyr/twister-portable-execution" --inline-logs)
 for consumer in portable_execution execution_runtime; do
     out="$repo/build/zephyr/$consumer-evkb"
