@@ -58,8 +58,12 @@ mkdir -p "$(dirname "$out")"
 export ASAN_OPTIONS=detect_leaks=0
 export UBSAN_OPTIONS=log_path=stdout:halt_on_error=1
 
-# Image, then the suites that it holds. The suite names are those of the tests/reboot sources.
-images=(core:service,steps,concurrency,reason lock_faults:lock_faults pending:pending sleep_provider:)
+# Image, then the suites that it holds. The suite names are those of the sources in tests/reboot and
+# tests/web/reboot.
+images=(core:service,steps,concurrency,reason lock_faults:lock_faults pending:pending
+    web:routes,openapi_fixture web_no_service:no_service sleep_provider:)
+records="$out-openapi-records.log"
+: >"$records"
 total=0
 failed=0
 started=$SECONDS
@@ -78,7 +82,7 @@ for entry in "${images[@]}"; do
     if [[ "$image" == sleep_provider ]]; then
         # One case, and no service state to isolate.
         total=$((total + 1))
-        if ! "$exe" >"$out-$image.log" 2>&1 || ! grep -q 'PROJECT EXECUTION SUCCESSFUL' "$out-$image.log"; then
+        if ! timeout 240 "$exe" >"$out-$image.log" 2>&1 || ! grep -q 'PROJECT EXECUTION SUCCESSFUL' "$out-$image.log"; then
             failed=$((failed + 1))
             cat "$out-$image.log"
         fi
@@ -87,25 +91,37 @@ for entry in "${images[@]}"; do
     IFS=, read -ra suite_list <<<"$suites"
     for suite in "${suite_list[@]}"; do
         filter="reboot_${suite}::test_run"
-        listed="$("$exe" -test="$filter" -reboot-list 2>&1 | sed -n 's/^SUITE .* CASES \([0-9]*\)$/\1/p')"
-        host_cases="$(grep -cE '(reboot|net)_run_case\(' "$repo/tests/reboot/$suite.c")"
+        source_file="$repo/tests/reboot/$suite.c"
+        [[ -f "$source_file" ]] || source_file="$repo/tests/web/reboot/$suite.c"
+        listing="$(timeout 240 "$exe" -test="$filter" -reboot-list 2>&1 || true)"
+        listed="$(sed -n 's/^SUITE .* CASES \([0-9]*\)$/\1/p' <<<"$listing")"
+        host_cases="$(grep -cE '(reboot|net)_run_case\(' "$source_file")"
         if [[ -z "$listed" || "$listed" != "$host_cases" ]]; then
+            printf '%s\n' "$listing" >&2
             printf 'Reboot native: suite %s lists %s cases, the Host source runs %s.\n' \
                 "$suite" "${listed:-none}" "$host_cases" >&2
             exit 1
         fi
         for ((index = 0; index < listed; ++index)); do
             total=$((total + 1))
-            if ! "$exe" -test="$filter" -reboot-case="$index" >"$out-case.log" 2>&1 ||
+            # ctest gives a Host suite 240 s (60 s for Reboot.sleep_provider and Web.reboot_no_service),
+            # so a case gets 240 s here. A hang must not stall the CI job.
+            if ! timeout 240 "$exe" -test="$filter" -reboot-case="$index" >"$out-case.log" 2>&1 ||
                ! grep -q 'PROJECT EXECUTION SUCCESSFUL' "$out-case.log"; then
                 failed=$((failed + 1))
                 printf 'FAILED: %s case %d\n' "$suite" "$index"
                 cat "$out-case.log"
             fi
+            [[ "$suite" != openapi_fixture ]] || cat "$out-case.log" >>"$records"
         done
         printf 'suite %s: %d cases\n' "$suite" "$listed"
     done
 done
+# Web.reboot_openapi: the Host's checker, on the RECORD lines that the fixture's cases printed here.
+printf '#!/bin/sh\ncat "%s"\n' "$records" >"$out-openapi-fixture.sh"
+chmod +x "$out-openapi-fixture.sh"
+python3 "$repo/tests/web/reboot/check_openapi_reboot.py" --fixture "$out-openapi-fixture.sh" --root "$repo" ||
+    failed=$((failed + 1))
 printf 'Reboot native (%s, native_sim/native/64): %d cases, %d failed, %d s.\n' \
     "$variant" "$total" "$failed" $((SECONDS - started))
 [[ "$failed" == 0 ]]
