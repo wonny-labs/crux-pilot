@@ -824,7 +824,10 @@ authority lock and monotonic clock. Its realtime provider is Time's controlled `
 `crux_security_event_fake` is a recording fake of the public contract for the Host tests of a consumer, and one suite runs on both
 it and the core. These exist only when Crux builds its own tests. `scripts/test-security-event.sh` also runs them under the
 sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/check-security-event-boundary.py`, which builds
-`tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
+`tests/security_event_consumer` in both directions. None of these suites runs on Zephyr or a target. The security events
+run on `native_sim` in the Ztest `tests/native/management_composition` and in the image `tests/native/management_services`, which
+`driver.py` drives, both through `scripts/test-native-composition.sh mbed|wolf`: see
+[Management composition on `native_sim`](#management-composition-on-native_sim). Nothing here ran on a target. See the
 [Security event contract](../docs/security-event-contract.md).
 
 ## TLS certificate
@@ -837,7 +840,11 @@ under the sanitizer preset and runs clang-tidy. Where CMake finds OpenSSL's head
 holds the parser to OpenSSL's decoder on 300,000 seeded mutations. `TlsCertificate.boundary_*` configure a separate
 project to show that a consumer reaching the adapter is refused. `scripts/test-tls-certificate.sh psa` builds `tests/tls_certificate/psa`
 on TF-PSA-Crypto and checks a real key's certificate, request and PKCS #8 key with OpenSSL, including a TLS 1.3
-handshake; CI does not run it. Nothing here registers the material with Zephyr or runs on `native_sim` or a target. See
+handshake; CI does not run it. None of these suites registers the material with Zephyr, runs on `native_sim` or runs on a
+target. The module itself runs on `native_sim` in the image `tests/native/management_services`, which `driver.py` drives through
+`scripts/test-native-composition.sh mbed|wolf`: a certificate generated at first boot and loaded at the second with the same
+fingerprint, while the listener there still serves the declared test certificate. See
+[Management composition on `native_sim`](#management-composition-on-native_sim). Nothing here ran on a target. See
 the [TLS certificate design](../docs/tls-certificate.md).
 
 ## Web frontend
