@@ -92,7 +92,7 @@ int main(void)
 
     expect_polls_give(CRUX_CONFIG_SERVICE_OK);
 
-    /* Held or contended Sync metadata reads as busy on a poll, and a save's timeout does too. */
+    /* A held service lock reads as busy on a poll, and a save's timeout does too. */
     lock_result = CRUX_ERR_BUSY;
     expect_polls_give(CRUX_CONFIG_SERVICE_ERR_BUSY);
     expect_saves_give(CRUX_CONFIG_SERVICE_ERR_BUSY);
