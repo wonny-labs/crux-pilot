@@ -69,7 +69,7 @@ typedef enum {
     CRUX_CONFIG_SERVICE_ERR_NOT_FOUND = -5, /**< Missing, or a parameter the session may not see. */
     CRUX_CONFIG_SERVICE_ERR_WRITE_ONLY = -6, /**< Sensitive, so never readable. */
     CRUX_CONFIG_SERVICE_ERR_REJECTED = -7,   /**< Validator or character rule. Old value kept. */
-    CRUX_CONFIG_SERVICE_ERR_BUSY = -8,       /**< The lock or Sync metadata is held. Retry later. */
+    CRUX_CONFIG_SERVICE_ERR_BUSY = -8,       /**< The service lock is held. Retry later. */
     CRUX_CONFIG_SERVICE_ERR_STORE = -9,      /**< A save failed. See the report. */
     CRUX_CONFIG_SERVICE_ERR_TOO_SMALL = -10  /**< CRUX_CONFIG_SERVICE_TEXT_SIZE is always enough. */
 } crux_config_service_result_t;

@@ -13,10 +13,9 @@
 #define CRUX_SYNC_SEMAPHORE_COUNT 8
 #endif
 
+/* Common code keeps slot metadata with atomics and calls the native functions below without
+ * holding any lock of its own. Providers keep only per-object native state. */
 bool crux_sync_context_allowed(void);
-void sync_native_metadata_lock(void);
-crux_status_t sync_native_metadata_lock_until(const sync_native_deadline_t *deadline);
-void sync_native_metadata_unlock(void);
 crux_status_t crux_sync_make_deadline(uint32_t timeout_ms, sync_native_deadline_t *out);
 sync_native_identity_t crux_sync_current_identity(void);
 bool crux_sync_identity_equal(sync_native_identity_t first, sync_native_identity_t second);

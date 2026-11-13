@@ -11,6 +11,7 @@ target_include_directories(app PRIVATE ../../../components/thread/src ../../../c
     ../../../components/sync/src ../../../components/sync/ports/zephyr)
 # app is a static library; propagate test-only wrappers to the final image link.
 target_link_options(app PUBLIC -Wl,--wrap=crux_thread_impl_join
-    -Wl,--wrap=crux_mutex_impl_lock -Wl,--wrap=crux_semaphore_impl_take)
+    -Wl,--wrap=crux_mutex_impl_lock -Wl,--wrap=crux_semaphore_impl_take
+    -Wl,--wrap=crux_semaphore_impl_create)
 target_link_libraries(app PRIVATE crux_execution_cases crux::thread crux::sync)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)

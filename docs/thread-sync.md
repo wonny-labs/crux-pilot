@@ -22,7 +22,8 @@ For application/composition responsibilities, see the [architecture](architectur
   without native headers/types. Consumers link `crux::thread` and/or `crux::sync`.
   Final composition selects each native implementation independently. Sync uses
   native OS identity and does not depend on Crux Thread. Each component owns its
-  resource metadata, lock and deadline helpers; neither accesses the other's state.
+  resource metadata, its protection (a lock in Thread, atomics in Sync) and deadline
+  helpers; neither accesses the other's state.
   Providers own native objects, stacks, configuration and private headers.
   Thread additionally depends on Time for typed monotonic observation/deadlines;
   Time does not depend on Thread or Sync, and monotonic use requires no RTC/init.
@@ -45,9 +46,10 @@ For application/composition responsibilities, see the [architecture](architectur
   native failure returns the existing I/O error. Native errno stays private.
 - Callers must stop publishing handles before destroy; no new operation may begin
   concurrently with destruction. Providers atomically validate generation and admit
-  each operation under private metadata protection, retaining an operation reference
-  until native access is complete. Destroy returns busy for existing admitted users,
-  waiters or held mutexes. It cannot recycle a slot between validation and access.
+  each operation, retaining an operation reference until native access is complete:
+  Thread under private metadata protection, Sync with one atomic update of the slot
+  ([Sync slot metadata](#sync-slot-metadata)). Destroy returns busy for existing
+  admitted users, waiters or held mutexes. It cannot recycle a slot between validation and access.
   Concurrent join admission returns busy. This is not automatic cancellation or
   permission for callers to race fresh admissions against destruction.
 
@@ -141,8 +143,10 @@ lifetime rules remain separate.
   `crux_mutex_unlock`, `crux_mutex_destroy`. Nonrecursive, owner-only unlock.
   Self-lock/wrong-owner unlock are invalid-state errors; destroy of a held or
   referenced mutex returns busy. No robust owner-death recovery or fairness promise.
-- Zephyr uses native priority inheritance with its nested-lock limitations; Host
-  validates functional exclusion and ownership. Portable priority inheritance or
+- Zephyr uses native priority inheritance with its nested-lock limitations; Sync holds
+  no kernel mutex of its own around the native calls, so a holder's priority follows
+  the native mutex alone. Host validates functional exclusion and ownership.
+  Portable priority inheritance or
   bounded inversion is not guaranteed. Nested-lock scheduling qualification is out
   of scope; consumers must define a consistent lock order.
 - Semaphore operations: `crux_semaphore_create(initial, maximum)`,
@@ -170,6 +174,8 @@ lifetime rules remain separate.
   and private bookkeeping before releasing provider metadata, so they never block on
   a second metadata acquisition after changing resource state. A finite wait uses one
   original monotonic deadline for metadata admission and the native resource wait.
+  Sync has no metadata lock: its admission never waits, and only the Host semaphore's
+  internal lock can make a Sync poll return busy while a token is available.
   Availability racing expiry may produce success or timeout, without duplicated/lost
   ownership or tokens. Error/output rules must be uniform across providers.
 - The timeout bounds metadata admission and the requested resource wait. Scheduler
@@ -180,6 +186,60 @@ lifetime rules remain separate.
   callback contexts that forbid blocking are unsupported. Zephyr rejects ISR entry
   before calling blocking native primitives. Host asynchronous-signal use is a
   caller precondition, not a claim of detectable signal context.
+
+## Sync slot metadata
+
+Sync keeps its slot metadata with atomics and has no metadata lock. It used to take one
+private kernel mutex in every call, and `crux_mutex_unlock` released the native mutex
+inside it. On Zephyr, releasing that metadata mutex restored the priority saved when it
+was taken, so a holder kept an inherited priority after unlock.
+[Draft PR #174](https://github.com/wonny-labs/crux-pilot/pull/174) locked the scheduler
+instead; the owner chose on 13 November 2026 to remove the lock (decision P6
+of the platform direction review), with the pools unchanged.
+
+- Each slot has one 32-bit atomic state word: the number of admitted operations
+  (14 bits), a mutex's held flag, a live flag and the low 16 bits of the generation.
+  The full generation is a separate atomic, written only while the slot is claimed.
+- Admission is one compare-and-swap that requires the live flag and the handle's
+  generation bits and adds a reference; the full generation is then compared under that
+  reference. Create claims a free slot with one compare-and-swap. Destroy succeeds only
+  by exchanging "live, its own reference only, not held" for claimed, so it still
+  returns busy for admitted users, waiters and held mutexes. A slot whose generation
+  reaches `UINT32_MAX` retires after that lifetime.
+- A mutex owner stores its native identity after the native lock and clears the held
+  flag before the native unlock. Once the native unlock hands the mutex over, the old
+  owner writes nothing in the slot except its reference release. Self-lock and
+  wrong-owner checks compare the caller with the stored identity.
+- No Sync lock is held while a native object is locked, unlocked, given or taken, so
+  Sync adds nothing to native priority inheritance. On Zephyr, `k_sem_give` at the limit
+  drops a token silently; a semaphore therefore keeps an atomic token count that a give
+  reserves before `k_sem_give` and a take releases after `k_sem_take`. A give can report
+  full while a take that has consumed a token has not yet returned.
+
+Limits:
+
+- Lock-free 32-bit and identity-sized atomics are required (a pointer on Zephyr,
+  `unsigned long` for glibc `pthread_t`); the build fails without them, for example
+  on ARMv6-M. There is no CPU-count, meta-IRQ or scheduler assumption and no scheduler
+  or interrupt lock. A compare-and-swap loop runs again only after another thread
+  changed the same word or, on load-linked/store-conditional processors, after a
+  spurious failure; no Sync call waits for another.
+- Destroy no longer waits for an operation in progress. It returns busy while another
+  thread's call on the same object has not returned, including a give or unlock that
+  has already woken the destroying thread: on Zephyr a higher-priority waiter runs
+  before the signaller's call returns. Join the signalling thread first, or retry on
+  busy. With the old metadata mutex, "signal, then the woken waiter destroys" succeeded.
+- At most 16383 operations can be admitted on one object at a time; another returns
+  no-resources, and destroy returns busy.
+- Create checks the slots one at a time. While other threads create and destroy
+  objects of the same kind, it can return no-resources although some slot was free at
+  a moment during the call.
+- A stale handle can briefly hold a reference to a later lifetime of its slot only if
+  that slot is recreated a multiple of 65536 times during the call; a destroy of that
+  lifetime at that moment returns busy.
+- Thread context only, as before; ISR rules are unchanged.
+- Out of scope: Zephyr's nested-lock limitation, and other components whose own kernel
+  mutex is taken while the caller holds a Crux mutex.
 
 ## Build selection and provider limits
 
@@ -201,8 +261,9 @@ The [source-tree integration contract](build.md#external-linux-application-using
 covers selected Linux Host consumers, not an installable SDK or arbitrary toolchains.
 
 The timeout contract above applies to `join`, `mutex_lock` and `semaphore_take`.
-Create, unlock, give and destroy take no timeout; they can acquire internal
-metadata locks and do not carry the finite-wait or nonblocking-poll guarantee.
+Create, unlock, give and destroy take no timeout and do not carry the finite-wait or
+nonblocking-poll guarantee. Thread create can wait for Thread metadata. Sync calls take
+no Sync lock; the Host semaphore's give waits for that semaphore's internal lock.
 The Linux Host port is development/test support, not a qualified production Linux
 variant. Zephyr cross-builds do not establish physical board behavior.
 
@@ -225,7 +286,7 @@ variant. Zephyr cross-builds do not establish physical board behavior.
   timeout ownership failure on its Zephyr revision. Those observations are about
   that recorded pin, not a claim about all POSIX or current upstream Zephyr.
 - **Separate component ownership.** Thread and Sync have independent native state,
-  metadata protection and deadline helpers. Small private duplication avoids a
+  metadata (Thread under a lock, Sync with atomics) and deadline helpers. Small private duplication avoids a
   shared provider dependency; Sync relies on native identity, not a Crux worker.
 
 The [archived decision and approval record](history/execution-contract-proposal.md)

@@ -2,37 +2,16 @@
 #include "sync_internal.h"
 #include <errno.h>
 #include <limits.h>
+#include <stdatomic.h>
 
-K_MUTEX_DEFINE(sync_metadata);
+/* Common code keeps the mutex owner, and this port the semaphore token count, in C11 atomics
+ * rather than Zephyr atomic_t, whose C fallback takes a global spinlock. */
+BUILD_ASSERT(ATOMIC_POINTER_LOCK_FREE == 2 && ATOMIC_INT_LOCK_FREE == 2,
+             "Sync needs lock-free pointer and int atomics");
 
 bool crux_sync_context_allowed(void)
 {
     return !crux_is_in_isr();
-}
-
-void sync_native_metadata_lock(void)
-{
-    (void)k_mutex_lock(&sync_metadata, K_FOREVER);
-}
-
-crux_status_t sync_native_metadata_lock_until(const sync_native_deadline_t *deadline)
-{
-    int result = k_mutex_lock(&sync_metadata, deadline->timeout);
-    if (result == 0) {
-        return CRUX_OK;
-    }
-    if (result == -EAGAIN) {
-        return CRUX_ERR_TIMEOUT;
-    }
-    if (result == -EBUSY) {
-        return CRUX_ERR_BUSY;
-    }
-    return CRUX_ERR_IO;
-}
-
-void sync_native_metadata_unlock(void)
-{
-    (void)k_mutex_unlock(&sync_metadata);
 }
 
 crux_status_t crux_sync_make_deadline(uint32_t timeout_ms, sync_native_deadline_t *out)
@@ -107,21 +86,35 @@ crux_status_t crux_semaphore_impl_create(sync_native_semaphore_t *semaphore, uin
                                          uint32_t maximum)
 {
     semaphore->maximum = maximum;
+    atomic_store(&semaphore->tokens, initial);
     return k_sem_init(&semaphore->object, initial, maximum) == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
 
 crux_status_t crux_semaphore_impl_take(sync_native_semaphore_t *semaphore,
                                        const sync_native_deadline_t *deadline)
 {
-    return native_wait_result(k_sem_take(&semaphore->object, deadline->timeout));
+    int result = k_sem_take(&semaphore->object, deadline->timeout);
+    if (result == 0) {
+        (void)atomic_fetch_sub(&semaphore->tokens, 1U);
+    }
+    return native_wait_result(result);
 }
 
+/*
+ * k_sem_give() at the limit drops the token silently, and nothing serialises givers. A give
+ * therefore reserves its token in the counter before k_sem_give(), and a take removes its token
+ * after k_sem_take(). The counter never exceeds the maximum and is at least the kernel count
+ * plus the reserved gives, so the kernel count is below its limit whenever k_sem_give() runs.
+ * A give can report full while a take that has already consumed a token has not yet returned.
+ */
 crux_status_t crux_semaphore_impl_give(sync_native_semaphore_t *semaphore)
 {
-    /* Common metadata protection serialises all givers. Takes can only reduce count. */
-    if (k_sem_count_get(&semaphore->object) == semaphore->maximum) {
-        return CRUX_ERR_BUSY;
-    }
+    unsigned int tokens = atomic_load(&semaphore->tokens);
+    do {
+        if (tokens >= semaphore->maximum) {
+            return CRUX_ERR_BUSY;
+        }
+    } while (!atomic_compare_exchange_weak(&semaphore->tokens, &tokens, tokens + 1U));
     k_sem_give(&semaphore->object);
     return CRUX_OK;
 }

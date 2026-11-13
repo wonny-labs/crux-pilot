@@ -247,7 +247,13 @@ component; portable C/C++ translation units cannot see the opposite public heade
 private headers. Final ELF symbol and compile-command checks reject the unselected
 provider. Sync-only ownership is exercised from a native OS-created worker.
 The full `scripts/test-portable-execution.sh` also runs Zephyr `native_sim` and EVKB
-cross-builds for the combined and two standalone component configurations. Common conformance and Host failure/poll regressions run in the standard
+cross-builds for the combined and two standalone component configurations. It includes
+`tests/sync/zephyr`, which checks on `native_sim` that a mutex holder keeps and then returns
+from an inherited priority, also when a waiter times out during another Sync call, that
+wake-ups are not deferred, that a thread switch after the native unlock cannot corrupt a
+slot, that a woken thread's destroy returns busy until the give or unlock that woke it
+has returned, and that every configured mutex slot works, at the default and the largest
+pool. Common conformance and Host failure/poll regressions run in the standard
 Host debug/sanitizer checks. Private admission tests prove lifecycle races without
 adding production test hooks. See the [current Thread/Sync contract](../docs/thread-sync.md) for semantics and
 provider limits, and the [historical validation record](../docs/history/execution-validation.md)
