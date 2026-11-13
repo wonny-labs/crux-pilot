@@ -1,10 +1,15 @@
 #include <crux/sync.h>
 #include <crux/thread.h>
 #include <errno.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+
+/* The provider raises its 64 KiB stack to PTHREAD_STACK_MIN where that is larger (aarch64 glibc).
+ * On x86-64 this stays exactly 65536. */
+#define EXPECTED_STACK ((size_t)PTHREAD_STACK_MIN > 65536U ? (size_t)PTHREAD_STACK_MIN : 65536U)
 
 #define CHECK(value)                                                                               \
     do {                                                                                           \
@@ -74,7 +79,7 @@ int main(void)
     crux_thread_t thread;
     options.stack_size_bytes = 32768;
     CHECK(crux_thread_create(&options, noop, NULL, &thread) == CRUX_OK);
-    CHECK(observed_stack == 65536);
+    CHECK(observed_stack == EXPECTED_STACK);
     CHECK(crux_thread_join(&thread, 1000) == CRUX_OK);
     options.stack_size_bytes = 65537;
     CHECK(crux_thread_create(&options, noop, NULL, &thread) == CRUX_ERR_OUT_OF_RANGE);
