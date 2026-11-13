@@ -1,27 +1,44 @@
 # Platform direction review: Zephyr, Linux and the application API
 
-Status: **review and proposal**, for an independent review, an adversarial review and then the owner's decision. It decides nothing. It changes no code, check, contract, decision record or protected path. Written on 13 November 2026 against main `828021cf`.
+Status: **review and proposal**, revised after an independent review (REVISE) and an adversarial review. It is for the owner's decision. It decides nothing. It changes no code, check, contract, decision record or protected path. Written on 13 November 2026 against main `828021cf`.
 
-**Sources.** Repository facts are cited as `path:line` at `828021cf`. `crux-controller` facts are from its public `main` at `405cce47ed`. One further consumer is private: it ports a third-party real-time runtime onto Crux and is called the **runtime port** below. Only generic facts about it are used, and the ones already public are in Draft PR #174. External facts come from two research passes on other platforms and on drivers and host execution. They are given as those passes report them, with their URLs, and their *unverified* marks are kept.
+**Sources.** Repository facts are cited as `path:line` at `828021cf`. `crux-controller` facts are from its public `main` at `405cce47ed`. One further consumer is external and private: it ports a third-party real-time runtime onto Crux, and is called the **runtime port** below. Only its generic needs are stated. External facts come from two research passes, one on other platforms and one on drivers and host execution. They are given as those passes report them, with their URLs, and their *unverified* marks are kept.
 
 **Labels.** **Fact**: checked in a cited file or source. **Inference**: this review's reading. **Recommendation**: a proposal for the owner.
 
 ## 1. Summary
 
-**Recommendation: option O4, "Zephyr for execution and devices, Crux for services".**
+**Three decisions, not one.** The question "Zephyr only, or Crux APIs?" splits into three decisions:
 
-- **One rule for application code, in three questions** ([section 5.2](#52-the-developer-rule)). OS and hardware facilities go to Zephyr, called directly from the product's Zephyr code. Platform services go to Crux. Product behaviour is plain C in the domain, behind ports that the product owns, and is tested on the host.
-- **Public Crux contracts stay only where they carry policy or are adopted with consumers**: Time, Logging, File with its composition interface, Configuration, System, and Netif and the Sockets profile as they are. The twelve management services and the product composition tooling stay as they are.
-- **Thread and Sync become Crux-internal.** They are the mechanism that the services use, with a Zephyr provider and a Linux test provider. Products use Zephyr threads and locks. Crux Thread and Sync get no real-time extension: no numeric priorities, no run-time priority change, no recursive mutex.
-- **Queue and Serial leave the public surface** by the same process as I2C, SPI and GPIO (ADR-0001 D4). Products use `k_msgq` and the Zephyr UART API.
-- **Linux Host stays a test environment.** Its providers stay as test providers for Crux's own tests and for domain code that uses Crux's public contracts. Embedded Linux is not designed now. If a named product needs it, the port is made at the service boundary, not at the kernel layer.
-- **Draft PR #174 should not be merged as it is** ([section 7](#7-coexistence-in-one-image-and-what-to-do-with-174)).
+1. **What product code uses.**
+2. **What Crux's own services use inside.**
+3. **Whether Crux keeps Host providers so that domain code runs without Zephyr.** That is hypothesis H2 of ADR-0001.
 
-**What changes from [ADR-0001](../decisions/0001-application-boundary-and-api-stability.md).** No owner decision of ADR-0001 is reversed. D1 would be amended: the domain owns no thread, lock or queue. D4 would extend to Queue and Serial, and D5's Internal tier would apply to Thread and Sync. The row of Decision 3 that lists "Time, Thread, Sync, Queue, Logging, File, Configuration with Host providers" would be split into public contracts and internal mechanisms. Build B of the D10 experiment would change. The owner's statement that Crux gets no non-Zephyr port stays. The README's "longer-term goal" sentence about Embedded Linux would be reworded. Every one of these is an owner decision in [section 9](#9-owner-decisions). None is made by this document.
+The evidence settles the first decision now. It does not settle the other two.
 
-**Would Crux be unnecessary with Zephyr only?** Not because of this choice. Crux's thin kernel wrappers were never a strong reason for it to exist: the justification ADR-0001 gives them is Host execution, which it calls thin over the Zephyr kernel (`docs/decisions/0001-application-boundary-and-api-stability.md:181`). Crux's case rests on its services (H1) and its product composition tooling (H4). Both are still unproven on a board (`docs/decisions/0001-application-boundary-and-api-stability.md:344-347`). nRF Connect SDK is the precedent for a Zephyr-only platform that adds services. *Inference*: if H1 fails on hardware, Crux loses its main reason to exist, whatever happens to Thread and Sync.
+**Recommendation: a staged path.**
 
-**Owner decisions needed:** ten, P1 to P10, each with a recommendation ([section 9](#9-owner-decisions)).
+- **Now: one rule for product code, in three questions** ([section 5.3](#53-the-developer-rule)).
+  - OS and hardware facilities go to Zephyr, called directly from the product's Zephyr code.
+  - Platform services go to Crux.
+  - Product behaviour is plain C in the domain, behind ports that the product owns, and is tested on the host.
+  - The rule is the same under O2 ("Zephyr only") and O4 ("Zephyr for execution, Crux for services"). They differ only inside Crux.
+- **Now: freeze Thread, Sync, Queue and Serial for new product code.**
+  - No new features and no real-time extension. Existing users keep working.
+  - The product template's include check rejects these four headers in a product's domain.
+  - A pattern for domain state shared with Crux service callbacks goes into the template ([section 5.4](#54-domain-state-shared-with-service-callbacks)).
+  - Crux's worker priorities get one Kconfig setting per service.
+- **D10 phase 1 runs Build B as approved, plus a Build B'** with the shape of this rule: a domain without threads behind a Zephyr shell.
+- **Later: decide the deprecations, and O2 against O4 for the services' internals.** That decision waits for D10, a `native_sim` sanitizer probe and a spike of a slimmed internal Sync. Until then, the public contracts that carry policy or serve both consumers stay as they are: Time, Logging, File, Configuration and System. So do the adopted Netif and Sockets profile. None of these decides scheduling. The management services and composition tooling also stay.
+- **Draft PR #174 should not be merged as it is.** The priority defect should be fixed by slimming internal Sync, without a scheduler lock ([section 7](#7-coexistence-in-one-image-and-what-to-do-with-174)).
+
+**This is not ADR-0001 option c.** On 12 November the owner chose to measure instead of narrowing Crux at once. Option c was declined because it gives up H2 and H3 untested (`docs/decisions/0001-application-boundary-and-api-stability.md:355-357`). The staged path freezes, measures, then decides. It amends D10 by adding Build B', not by replacing Build B. The Decision 3 row "Time, Thread, Sync, Queue, Logging, File, Configuration with Host providers" stays until the later decision. The freeze narrows what new product code should use under D1. That is listed as an owner decision.
+
+**Scores.** Corrected, O2 and O4 both score 385 of 500, and defensible one-point changes do not separate them. Both lead O4a by 20 to 45 points, and O1 and O3 by 100 or more ([section 4.9](#49-scores)).
+
+**Would Crux be unnecessary with Zephyr only?** Not because of this choice. ADR-0001 justifies the thin kernel contracts by Host execution alone, and calls them thin over the Zephyr kernel (`:181`). Crux's case rests on its services (H1), which have Host and `native_sim` evidence only and no board run (`:344`), and on its product composition tooling (H4), which has one recorded check outside CI (`:347`). nRF Connect SDK is the precedent for a Zephyr-only platform that adds services.
+
+**Owner decisions needed:** P1 to P10 ([section 9](#9-owner-decisions)).
 
 ## 2. Evaluation criteria
 
@@ -29,42 +46,43 @@ Weights add up to 100. Each option gets 1 (poor) to 5 (good) on each criterion.
 
 | # | Criterion | Weight | Why this weight |
 | --- | --- | --- | --- |
-| C1 | **Developer clarity**: one rule that an application developer can apply without asking | 20 | This is the owner's first concern: mixing Crux and Zephyr without a rule (`docs/decisions/0001-application-boundary-and-api-stability.md:39`) |
-| C2 | **Evidence from real consumers**: what `crux-controller` and the runtime port actually use and bypass | 15 | The engineering approach asks for real consumers (`AGENTS.md:23`, `docs/coding-guidelines.md:29`) |
-| C3 | **Real-time fitness**: priorities, run-time changes, lock counts and priority inheritance where a real-time consumer needs them | 15 | The one demanding consumer bypasses Crux Thread and Sync on its real-time path |
-| C4 | **Test speed, and what host tests prove** | 10 | The services have Host tests, built with ASan and UBSan, and selected suites run under ThreadSanitizer (`README.md:39`). Host tests prove logic, not timing |
+| C1 | **Developer clarity**: one rule an application developer can apply without asking | 20 | The owner's first concern: mixing Crux and Zephyr without a rule (`docs/decisions/0001-application-boundary-and-api-stability.md:39`) |
+| C2 | **Evidence from real consumers**: what `crux-controller` and the runtime port use and bypass | 15 | The engineering approach asks for real consumers (`AGENTS.md:23`, `docs/coding-guidelines.md:29`) |
+| C3 | **Real-time fitness**: priorities, run-time changes, lock counts, priority inheritance, wait resolution | 15 | The runtime port uses native threads and locks for real time. Its timer wait still uses Crux Sync and Thread sleep, at millisecond steps (F10) |
+| C4 | **Tests: what runs where, how fast, and what it proves** | 10 | Services have Host tests under ASan and UBSan, and three suites under ThreadSanitizer, in CI only (F13). Host tests prove logic, not timing |
 | C5 | **Maintenance cost**: two providers for each contract, CI time | 10 | 13 components have Linux or Host ports of about the size of their Zephyr ports (F3) |
-| C6 | **Future embedded Linux** | 5 | Low: the owner decided on no non-Zephyr port for the foreseeable future (`docs/decisions/0001-application-boundary-and-api-stability.md:43`). Not zero: `README.md:5` still names it a longer-term goal |
-| C7 | **Zephyr upgrade churn**: who absorbs a baseline move | 10 | ADR-0001 rule 6 puts it in adapters (`docs/decisions/0001-application-boundary-and-api-stability.md:269`) |
-| C8 | **Risk of a least-common-denominator API** | 10 | Extending a thin layer to real-time needs grows a second kernel API, the owner's churn concern (`docs/decisions/0001-application-boundary-and-api-stability.md:40-41`) |
-| C9 | **Cost of change from today**: code, consumers, deprecations, protected paths | 5 | Low weight because nothing is tagged and most affected interfaces are Experimental, which may change in any release (`docs/decisions/0001-application-boundary-and-api-stability.md:228`) |
+| C6 | **Future embedded Linux** | 5 | Low: the owner decided on no non-Zephyr port for the time being (`:43`). Not zero: `README.md:5` names it a longer-term goal |
+| C7 | **Zephyr upgrade churn**: who absorbs a baseline move | 10 | ADR-0001 rule 6 puts it in adapters (`:269`) |
+| C8 | **Risk of a least-common-denominator API** | 10 | Extending a thin layer to real-time needs grows a second kernel API, the owner's churn concern (`:40-41`) |
+| C9 | **Cost of change from today** | 5 | Nothing is tagged, and the affected interfaces are Experimental, which may change in any release (`:228`) |
 
 ## 3. Lessons from other platforms
 
-Condensed from the two research passes. "Outcome" is a fact where a source states it. "Lesson for Crux" is inference.
+Condensed from the two research passes. In "Outcome", a statement is fact where a source states it, and inference where marked. "Lesson for Crux" is inference throughout.
 
 | Project | Abstracts | Leaves native | Backends | Outcome | Lesson for Crux |
 | --- | --- | --- | --- | --- | --- |
-| Pigweed ([pw_thread backends](https://pigweed.dev/pw_thread/backends.html), [pw_sync_zephyr](https://pigweed.googlesource.com/pigweed/pigweed/+/HEAD/pw_sync_zephyr/docs.rst), [os/zephyr.rst snapshot](https://pigweed.googlesource.com/pigweed/pigweed/+/a833a8f03bed891b5012d7889dbfcc09a8b951bd/docs/os/zephyr.rst)) | Thread, sync, chrono, log, assert, interrupt facades; small I2C, SPI and digital I/O interfaces | No filesystem or socket facade at OS level (*inferred, unverified*) | Five thread backends: embOS, FreeRTOS, host STL, ThreadX, Zephyr. Host STL is a first-class backend | Works where many consumers share modules across OSes. The Zephyr backend is the youngest; a snapshot called it preliminary, verified on `native_posix` only | A facade layer pays when there are several real backends. Crux has one production backend |
-| Arm Mbed OS ([Arm](https://www.arm.com/products/iot/mbed-os), [Memfault 1.40.0 changelog](https://components.espressif.com/components/memfault/memfault-firmware-sdk/versions/1.40.0/changelog)) | One C++ API over HAL, RTOS, connectivity and security | Little: the platform owned the drivers | Many Cortex-M targets, one OS (RTX) | End of life in July 2026, per Arm. Memfault deleted its Mbed port. Arduino moved to Zephyr and kept its own thin API above it | Do not build on an abstraction layer you do not control. Plan for deleting a port |
-| CMSIS-RTOS2 on Zephyr ([Zephyr CMSIS-RTOS v2](https://docs.zephyrproject.org/latest/services/portability/cmsis_rtos_v2.html)) | Threads, mutexes, semaphores, flags, queues, timers | Everything else | RTX, FreeRTOS, Zephyr | Zephyr documents unsupported calls and fixed semantics: priority inheritance and recursion always on. It sits under "portability" | A common RTOS API over Zephyr leaves semantic gaps and serves as a porting aid, not a base for new code |
-| nRF Connect SDK ([test framework](https://nrfconnectdocs.nordicsemi.com/ncs/latest/nrf/test_and_optimize/test_framework/index.html)) | No OS layer found (*absence unverified*) | Zephyr APIs, Devicetree, Kconfig, logging and settings used directly | Zephyr only | A large product base on Zephyr plus vendor services. Host tests use Ztest, Unity with CMock, `native_sim` and `unit_testing` | The closest analogue of "Zephyr-only plus services". It tests on Zephyr's own host targets, not on a second OS port |
-| Matter SDK ([Zephyr platform tree](https://pigweed.googlesource.com/third_party/github/project-chip/connectedhomeip/+/HEAD/src/platform/Zephyr)) | Platform managers: lifecycle, configuration, connectivity, BLE, Thread stack, plus a System Layer | Each platform's OS inside its port | More than ten, Zephyr and Linux among them (*current list unverified*) | Works because silicon vendors fund their own ports of one large service codebase | If Linux becomes real, abstract at the service boundary, not with a Thread or Mutex wrapper |
-| OpenThread ([PAL guide](https://openthread.io/guides/porting/implement-platform-abstraction-layer-apis)) | Alarm, radio, entropy, settings or flash, optional UART and logging, reset | Threads, mutexes and files: the core is single-threaded with a process loop | Zephyr, FreeRTOS, a POSIX simulator, many vendors (*counts unverified*) | A narrow PAL shaped by what the library needs stays small | Shape a port by what the service needs |
-| Memfault and Golioth SDKs ([Memfault docs](https://docs.memfault.com/docs/mcu/faq), [Golioth SDK](https://docs.golioth.io/reference/firmware/golioth-firmware-sdk/)) | Small port hooks for a service library | The OS integration, larger on Zephyr | Memfault: FreeRTOS, Zephyr, ESP-IDF and others. Golioth: Zephyr, ESP-IDF, ModusToolbox, Linux (experimental) | Services with thin ports. Linux was added late and kept experimental | Linux comes as a lower-priority service port, not as a co-equal kernel layer |
-| ESP-IDF Linux target, NuttX sim ([ESP-IDF host apps](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/host-apps.html), [NuttX simulation](https://nuttx.apache.org/docs/12.8.0/implementation/simulation.html)) | The RTOS API on a host process | Real timing | One RTOS each | Kept as preview or development tools; ESP-IDF warns the simulation does not represent the device | A host target is a test aid. It never replaces target evidence |
-| embedded-hal 1.0 ([announcement](https://blog.rust-embedded.org/embedded-hal-v1/), [changelog](https://github.com/rust-embedded/embedded-hal/blob/master/embedded-hal/CHANGELOG.md), [linux-embedded-hal](https://github.com/rust-embedded/linux-embedded-hal)) | Narrow driver traits: digital, I2C, SPI, delay, PWM duty | Configuration, initialisation, timers, serial, ADC, CAN: moved or dropped | Many HALs, plus Linux userspace through linux-embedded-hal | Succeeded after cutting scope to what generic drivers need; about 1,800 dependent crates reported (approximate) | A device interface pays only with many cross-platform drivers. In C on Zephyr, Zephyr's driver API already is that standard |
-| Zephyr device model, emulators and `native_sim` ([bus emulators](https://docs.zephyrproject.org/latest/hardware/emulator/bus_emulators.html), [native_sim](https://docs.zephyrproject.org/latest/boards/native/native_sim/doc/index.html), [POSIX arch](https://docs.zephyrproject.org/latest/boards/native/doc/arch_soc.html)) | Devices through Devicetree and subsystem APIs; I2C and SPI emulators run the unchanged driver | Nothing to cross OS boundaries: that is not a goal | Every Zephyr board; emulators work on `native_sim` and on targets with enough memory | `native_sim` runs the real kernel deterministically, one thread at a time, with ASan and UBSan options. Zephyr says it is for application code, not low-level driver or timing work | Device code belongs in Zephyr adapters, tested on `native_sim` with emulators. Host evidence never shows timing |
-| AUTOSAR ([Adaptive Platform](https://www.autosar.org/standards/adaptive-platform)) | Classic: layered basic software on an OSEK-style OS. Adaptive: POSIX-based | Each platform's internals | Two platforms | The strongest standardisation effort split into an MCU platform and a POSIX platform | Do not expect one thin layer to span MCU and Linux products |
-| Eclipse MRAA and UPM ([MRAA](https://github.com/eclipse/mraa)) | Pin and bus access across Linux boards, sensors above it | The kernel drivers | Many boards | Appears dormant; last release mentioned January 2020 (*unverified*) | A board-zoo device abstraction ages badly, and so does what sits on it |
+| Pigweed ([pw_thread backends](https://pigweed.dev/pw_thread/backends.html), [pw_sync_zephyr](https://pigweed.googlesource.com/pigweed/pigweed/+/HEAD/pw_sync_zephyr/docs.rst), [pw_thread_zephyr](https://raw.githubusercontent.com/google/pigweed/main/pw_thread_zephyr/docs.rst)) | Thread, sync, chrono, log, assert and interrupt facades; small I2C, SPI and digital I/O interfaces | No OS-level filesystem or socket facade (*inferred, unverified*) | Five thread backends, including a first-class host STL backend and Zephyr | An older snapshot called Zephyr support preliminary. Current `pw_thread_zephyr` docs say it supports thread creation. *Inference*: it pays where many consumers share modules across OSes | Facades pay with several real backends. Counting a host backend, Crux has two. Whether the second earns its cost is what C4 and the probes must show |
+| Arm Mbed OS ([Arm](https://www.arm.com/products/iot/mbed-os), [Memfault 1.40.0](https://components.espressif.com/components/memfault/memfault-firmware-sdk/versions/1.40.0/changelog)) | One C++ API over HAL, RTOS, connectivity and security | Little | Many Cortex-M targets, one RTOS | End of life in July 2026, per Arm. Memfault deleted its Mbed port. Arduino moved to Zephyr and kept its own thin API above it | Do not build on a layer you do not control. A thin own API above the OS protected Arduino's large body of existing code: the best external case for O1, and weak here with two consumers |
+| CMSIS-RTOS2 on Zephyr ([Zephyr docs](https://docs.zephyrproject.org/latest/services/portability/cmsis_rtos_v2.html)) | Threads, mutexes, semaphores, flags, queues, timers | Everything else | RTX, FreeRTOS, Zephyr | Zephyr documents unsupported calls, and fixes inheritance and recursion as always on. It sits under "portability" | A common RTOS API over Zephyr leaves semantic gaps. It is a porting aid, not a base for new code |
+| nRF Connect SDK ([test framework](https://nrfconnectdocs.nordicsemi.com/ncs/latest/nrf/test_and_optimize/test_framework/index.html)) | No OS layer found (*absence unverified*) | Zephyr kernel, Devicetree, logging and settings, called directly by its services | Zephyr only | A large product base. Tests use Ztest, Unity with CMock, `native_sim` and `unit_testing` | The precedent for O2, including inside services: they call `k_*` directly and test on Zephyr's own host targets |
+| Matter SDK ([Zephyr platform](https://pigweed.googlesource.com/third_party/github/project-chip/connectedhomeip/+/HEAD/src/platform/Zephyr)) | Platform managers for lifecycle, configuration, connectivity, BLE and Thread, plus a System Layer | Each OS inside its port | More than ten (*list unverified*) | *Inference*: it works because vendors fund their own ports of one large service codebase. A reviewer recalls a small internal system mutex with Zephyr and POSIX backends (*unverified*) | If Linux becomes real, port at the service boundary. Internal locking can be a thin shim |
+| OpenThread ([PAL guide](https://openthread.io/guides/porting/implement-platform-abstraction-layer-apis)) | Alarm, radio, entropy, settings, optional UART and logging, reset | Threads, mutexes, files: a single-threaded core with a process loop | Zephyr, FreeRTOS, a POSIX simulator (*counts unverified*) | *Inference*: a PAL shaped by the library's needs stays small | Shape a port by the service. One executor in place of many workers is an option worth a spike |
+| Memfault and Golioth ([Memfault](https://docs.memfault.com/docs/mcu/faq), [Golioth](https://docs.golioth.io/reference/firmware/golioth-firmware-sdk/)) | Small port hooks for a service library | The OS integration | Several RTOSes; Golioth's Linux port is experimental | Linux arrived late and stayed experimental. A reviewer recalls Memfault needing only lock and unlock hooks (*unverified*) | Linux comes as a lower-priority service port. A lock shim can be two functions |
+| ESP-IDF Linux target, NuttX sim ([ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/host-apps.html), [NuttX](https://nuttx.apache.org/docs/12.8.0/implementation/simulation.html)) | The RTOS API in a host process | Real timing | One RTOS each | Kept as preview or development tools; ESP-IDF warns the simulation does not represent the device | A host target is a test aid, never target evidence |
+| embedded-hal 1.0 ([announcement](https://blog.rust-embedded.org/embedded-hal-v1/), [changelog](https://github.com/rust-embedded/embedded-hal/blob/master/embedded-hal/CHANGELOG.md)) | Narrow driver traits | Configuration, timers, serial, ADC, CAN: moved or dropped | Many HALs; Linux through linux-embedded-hal | Succeeded after cutting scope; about 1,800 dependent crates reported (approximate) | A device interface pays only with many cross-platform drivers. In C on Zephyr, Zephyr's driver API is that standard |
+| Zephyr device model, emulators, `native_sim` ([emulators](https://docs.zephyrproject.org/latest/hardware/emulator/bus_emulators.html), [native_sim](https://docs.zephyrproject.org/latest/boards/native/native_sim/doc/index.html), [POSIX arch](https://docs.zephyrproject.org/latest/boards/native/doc/arch_soc.html)) | Devices through Devicetree and subsystem APIs; emulators run unchanged drivers | Crossing OS boundaries is not a goal | Every Zephyr board | `native_sim` runs the real kernel deterministically, one thread at a time, with documented ASan and UBSan options. Zephyr aims it at application code, not low-level driver or timing work | Device code belongs in Zephyr adapters, tested on `native_sim` with emulators |
+| AUTOSAR ([Adaptive Platform](https://www.autosar.org/standards/adaptive-platform)) | Classic: basic software on an OSEK-style OS, with an RTE. Adaptive: POSIX-based | Each platform's internals | Two platforms | Split into an MCU platform and a POSIX platform. In Classic, components own no tasks: the RTE maps their runnables to tasks (*general practice, not fetched here*) | No thin layer spans MCU and Linux products. Precedent for a domain that owns no threads |
+| Eclipse MRAA and UPM ([MRAA](https://github.com/eclipse/mraa)) | Pin and bus access across Linux boards | Kernel drivers | Many boards | Appears dormant; last release mentioned January 2020 (*unverified*) | A board-zoo device abstraction ages badly |
 
 **What the lessons say for Crux** (inference):
 
-1. **Count backends and consumers.** With one production backend, a portable kernel layer is cost without payoff. The platforms that paid for one had several real backends (Pigweed, Matter).
-2. **Abstract at the service boundary.** Where a service library needs a port, it is shaped by the service (OpenThread, Matter, Memfault), not by the OS.
-3. **Use Zephyr's own host story** (`native_sim`, emulators, Twister) for code that touches Zephyr, and keep pure logic OS-free so that a plain host compiler can test it.
-4. **Do not grow a common RTOS API to real time.** CMSIS-RTOS2 on Zephyr shows the gaps that result.
-5. **Device interfaces belong to the OS.** Zephyr's device model plays the role that embedded-hal plays for Rust.
+1. **Count backends and consumers.** One production backend does not pay for a portable kernel layer facing products. A test backend may pay, if its value is shown.
+2. **Abstract at the service boundary.** Ports are shaped by the service (OpenThread, Matter, Memfault), and internal locking can stay a thin shim.
+3. **Use Zephyr's host story** for code that touches Zephyr, and keep pure logic OS-free. nRF Connect SDK does this all the way into its services.
+4. **Do not grow a common RTOS API to real time** (CMSIS-RTOS2).
+5. **Let the runtime own the tasks.** AUTOSAR runnables and cyclic task runtimes keep domain code free of threads.
+6. **A thin own API above the OS protects existing code** (Arduino). That argues for not breaking `crux-controller` before the evidence is in.
 
 ## 4. Options
 
@@ -72,271 +90,359 @@ Condensed from the two research passes. "Outcome" is a fact where a source state
 
 | # | Fact | Source |
 | --- | --- | --- |
-| F1 | Of the twelve management components, ten include `<crux/sync.h>` (all but `cli` and `ssh`) and five include `<crux/thread.h>`. Four create worker threads: `security_event`, `network_settings`, `reboot`, `web` | Include scan of `components/`; `components/security_event/src/security_event_drain.c:164`, `components/network_settings/src/network_settings.c:639`, `components/reboot/src/reboot.c:432`, `components/web/management/web_management_save.c:186`, `components/web/session/web_session_attempt.c:371` |
+| F1 | Of the twelve management components, ten include `<crux/sync.h>` (all but `cli` and `ssh`) and five include `<crux/thread.h>`. Five worker threads are created: one each in `security_event`, `network_settings` and `reboot`, two in `web`. The services hold 14 mutex and 7 semaphore creation sites | Include scan; `components/security_event/src/security_event_drain.c:164`, `components/network_settings/src/network_settings.c:639`, `components/reboot/src/reboot.c:432`, `components/web/management/web_management_save.c:186`, `components/web/session/web_session_attempt.c:371` |
 | F2 | No Crux component includes `<crux/queue.h>` | Include scan of `components/` |
-| F3 | Linux or Host ports exist for 13 components: ten under `ports/linux` (time, thread, sync, queue, logging, file, system, serial, netif, interrupt), GPIO under `ports/host`, I2C and SPI under `host/`. The ten `ports/linux` trees hold 1,612 raw lines of C and headers; their Zephyr ports hold 1,913 | `ls components/*/ports`; `wc -l` at `828021cf` |
-| F4 | Crux Thread maps three classes to Zephyr priorities `6 - class`, that is 4, 5 and 6, fixed in code. No run-time change is promised | `components/thread/ports/zephyr/thread_native.c:5,99`; `docs/thread-sync.md:109-113` |
-| F5 | Pools: threads 1..64, mutexes 1..64, semaphores 1..64 by Kconfig; Queue fixed at four queues of sixteen 64-byte records | `zephyr/Kconfig:51-54,72-80`; `components/queue/src/queue.c:7-9` |
-| F6 | The Thread and Sync contract does not promise real-time scheduling, and Host runs every class at normal priority | `docs/thread-sync.md:10-13,109-113` |
-| F7 | Crux monotonic time reads `k_uptime_ticks` with no lock; realtime takes a `k_mutex` | `components/time/src/time_clock.c:6-24`, `components/time/ports/zephyr/time_clock_zephyr.c:7`, `components/time/ports/zephyr/time_port_zephyr.c:18` |
+| F3 | Linux or Host ports exist for 13 components. The ten `ports/linux` trees hold 1,612 raw lines; their Zephyr ports hold 1,913. Thread, Sync and Interrupt's Linux ports hold 373 | `ls components/*/ports`; `wc -l` |
+| F4 | Crux Thread maps three classes to Zephyr priorities 4, 5 and 6, fixed in code. One stack size serves every worker. No run-time change is promised | `components/thread/ports/zephyr/thread_native.c:5,99`; `zephyr/Kconfig:56-59`; `docs/thread-sync.md:109-113` |
+| F5 | Pools: threads, mutexes and semaphores 1..64 each, by Kconfig. Test compositions already set 8 threads and 24 or 16 mutexes. Queue is fixed at four queues of sixteen 64-byte records | `zephyr/Kconfig:51-54,72-80`; `tests/native/management_services/prj.conf:43,47`; `tests/native/management_composition/prj.conf:37`; `components/queue/src/queue.c:7-9` |
+| F6 | Thread and Sync promise no real-time scheduling, and Host runs every class at normal priority. Sync mutexes are non-recursive | `docs/thread-sync.md:10-13,109-113` |
+| F7 | Monotonic time reads `k_uptime_ticks` with no lock. Realtime Time, File, System, Queue and Serial take a global `k_mutex` in their Zephyr ports. SSH creates native threads at the lowest application priority | `components/time/src/time_clock.c:6-24`; `components/time/ports/zephyr/time_port_zephyr.c:9`; `components/file/ports/zephyr/file_native.c:88`; `components/system/ports/zephyr/system_zephyr.c:10`; `components/queue/ports/zephyr/queue_port.c:6`; `components/serial/ports/zephyr/serial_zephyr.c:21`; `components/ssh/ports/zephyr/crux_ssh_wolf_provider.c:61-62,1004-1006,1243-1245` |
 | F8 | Crux Logging on Zephyr calls Zephyr's `LOG_*` macros after its own checks | `components/logging/ports/zephyr/logging_zephyr.c:13-28` |
-| F9 | `crux-controller` calls `crux_thread_create` twice at NORMAL priority and a Crux Queue in `app/src/workload_thread.c` (lines 10-14, 137, 150-159). Its Host tests link only `workload` and `net_client`, not any Crux provider. So its Crux code runs only on `native_sim` and the board | `crux-controller` `tests/host/CMakeLists.txt:20-32`, `README.md:46-52`, at `405cce47ed` |
-| F10 | The runtime port uses Crux File, Logging, Time, System and the Sockets profile. It runs its cyclic task timers, its main thread and its writer on native threads, because it needs distinct priorities set at run time. By default it uses a native recursive mutex, because it needs more than 64 locks at once and because of the priority defect that #174 fixes. Its timer wait uses a Crux semaphore and `crux_thread_sleep_until` | Draft PR #174 (public part); the private records (generic facts only) |
-| F11 | #174 has been a Draft since 3 November 2026. It fixes the defect where a thread keeps an inherited priority after `crux_mutex_unlock`, and raises the mutex maximum to 256. It runs Sync metadata sections with the scheduler locked: it needs one CPU and no meta-IRQ threads, one Sync call can delay every other thread, and nothing was measured on hardware | PR #174 description |
-| F12 | ADR-0001 cites `crux-controller`'s Host tests as evidence for H2 (Host providers). By F9, those tests use no Crux Host provider. No consumer evidence for H2 exists | `docs/decisions/0001-application-boundary-and-api-stability.md:345`; F9 |
-| F13 | ThreadSanitizer runs on Linux Host for selected suites. No `native_sim` image with `CONFIG_ASAN` or `CONFIG_UBSAN` is configured in `tests/`, `scripts/` or `.github/` | `scripts/test-mgmt-services.sh:58-59`; `tests/ssh/cli/test-thread-sanitizer.sh:2-4`; `grep` at `828021cf` |
-| F14 | CI on 12 November 2026: the Host job took 27.5 minutes (run 43321893524); the Zephyr shards took 12.6 to 28.6 minutes (run 43321893624) | `gh run view` of both runs |
-| F15 | Thread, Sync, Queue, Serial and Logging are provisionally Experimental; Time, File, Netif and Sockets provisionally Unstable | `docs/component-readiness.md:43-56` |
-| F16 | Linux Host is a development and test environment, not Embedded Linux support. Embedded Linux is called a longer-term goal and a future variant | `README.md:5,33,37,39`; `docs/architecture.md:11` |
+| F9 | `crux-controller` builds its execution on Crux: two `crux_thread_create` calls at NORMAL priority and a Crux Queue, with no Zephyr include (`app/src/workload_thread.c:10-14,137,150-159`). Its S1 step exists to run the workload on Crux Thread, Queue and Time (`app/conf/s1.conf:1`). Its Host tests link only `workload` and `net_client`, and no Crux provider | `crux-controller` `tests/host/CMakeLists.txt:20-32`, `README.md:46-52`, at `405cce47ed` |
+| F10 | The runtime port uses Crux File, Logging, Time, System and the Sockets profile. Its cyclic timers run on native threads because they need distinct priorities set while they run. Its main thread and writer run native because their priorities fall outside 4 to 6. Its timer wait uses a Crux semaphore and `crux_thread_sleep_until`: a Crux sleep cannot be woken and semaphore waits have millisecond steps, so the wait takes two steps. It uses native recursive locks by default, because it needs more than 64 at once and because of the priority defect below | The runtime port's records, generic facts only |
+| F11 | Draft PR #174 (open since 3 November 2026) fixes a defect: a thread kept an inherited priority after `crux_mutex_unlock`. It also raises the mutex maximum to 256. The defect comes from the global `sync_metadata` `k_mutex` held around the native unlock. The fix runs every Sync metadata section with the scheduler locked: one CPU, no meta-IRQ threads, one call can delay every other thread, and `create` scans the pool inside that section. Nothing was measured on hardware | PR #174 description; `components/sync/ports/zephyr/sync_native.c:6`; `components/sync/src/sync.c:139-153` |
+| F12 | ADR-0001 cites `crux-controller`'s Host tests as evidence for H2. Those tests use no Crux Host provider (F9). No product consumer uses a Crux Host provider | `:345`; F9 |
+| F13 | ThreadSanitizer covers three suites (`config_service_concurrency`, `mgmt_status_snapshot`, the SSH command line) and cannot run under local emulation. No `native_sim` image enables `CONFIG_ASAN` or `CONFIG_UBSAN` | `scripts/test-mgmt-services.sh:56-67`; `tests/ssh/cli/test-thread-sanitizer.sh:2-4`; `docs/cli-over-ssh.md:119`; `grep` |
+| F14 | Host CI job, 12 November: 27.5 minutes, including 574 s of build provenance safeguards, 151 s of clang-tidy and 268 s of host sanitizers (run 43321893524). Zephyr shards: 12.6 to 28.6 minutes (run 43321893624) | `gh run view` |
+| F15 | Provisional tiers: Thread, Sync, Queue, Serial, Logging, System Experimental; Time, File, Netif, Sockets Unstable | `docs/component-readiness.md:43-56` |
+| F16 | Linux Host is a development and test environment. Embedded Linux is a longer-term goal and a future variant | `README.md:5,33,37,39`; `docs/architecture.md:11` |
+| F17 | Services call product code on their own threads: command and web handlers, status reads, reboot policy and busy checks | `components/cli/include/crux/cli.h:61`; `components/web/include/crux/web.h:66`; `components/mgmt_status/include/crux/management_status.h:69`; `components/reboot/include/crux/reboot.h:98,106` |
+| F18 | A POSIX subset was evaluated. `PTHREAD_PRIO_INHERIT` returned `ENOTSUP` at the pin. Timed waits convert realtime deadlines. Message queues allocate from the heap. Native and POSIX images used 52,328/17,412 and 73,928/82,516 bytes of flash/RAM, not all of it API overhead. POSIX stays an option for another evidenced consumer | `docs/execution-profile.md:64-67,131-134,143`; `docs/thread-sync.md:218-224` |
 
-### 4.2 O1. ADR-0001 as it is
+### 4.2 What consumers asked for
 
-The domain uses Crux Time, Thread, Sync, Queue, Logging, File and Configuration through their Host providers. Adapters use Zephyr. D10 measures whether that pays.
+- **A larger mutex pool** (#174's 256).
+  - Answer: Crux mutexes are non-recursive by contract (F6), so a recursive lock on top of them is an extra layer. More than 64 recursive locks belong in native `k_mutex` under any option.
+  - The runtime port recorded a plan to return to Crux locks once the defect is fixed in Crux. This review departs from that plan: it keeps those locks native. `AGENTS.md:47` allows reopening a recorded decision on new evidence. The evidence is the non-recursive contract and the scheduler lock that the proposed fix adds (F11). That consumer needs to be told and to agree.
+- **A priority model, after a board measurement.**
+  - Answer: no Crux priority API. Real-time threads are native. Crux's own workers get per-service priority settings (P3).
+- **A wakeable wait finer than milliseconds** (F10).
+  - Answer: `k_sem`, `k_timer` or `k_sleep` in Zephyr code, at tick resolution.
+- **A monotonic timestamp finer than the kernel tick.**
+  - Open: a Time addition for a named consumer, or the cycle counter in Zephyr code.
+- `crux-controller` asked for none of these. It uses Thread and Queue as they are (F9).
 
-- *For*: nothing changes. `crux-controller`'s `app/src` already works this way (F9).
-- *Against*: two thread and lock APIs in one image, and the rule for which to use depends on the zone, not on the job. A real-time thread cannot be created in the domain (F4), so it moves to an adapter anyway, and the runtime port did exactly that (F10). Every real-time gap closed in Crux Thread or Sync grows a second kernel API (C8). H2 has no consumer evidence (F12).
+### 4.3 O1. ADR-0001 as it is
 
-### 4.3 O2. Zephyr only
+The domain uses Crux Time, Thread, Sync, Queue, Logging, File and Configuration, with Host providers. Adapters use Zephyr.
 
-The services are rewritten on `k_thread`, `k_mutex` and `k_sem`. The Linux providers are removed. Tests run on `native_sim`. Crux keeps services and tooling (ADR-0001 option c, `docs/decisions/0001-application-boundary-and-api-stability.md:357`).
+- *For*: no change. `crux-controller` is built this way (F9).
+- *Against*:
+  - Two thread and lock APIs in one image, chosen by zone rather than by job.
+  - Real-time threads cannot be made in the domain (F4), so the runtime port went native (F10).
+  - Each real-time gap closed grows a second kernel API (C8).
+  - H2 has no product evidence (F12).
 
-- *For*: the clearest rule; one API for everything that touches the OS; no second provider; real-time is native.
-- *Against*: about one hundred Sync and Thread call sites in ten services change (counted: 69 mutex and 22 semaphore calls, 6 thread creations). The services lose their Host tests, the Host sanitizer runs and ThreadSanitizer. *Inference*: `native_sim` runs one thread at a time, so it cannot stand in for ThreadSanitizer. Its ASan and UBSan support was never tried here (F13). Domain code can no longer link the real Crux services on a host. Removing the Linux providers touches `CMakePresets.json`, `scripts/check-host.sh` and `.github/workflows/host.yml`, all protected. Any later Linux product would rewrite every service.
+### 4.4 O2. Zephyr only
 
-### 4.4 O3. A full portable layer, extended for real time and Linux production
+Products follow the three-question rule. The services call `k_thread`, `k_mutex` and `k_sem` directly (ADR-0001 option c, `:357`). Time, Logging, File, Configuration and System survive as public contracts with Zephyr providers only. Their Linux providers go, so domain code that calls them is tested on the host with fakes or on `native_sim`.
 
-Numeric priorities, run-time priority change, recursive mutexes, larger or caller-provided pools, and a qualified Linux production provider.
+- *For*:
+  - The rule for products is the same as O4's.
+  - One mechanism inside Crux.
+  - The #174 defect disappears with the metadata lock.
+  - Each service sizes its own static objects.
+  - SSH already works this way (F7).
+- *Against*:
+  - About 96 call sites change: 69 mutex, 22 semaphore and 5 thread-creation calls.
+  - The larger cost is the services' Host tests, which drive concurrency through the Linux providers. They move to `native_sim`, which has no ThreadSanitizer equivalent. Its ASan and UBSan options are documented but untried here (F13).
+  - Removing the providers touches `CMakePresets.json`, `scripts/check-host.sh` and `.github/workflows/host.yml`, all protected.
+  - Local `native_sim` runs are emulated on an arm64 Mac.
 
-- *For*: one Crux API across Zephyr and Linux.
-- *Against*: it reverses the owner's decision of no non-Zephyr port (`docs/decisions/0001-application-boundary-and-api-stability.md:43`) and the rule against a universal OSAL (`AGENTS.md:23`, `docs/coding-guidelines.md:29`). Linux real-time semantics differ: a real-time Linux scheduling class usually needs privileges (general Linux behaviour, not checked here), while Host runs every class at normal priority today (F6). It is the CMSIS-RTOS2 pattern (section 3). No consumer asked for it. The runtime port explicitly waits for a hardware measurement before proposing a priority model (its own record).
+### 4.5 O3. A full portable layer, extended for real time and Linux production
 
-### 4.5 O4a. ADR-0001 with a real-time carve-out
+Numeric priorities, run-time changes, recursive mutexes, larger pools, a qualified Linux provider.
 
-As O1, plus one rule: priority-sensitive work always uses Zephyr. Crux Thread and Sync stay public but are documented as non-real-time.
+- *Against*:
+  - It reverses the owner's decision of no non-Zephyr port (`:43`) and the rule against a universal OSAL (`AGENTS.md:23`).
+  - Linux real-time scheduling usually needs privileges (*general Linux behaviour, not checked here*).
+  - It is the CMSIS-RTOS2 pattern.
+  - Of what consumers asked (section 4.2), only the pool and the priority model would land in Crux. The runtime port wants a board measurement before any priority model.
 
-- *For*: little change; stops the growth of Crux Thread.
-- *Against*: the developer still chooses between two thread APIs for non-real-time work. That choice is the confusion the owner named.
+### 4.6 O4a. ADR-0001 with a real-time carve-out
 
-### 4.6 O4. Zephyr for execution and devices, Crux for services (recommended)
+As O1, plus: priority-sensitive work always uses Zephyr.
 
-- Products use Zephyr for threads, priorities, locks, queues, timers, interrupts, devices and network stack set-up.
-- Domain code is plain C behind product ports, plus Crux's public contracts and service APIs. It owns no threads: a Zephyr "execution shell" in the product's adapter zone runs it. `crux-controller`'s `workload/` already has this shape (F9).
-- Thread and Sync stay as Crux-internal mechanisms of the services, with Zephyr and Linux test providers, so the services keep their Host tests. Queue and Serial leave the public surface.
-- *For*: one rule ([section 5.2](#52-the-developer-rule)), matching what both consumers already do on their critical paths. Real time is native. Host tests of services and of Crux-using domain code stay.
-- *Against*: Linux providers stay, so each change to Thread, Sync or a public contract is still made and tested twice: the ten `ports/linux` trees hold 1,612 lines (F3), and the Host CI job takes 27.5 minutes (F14). `crux-controller` and the runtime port make small changes. Crux service threads still share the scheduler with product threads, so products must place them in their priority map ([section 7](#7-coexistence-in-one-image-and-what-to-do-with-174)).
+- *For*: little change. It fits both consumers most closely: `crux-controller`'s non-real-time workload stays on Crux Thread, and the runtime port's real-time threads stay native. Only the runtime port's timer wait would move to Zephyr.
+- *Against*: a developer still picks between two thread APIs for non-real-time work.
 
-### 4.7 Scores
+### 4.7 O4. Zephyr for execution, Crux for services
+
+Products follow the three-question rule. Thread and Sync stay as Crux's internal mechanism, with Linux test providers, so the services keep their Host tests. Queue and Serial leave the public surface.
+
+- *For*:
+  - The same product rule as O2, keeping the services' Host suites.
+  - O4 to O2 stays possible later, because no product calls Thread or Sync.
+- *Against*:
+  - Two providers per contract stay (F3).
+  - "Internal" is a label until enforced (section 5.7).
+  - Products still set Crux's pools, stack size and priorities (F4, F5).
+
+### 4.8 O5. A documented POSIX subset
+
+`AGENTS.md:23` asks for this to be evaluated, and it was (F18). It lost on priority inheritance, realtime-deadline waits, heap-allocated queues and footprint, at the recorded pin. It is not scored. It stays an option for a consumer whose evidence differs (`docs/execution-profile.md:143`).
+
+### 4.9 Scores
 
 | Criterion (weight) | O1 | O2 | O3 | O4a | O4 |
 | --- | --- | --- | --- | --- | --- |
-| C1 clarity (20) | 2 | 5 | 4 | 3 | 4 |
-| C2 consumer evidence (15) | 3 | 3 | 1 | 3 | 4 |
+| C1 clarity (20) | 2 | 5 | 4 | 3 | 5 |
+| C2 consumer evidence (15) | 3 | 3 | 1 | 4 | 3 |
 | C3 real time (15) | 2 | 5 | 3 | 4 | 5 |
-| C4 tests (10) | 4 | 2 | 4 | 4 | 4 |
+| C4 tests (10) | 4 | 3 | 4 | 4 | 4 |
 | C5 maintenance (10) | 2 | 4 | 1 | 2 | 3 |
-| C6 embedded Linux (5) | 3 | 1 | 5 | 3 | 3 |
-| C7 Zephyr churn (10) | 3 | 3 | 2 | 3 | 4 |
+| C6 embedded Linux (5) | 3 | 2 | 5 | 3 | 2 |
+| C7 Zephyr churn (10) | 3 | 3 | 2 | 3 | 3 |
 | C8 common-denominator risk (10) | 2 | 5 | 1 | 4 | 4 |
 | C9 cost of change (5) | 5 | 1 | 1 | 4 | 3 |
-| **Weighted total (of 500)** | **265** | **370** | **250** | **330** | **395** |
+| **Weighted total (of 500)** | **265** | **385** | **250** | **345** | **385** |
 
-Reasons for the scores that decide the ranking:
+What changed from the first version, which gave O4 395 and O2 370:
 
-- **C1.** O2 gets 5 because "the OS is Zephyr" is one sentence. O4 gets 4 because the domain may also call Crux's public contracts, and Crux's own service threads appear in the product's priority map. O1 gets 2 because the zone, not the job, picks the thread API.
-- **C2.** O4 matches the evidence. The runtime port goes native exactly where O4 says to go native (F10). `crux-controller`'s tested code is plain C (F9). Both use Time, Logging and File. O2 also matches the real-time evidence, but discards the services' Host tests and their ThreadSanitizer runs (F13).
-- **C4.** Host providers keep the services' Host runs under ASan, UBSan and, for selected suites, ThreadSanitizer (F13). O2 replaces them with `native_sim`, which proves integration but has no ThreadSanitizer equivalent and untried ASan and UBSan. Pure modules can be fuzzed and mutated on the host without any provider under every option, as the SSH wire checks are (`docs/ssh-wolf-provider.md:220,399`).
-- **C7.** Under O4, Zephyr kernel changes reach Crux only in the providers of two internal mechanisms. Products absorb the rest in adapters, as ADR-0001 rule 6 already states. O2 puts the services directly on the kernel API.
+- **C1.** It scored a difference that exists only inside Crux.
+- **C2.** It counted the Host tests a second time, after C4. Corrected:
+  - O2 and O4 match the runtime port's native threads and locks.
+  - Neither matches `crux-controller`, which builds on Crux Thread and Queue and must migrate under both.
+  - No product uses a Crux Host provider (F12).
+  - O4a fits both consumers most closely, so it scores highest here.
+- **C6.** It contradicted section 6. Under the service-boundary rule, internal providers give a Linux product nothing.
+- **C7.** It claimed that kernel changes reach only two internal mechanisms. Six Zephyr ports call the kernel directly (F7), and `k_mutex`, `k_sem` and `k_thread` are among Zephyr's most stable APIs.
 
-**Sensitivity.** O4 leads O2 by 25 points. Raising C1 to 30, at the expense of C6 and C9, makes O2 lead by 5. *Inference*: the choice between O4 and O2 depends on how much the owner values one OS API against keeping Host tests of the services. Two probes can settle it with evidence: the `native_sim` sanitizer probe and D10 phase 1 ([section 8](#8-changes-from-adr-0001-migration-and-missing-evidence)). If `native_sim` gives the same evidence at a similar turnaround, the case for Linux providers falls. Moving from O4 to O2 then touches only Crux's own code, because no product calls Thread or Sync under O4.
+**Range.** Defensible one-point changes move each of O2 and O4 between about 365 and 390: O2's C4 at 2, C1 at 4 for both, or O4's C6 at 3 for the public contracts' Linux providers. **The matrix does not separate O2 from O4.** Both stay ahead of O4a by at least 20 points, and of O1 and O3 by at least 100. The choice between O2 and O4 is an engineering choice inside Crux, left to the evidence (section 5.1).
 
 ## 5. Recommendation and final API design
 
-### 5.1 Component roles
+### 5.1 Stages
 
-Roles: **Public contract**, a portable contract for domain and Zephyr code. **Composition interface**, see [the rules](../composition-interfaces.md). **Crux service**: a service that products compose. **Crux-internal**: used by Crux components only, no promise to products. **Retire**: products use Zephyr in adapters. Tiers follow [ADR-0001 Decision 4](../decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy). Today's tier is the provisional one in `docs/component-readiness.md:42-69`.
+| Stage | What | Needs |
+| --- | --- | --- |
+| **Now** | Publish the developer rule. Freeze Thread, Sync, Queue and Serial for new product code: no new features, no real-time extension, documented as "not for new product code". Add the template's domain include check rejecting `crux/thread.h`, `crux/sync.h`, `crux/queue.h` and `crux/serial.h`, and the shared-state pattern (5.4). Add per-service priority Kconfig. Do not merge #174 as it is | Documentation; `templates/product` and its tests; one Kconfig change by test-driven development. `CONTRIBUTING.md:45` (protected) names `crux::queue` and `crux::thread` as example usage targets and must change |
+| **D10 phase 1** | Build A and Build B as approved. Add Build B': Build B's domain without Crux Thread, behind a Zephyr shell. B against B' measures O1 against O4; A against B' measures O4 against plain Zephyr. The GPLv2 limit of Configuration's only provider applies to B' too (`:383-387`). Add the `native_sim` sanitizer probe and the slim-Sync spike | The approved phase 1, plus one more build; CI only |
+| **Later** | Decide, by a rule fixed before the runs (P9): (a) the Internal tier and product deprecation of Thread, Sync, Queue and Serial; (b) O2 or O4 for the services' internals; (c) whether the Linux providers stay | D10, the probe, the spike; protected paths for removals (section 8) |
 
-| Component | Target role | Tier: today, then target | Change from today |
-| --- | --- | --- | --- |
-| `base` | Public contract (status codes) | Unassigned, then Unstable at tier assignment | None |
-| `time` | Public contract: typed clocks, authority, calendar | Unstable | None. Real-time code may read monotonic time, which takes no lock (F7). Its resolution on Zephyr is the kernel tick (F7); a finer timestamp only for a named consumer |
-| `thread` | Crux-internal: service worker threads | Experimental, then Internal | Products use `k_thread`. No real-time extension. The header stays in place for Crux components; product use is deprecated at the first tag (P2) |
-| `sync` | Crux-internal: service locks and semaphores | Experimental, then Internal | Products use `k_mutex` and `k_sem`. #174 rescoped (P7) |
-| `queue` | Retire | Experimental, then Deprecated at the first tag, removed in the next | Products use `k_msgq`. No Crux component uses it (F2); `crux-controller` migrates (P3) |
-| `logging` | Public contract | Experimental | None. Zephyr code may use `LOG_*` directly; both reach the same Zephyr log (F8) |
-| `file` | Public contract, plus composition interface `crux::file_zephyr` | Unstable | None |
-| `configuration` | Public contract: per-parameter policy | Experimental | None. Provider decision (Issue #16) stays open |
-| `system` | Public contract: single-owner watchdog, reset cause | Experimental | None |
-| `interrupt` | Crux-internal | Internal | None |
-| `netif` | Public contract, read-only status; source of the status service | Unstable | None, and no extension. Further interface data comes from Zephyr `net_if` in product Zephyr code |
-| `sockets` | Qualified standard profile | Unstable | None |
-| `serial` | Crux-internal: transport of the command line's serial console | Experimental, then Internal; product use deprecated at the first tag | Products use the Zephyr UART API in adapters (P4) |
-| `gpio`, `i2c`, `spi` | Retire | Experimental, frozen (D4) | As decided in D4: deprecated at the first tag, removed in the next |
-| `access` | Crux service | Experimental | None in role. Its threads follow the product priority map (P8) |
-| `credential` | Crux service | Experimental | As `access` |
-| `security_event` | Crux service | Experimental | As `access`; owns a drain worker (F1) |
-| `config_service` | Crux service | Experimental | As `access` |
-| `mgmt_status` | Crux service | Experimental | As `access` |
-| `network_settings` | Crux service | Experimental | As `access`; owns a worker (F1) |
-| `reboot` | Crux service | Experimental | As `access`; owns a worker (F1) |
-| `tls_certificate` | Crux service | Experimental | As `access` |
-| `file_service` | Crux service | Experimental | As `access` |
-| `cli` | Crux service | Experimental | As `access`; its serial console uses internal Serial |
-| `web` | Crux service | Experimental | As `access`; owns two workers (F1) |
-| `ssh` (private) | Crux service, private provider interface | Experimental, for its Kconfig symbols | As `access` |
+### 5.2 Component roles
 
-**How "Crux-internal" is made visible.** The cheapest way is the tier table and a `Status:` line in each header, both already follow-up 5 of ADR-0001. A check that rejects `crux::thread` and `crux::sync` in a product's domain would change `cmake/CruxConsumerBoundary.cmake` and `scripts/check-native-interfaces.py`, both protected. It is optional and comes later.
+Today's tiers are the provisional ones in `docs/component-readiness.md:42-69`. "Later" is a candidate, decided under P9.
 
-### 5.2 The developer rule
+| Component | Role | Tier today | Now | Later (candidate) |
+| --- | --- | --- | --- | --- |
+| `base` | Public contract | Unassigned | None | Unstable at tier assignment |
+| `time` | Public contract | Unstable | None. Real-time code may read monotonic time (no lock); realtime takes a lock (F7) | A finer timestamp only for a named consumer |
+| `thread` | Mechanism of Crux services | Experimental | Frozen for new product code | Internal tier, or Zephyr directly in services (O2) |
+| `sync` | Mechanism of Crux services | Experimental | Frozen; defect fixed by slimming (P6) | As `thread` |
+| `queue` | None inside Crux (F2) | Experimental | Frozen for new product code | Deprecated, then removed; migration note in 5.6 |
+| `logging` | Public contract | Experimental | None | None |
+| `file` | Public contract; composition interface `crux::file_zephyr` | Unstable | None | None |
+| `configuration` | Public contract | Experimental | None; provider decision (Issue #16) open | None |
+| `system` | Public contract | Experimental | None | None |
+| `interrupt` | Crux-internal | Internal | None | None |
+| `netif` | Public contract, read-only | Unstable | No extension; more data from Zephyr `net_if` | None |
+| `sockets` | Qualified standard profile | Unstable | None | None |
+| `serial` | Transport of the command line's console | Experimental | Frozen for new product code | Internal tier |
+| `gpio`, `i2c`, `spi` | Retire (D4) | Experimental, frozen | As D4 | As D4 |
+| `security_event`, `network_settings`, `reboot`, `web` | Crux services that own workers (F1) | Experimental | A priority Kconfig per service (P3) | Internals per P9 |
+| `ssh` (private) | Crux service with native threads (F7) | Experimental | Its priority define becomes a Kconfig setting (P3) | None |
+| `access`, `credential`, `config_service`, `mgmt_status`, `tls_certificate`, `file_service`, `cli` | Crux services without workers of their own | Experimental | None | Internals per P9 |
 
-An application developer asks three questions, in this order:
+### 5.3 The developer rule
 
-1. **Is it an OS or hardware facility?** Threads, priorities, locks, queues, timers, interrupts, devices, buses, pins, network stack set-up. → **Zephyr**, called directly in the product's Zephyr code: adapters, composition and the execution shell. Never through Crux.
-2. **Is it a platform service that Crux provides?** Management over web, command line, SSH and SFTP; accounts and access; configuration with validation; file storage with Crux's rules; time authority and calendar; health and watchdog; log records. → **Crux**, from any zone. Composition binds its provider, through a composition interface where one exists.
-3. **Is it the product's own behaviour?** Control laws, state machines, protocol logic, limits and alarms. → **Plain C in the domain**, behind ports that the product owns. It may call Crux's public contracts and service APIs, never Zephyr. It owns no thread: the execution shell calls it. It is tested on the host.
+1. **Is it an OS or hardware facility?** Threads, priorities, locks, queues, timers, interrupts, devices, buses, pins, network stack set-up. → **Zephyr**, in the product's Zephyr code: adapters, composition and the execution shell.
+2. **Is it a platform service that Crux provides?** Management over web, command line, SSH and SFTP; accounts; configuration with validation; file storage with Crux's rules; time authority and calendar; health and watchdog; log records. → **Crux**, from any zone, with its provider bound in composition.
+3. **Is it the product's own behaviour?** Control laws, state machines, protocol logic, limits and alarms. → **Plain C in the domain**, behind product ports. It may call Crux public contracts and service APIs, never Zephyr. It owns no thread: the execution shell calls it.
 
 | Case | Q1: Zephyr | Q2: Crux | Q3: domain |
 | --- | --- | --- | --- |
-| Cyclic task timers of a ported real-time runtime | One `k_thread` per timer at priorities from the product's priority map; `k_sem` or `k_timer` for the wake; a recursive `k_mutex` for the runtime's locks | Monotonic timestamps (no lock, F7), Logging, File for retained data, System watchdog | The runtime's own scheduling logic, above its port layer |
-| `crux-controller` workload | Producer and consumer threads and their queue: `k_thread` and `k_msgq` in its Zephyr zone. Today they use Crux Thread and Queue in `app/src` (F9) | Logging. File for its configuration record, bound through `crux::file_zephyr` | `workload/` stays plain C, with Host tests and sanitizers, as today |
-| Temperature sensor (ADS112C04) | A Zephyr ADC or sensor driver, or `i2c_dt_spec` code, in an adapter behind the product port `temperature_read(&millikelvin)`; a Zephyr emulator on `native_sim` | The status service for a remote reading. Configuration, or File, for the limits | Filtering, alarm limits and hysteresis, tested on the host with a fake of the port |
-| SSH service | The product's priority map places Crux's worker threads (Kconfig, P8); the network stack is set up in Zephyr | `CONFIG_CRUX_SSH`, `CONFIG_CRUX_SSH_CLI`, `CONFIG_CRUX_SSH_SFTP`; Access accounts; the credential store | Which commands exist and who may run them, registered with the command line and Access |
+| Cyclic task timers of a ported real-time runtime | `k_thread` per timer at mapped priorities; `k_sem` or `k_timer` for a wakeable wait; recursive `k_mutex` | Monotonic timestamps, Logging, File for retained data, System watchdog | The runtime's scheduling logic, above its port layer |
+| `crux-controller` workload | Producer, consumer and queue as `k_thread` and `k_msgq`, once its migration is decided (today Crux Thread and Queue, F9) | Logging; File for its configuration record | `workload/` stays plain C with Host tests |
+| Temperature sensor (ADS112C04) | A Zephyr driver or `i2c_dt_spec` code behind `temperature_read(&millikelvin)`; emulator on `native_sim` | Status service for a remote reading; Configuration or File for limits | Filtering, limits and hysteresis, tested with a port fake |
+| SSH service | The priority map places Crux's SSH threads | `CONFIG_CRUX_SSH`, `_SSH_CLI`, `_SSH_SFTP`; Access; the credential store | Which commands exist and who may run them |
 
-*Why Logging and Time stay public while Thread does not* (inference): log records and clock readings merge without interaction, whatever the zone. Threads and locks interact through priorities, inheritance and pools, so two kinds in one image is a design problem, not a style choice. The consumer evidence matches: both consumers use Logging and Time on their main paths, and the real-time consumer bypasses Thread and Sync (F10).
+*Why these contracts stay public and Thread does not* (inference): Time, Logging, File, Configuration and System carry policy, or serve both consumers, and none of them decides scheduling. They are not free of interaction. Realtime Time and File take global locks (F7), which coexistence rule 5 handles. Threads and locks decide scheduling through priorities, inheritance and pools. Two kinds of them in one image is a design problem.
 
-### 5.3 Zones of a product under O4
+### 5.4 Domain state shared with service callbacks
 
-The three layers of [ADR-0001](../architecture.md#three-layers-for-a-product-adr-0001) stay. Only what each zone may call changes.
+Crux services call product code on their own threads (F17). The domain owns no lock, so the pattern goes into `templates/product` before any product migrates (P4):
+
+1. **One owner.** Each piece of domain state has one owning thread in the shell. Domain functions run only there.
+2. **Reads by snapshot.** The owner publishes a snapshot after each step. It uses C11 atomics (`<stdatomic.h>`, ISO C) for single values, or a double buffer whose swap an adapter protects with its own `k_mutex`. Status reads and reboot busy checks read the snapshot.
+3. **Writes by message.** Command and web handlers post requests to the owner's `k_msgq`, through an adapter. The owner applies them between steps. A handler that needs a result waits for a reply with a timeout.
+4. **Locks live in adapters.** Domain Host tests stay single-threaded and deterministic.
+
+The alternative is an exclusive-area port per product, with a `k_mutex` adapter and a Host fake. That is a small OSAL in every product, and it is not recommended.
+
+### 5.5 Zones of a product
+
+The three layers of [ADR-0001](../architecture.md#three-layers-for-a-product-adr-0001) stay.
 
 | Zone | May call | Must not call | Tested on |
 | --- | --- | --- | --- |
-| Domain | ISO C; the product's own ports; Crux public contracts (Time, Logging, File, Configuration, System, Netif, the Sockets profile) and service APIs | Zephyr; Crux-internal targets (Thread, Sync, Serial); composition interfaces; Devicetree identifiers | Linux Host: plain C with port fakes, plus Crux Host providers where it calls Crux |
-| Adapters, execution shell and composition | Any Zephyr API, Devicetree, driver or subsystem; Crux public contracts and service APIs; composition interfaces | Crux private headers, `ports/` include paths and Crux-internal targets | `native_sim` with emulators, then the board |
-| Crux | Its internal mechanisms; Zephyr inside providers | Product knowledge | Linux Host with test providers, `native_sim`, the board |
+| Domain | ISO C; product ports; Crux public contracts and service APIs | Zephyr; Thread, Sync, Queue, Serial (frozen); composition interfaces; Devicetree identifiers | Linux Host with port fakes, and Crux Host providers where it calls Crux |
+| Adapters, execution shell, composition | Any Zephyr API; Crux public contracts, service APIs, composition interfaces | Crux private headers and `ports/` include paths | `native_sim` with emulators, then the board |
 
-### 5.4 What O4 asks of each consumer
+### 5.6 What it asks of each consumer
 
-Effort figures are estimates (inference), not measured.
+| Consumer | Change | Effort (inference) |
+| --- | --- | --- |
+| `crux-controller` | None now; frozen headers keep working. If deprecation is decided: threads and queue move into Zephyr code | More than one file: `app/src/workload_thread.c` (195 lines, with its stop and join ordering). The S1 definition `app/conf/s1.conf:1` and its `native_sim` scenario. The two-header allow-list `scripts/check_boundary.py:55-58`, its test and its zone document. Its daily build against Crux main (ADR D8) breaks if Queue goes before the migration lands |
+| Runtime port | Timer wait to `k_sem` or `k_timer`; recursive locks stay native, a departure from its recorded plan (section 4.2) | Small, in its own repository, after its agreement |
+| Crux services | Per-service priority Kconfig; later, the internal mechanism per P9 | One Kconfig change now |
+| A new product | The three questions | None extra |
 
-| Consumer | Today | Under O4 | Effort |
-| --- | --- | --- | --- |
-| `crux-controller` | Crux Thread and Queue in `app/src`; Time, Logging and File; Host tests of plain C `workload/` (F9) | Its two threads and their queue move to `k_thread` and `k_msgq` in its Zephyr zone; `app/src` keeps Time, Logging and File | One file of 195 lines and its boundary allow-list; its own repository and session |
-| Runtime port | Native threads and native recursive locks already; a Crux semaphore and `crux_thread_sleep_until` in its timer wait (F10) | The timer wait moves to `k_sem` and `k_sleep` | Small; a private repository |
-| Crux services | Thread and Sync through public headers; Host tests on Linux providers (F1) | The same code; the headers' tier becomes Internal; worker priorities come from Kconfig (P8) | The Kconfig settings and a template example |
-| A new product | Three layers; its domain may use Crux Thread, Sync and Queue | The three questions; a plain C domain with Crux public contracts; execution in Zephyr | None extra, and fewer choices |
+**Migration note for Queue to `k_msgq`.** Crux Queue is not a thin copy of `k_msgq`.
+- It is a ring buffer in common code (`components/queue/src/queue.c:15`), under one metadata `k_mutex` with a `k_condvar` per queue on Zephyr (`components/queue/ports/zephyr/queue_port.c:6-7`).
+- Handles carry slot and generation, so stale handles are rejected.
+- Destroy returns BUSY while calls are active or waiting.
+- Waits are finite: zero polls, with no forever, and one deadline covers lock admission and the wait.
+- It is thread context only (`components/queue/include/crux/queue.h:3-7`). The default is a cooperative stop, and a purge is not an abort (`docs/messaging-contract.md:60-62`).
+- The pool is fixed at 4 × 16 × 64 bytes.
+
+A product keeps these properties after the move only if its adapter provides them.
+
+### 5.7 What "Internal" would mean, if chosen later
+
+ADR-0001 defines Internal for private headers, ports and test controls (`:224`). Thread and Sync differ:
+- They are public `crux::` targets with headers in `include/crux/`.
+- Compositions set their pools in `prj.conf` (F5), and those symbols are interface under rule 5.
+
+Internal for them would therefore extend `:224`. The pool and stack symbols stay product-facing as resource budgets.
+
+A plain `deprecated` attribute would warn inside Crux's own services, which include these headers. Three ways out:
+- (a) A deprecation macro that expands only outside Crux targets, by a compile definition set on Crux component targets.
+- (b) An include root that only Crux targets get. This changes CMake and possibly `cmake/CruxConsumerBoundary.cmake`, which is protected.
+- (c) A label plus the template include check.
+
+Recommended then: (a) with (c).
 
 ## 6. Execution targets
 
 | Target | What runs | What it proves | What it cannot prove | Cost |
 | --- | --- | --- | --- | --- |
-| RT1060-EVKB (`mimxrt1060_evk@B//qspi`) | The product image: Zephyr, drivers, Crux services, native real-time threads | E4, in narrow slices: timing, interrupts, peripherals, persistence, priority interplay, the latency #174 adds | Other boards, endurance, production readiness; only what a recorded run covers (`docs/component-readiness.md:16`) | Highest: board time, owner approval per task, custody coordination. An E3 build alone is cheap and runs in CI |
-| `native_sim` (Dev Container and CI) | The real Zephyr kernel and subsystems, Crux's Zephyr providers, product adapters with Zephyr emulators, service images | E2: integration, kernel API use, deterministic ordering, emulated devices. ASan and UBSan exist as options (*untried here*, F13) | Timing, interrupt preemption, data races (one thread at a time), memory-mapped I/O, target memory (`docs/component-readiness.md:14`) | Moderate: a west workspace; CI shards 12.6 to 28.6 minutes (F14); Linux only, emulated amd64 on an arm64 Mac |
-| Linux Host unit and sanitizer builds | Crux portable code; services on Linux test providers; product domain code with port fakes | E1: logic, error paths, ASan, UBSan, ThreadSanitizer, fuzzing, mutants | Zephyr behaviour, priorities (all classes run at normal priority, F6), target ABI, anything about timing | Low per run; Host CI job 27.5 minutes (F14); about 1,600 lines of Linux providers to keep in step (F3) |
-| Future embedded Linux product | Nothing: not designed | — | — | Only on the trigger below |
+| RT1060-EVKB | The product image with Crux services and native real-time threads | E4 in narrow slices: timing, interrupts, peripherals, persistence, priority interplay, Sync latency | Other boards, endurance, production readiness (`docs/component-readiness.md:16`) | Highest: board time and owner approval per task; E3 builds are cheap in CI |
+| `native_sim` (Dev Container, CI) | Real Zephyr kernel, Crux's Zephyr providers, adapters with emulators, service images | E2: integration, kernel API use, deterministic ordering; ASan and UBSan documented, untried here (F13) | Timing, preemption, data races (one thread at a time), MMIO (`docs/component-readiness.md:14`) | Moderate: west workspace; shards 12.6 to 28.6 minutes; emulated on an arm64 Mac |
+| Linux Host unit and sanitizer builds | Crux portable code, services on Linux test providers, product domains with port fakes | E1: logic, error paths, ASan, UBSan, ThreadSanitizer for three suites, fuzzing, mutants | Zephyr behaviour, priorities (F6), timing | Low per run. Of the 27.5-minute job, 574 s is provenance and 151 s clang-tidy, not provider cost (F14). About 1,600 lines of providers to keep in step |
+| Future embedded Linux product | Not designed | — | — | Only on the trigger below |
 
-**The existing Linux providers under O4** (recommendation, P5):
+**Linux providers** (P7): keep them as test providers. Retire the GPIO, I2C and SPI Host fixtures with D4. Add none without a Crux test need. Decide on the rest with the O2-or-O4 decision. They stay "not production Embedded Linux" (`docs/thread-sync.md:204-205`).
 
-- **Keep as test providers**: Time (memory and Linux), Thread, Sync, Interrupt, Logging, File, System, Netif, and Serial (PTY, for the command line's console tests). They serve Crux's own service tests and product domain code that uses Crux's public contracts. They stay "not production Embedded Linux", as `docs/thread-sync.md:204-205` already says.
-- **Retire with their APIs**: the GPIO, I2C and SPI Host fixtures (D4) and the Queue Linux provider (P3).
-- **No new Linux provider** unless a Crux test needs one.
-- **Revisit** after the `native_sim` sanitizer probe and D10 phase 1. If they show `native_sim` gives the same evidence at a similar turnaround, remove the providers and move to O2.
-
-**Embedded Linux.** *Recommendation*: design nothing now. The trigger is a named product with a requirement that needs Linux, such as process isolation, an MMU or a rich user interface, and the owner's decision to support it. The boundary is then each Crux service that the product needs, ported to Linux services in the way Matter and OpenThread ports work. Several services would probably give way to Linux-native ones: SSH to OpenSSH, for example. The kernel layer is not the boundary. `README.md:5` should then say that Embedded Linux is not planned, and would be designed at the service boundary if a product needs it, so that it no longer reads against `docs/decisions/0001-application-boundary-and-api-stability.md:43` (P6).
+**Embedded Linux** (P8): design nothing now.
+- The trigger is a named product that needs Linux, such as for process isolation, an MMU or a rich interface, and the owner's decision.
+- The boundary is then each service the product needs, ported to Linux services as in Matter and OpenThread. Some services would give way to Linux-native ones, such as SSH to OpenSSH. This holds under O2 and O4 alike.
+- `README.md:5` should say that Embedded Linux is not planned for the foreseeable future, and would be designed at the service boundary if a product needs it. "For the foreseeable future" follows the owner's words in `:43`.
 
 ## 7. Coexistence in one image, and what to do with #174
 
-**Rules for an image where native Zephyr code and Crux run together** (recommendation, P8):
+**Rules for an image where Zephyr code and Crux run together** (P3, P4):
 
-1. **One priority map per product, declared once**, in composition. It lists every thread: native real-time threads, Zephyr's own threads (network, logging, work queues), and Crux's internal workers. Crux's classes are fixed at 4, 5 and 6 today (F4). A new Kconfig setting per class, defaulting to today's values, would let the map place them. These are new public Kconfig symbols under ADR-0001 rule 5, added without changing defaults.
-2. **One lock, one kind.** Product state is protected by product locks, `k_mutex` or `k_sem`. Crux's locks are inside Crux. A product never holds one of its locks while calling a Crux API that can call back into product code that takes the same lock.
-3. **No unbounded scheduler or interrupt lock in Crux.** A Crux section that locks the scheduler or interrupts states its bound, measured on the target. Crux makes no real-time promise (F6), so Crux workers belong below the product's real-time threads unless the product decides otherwise.
-4. **Real-time code calls only Crux APIs that take no lock.** The monotonic read is one (F7). Other calls belong on lower-priority threads until their locking is checked and stated.
-5. **Crux pools are resource budgets.** The product sets them by Kconfig and tests them in its own image.
+1. **One priority map per product, declared once.** It lists:
+   - native real-time threads;
+   - Zephyr's own threads (network, logging, work queues, the HTTP server that the web adapter sits on, `docs/architecture.md:287`);
+   - Crux's pool workers, at 4, 5 and 6 today (F4);
+   - SSH's native threads at the lowest application priority (F7).
 
-**What #174's constraints mean under these rules.** One CPU and no meta-IRQ threads fit the RT1060 today. The scheduler lock in every Sync call breaks rule 3 until it is measured. A Crux service thread taking a lock would delay a product's real-time thread for the longest metadata section, and nobody knows how long that is (F11). The raise from 64 to 256 mutexes served a consumer that, under rule 2, keeps its own native locks.
+   **Per-service priority settings** (P3) let the map place Crux's threads. Per-service settings survive O2 and O4. Per-class settings would become public interface tied to the internal shim.
+2. **The product sets Crux's resource budgets**: thread and mutex pools, and one stack size for every worker (F4, F5). Product callbacks run on those stacks (F17).
+3. **One lock, one kind.** Product state follows section 5.4. A product never holds a lock across a Crux call that can call back into code that takes it.
+4. **No unbounded scheduler or interrupt lock in Crux.** Any such section states a bound measured on the target. Crux workers sit below real-time threads unless the product decides otherwise.
+5. **Real-time code calls only Crux APIs that take no lock**, such as the monotonic read. Realtime Time, File, System, Queue and Serial take global locks (F7).
 
-**Recommendation for #174 (P7):** do not merge it as it is.
+**#174: do not merge it as it is** (P6).
 
-- Keep its regression test, which reads a holder's priority before, during and after the wait.
-- Choose the fix among the alternatives it lists, judged by rule 3. If the scheduler-lock design is still the best, measure its longest section on the EVKB before merging. That needs the owner's approval of a board run.
-- Drop the 64-to-256 change unless a Crux service needs it.
-- The defect itself must be fixed, because Sync stays as the services' lock: a service thread can stay boosted today.
+- Its scheduler lock breaks rule 4, unmeasured.
+- `create` scans the pool inside that lock, so the raise to 256 lengthens the worst case. That is reason enough to drop 256 under any option. 256 slots would not give recursion either (F6).
+- Fix the defect by slimming internal Sync:
+  - Composition-lifetime objects that embed a `k_mutex`, with no global metadata lock on Zephyr.
+  - `docs/thread-sync.md:213-217` already names composition-lifetime resources as the smaller alternative.
+  - Removing the metadata lock removes the defect's cause (F11), the scheduler lock and the pool limit, and keeps the Linux test provider.
+  - The services' 14 mutex and 7 semaphore creation sites (F1) bound the change. Whether all run at initialisation is part of the spike.
+- #174's third alternative, the native unlock outside the metadata section, is a smaller step in the same direction.
+- Keep #174's regression test, which reads a holder's priority before, during and after.
+- A slimmed Sync also eases a later move to O2.
 
 ## 8. Changes from ADR-0001, migration and missing evidence
 
-| ADR-0001 item | Under O4 | Owner decision |
+| ADR-0001 item | Now | Later (P9) |
 | --- | --- | --- |
-| D1 three layers | Kept. Amended: the domain owns no thread, lock or queue; the execution shell is adapter code | P1, P2 |
-| D2 Zephyr only in declared places | Kept | — |
-| D3 composition interface rules | Kept | — |
-| D4 no device model; I2C, SPI, GPIO retired | Kept. Extended to Queue and Serial | P3, P4 |
-| D5 tiers | Kept. Internal applied to Thread and Sync | P2 |
-| D6 change rules | Kept. The new priority Kconfig is an addition under rule 5 | P8 |
-| D7, D8, D9 | Kept. D8's contract tests still cover Thread and Sync, now for Crux's own use | — |
-| D10 experiment, phase 1 | Kept. Build B amended: plain C domain with Crux Time, Logging, and Configuration or File; threads in a Zephyr shell, not Crux Thread (`docs/decisions/0001-application-boundary-and-api-stability.md:374`) | P9 |
-| Decision 3, row "Time, Thread, Sync, Queue, Logging, File, Configuration with Host providers" (`:181`) | Split: Time, Logging, File, Configuration and System public with Host providers; Thread and Sync internal with Host providers for Crux's tests; Queue retired | P2, P3 |
-| Decision 5, H2 evidence cell (`:345`) | Corrected: the cited Host tests use no Crux provider (F12) | P10 |
-| Owner's "no non-Zephyr port" (`:43`) | Kept | — |
+| D1 three layers | Kept. New product code does not use the four frozen headers (P2) | The domain owns no threads, if the deprecations are decided |
+| D2, D3, D6 to D8 | Kept. D6 rule 5 applies to the new priority Kconfig | — |
+| D4 device model | Kept | Queue and Serial may join the retirement |
+| D5 tiers | Kept | Internal for Thread and Sync (section 5.7) |
+| D9 | Kept | — |
+| D10 phase 1 | Build B kept; Build B', the probe and the spike added (P5) | Results feed P9 |
+| Decision 3 row "... with Host providers" (`:181`) | Unchanged | Split, if the deprecations are decided |
+| Decision 5, option c (`:355-357`) | Not adopted | Reconsidered with D10's result, as the ADR says |
+| Decision 5, H2 evidence (`:345`) | Corrected by F12 (P10) | — |
 
-*No owner decision of ADR-0001 is reversed.* Statements in Decision 3 and the D10 specification would change, and each change is listed above as an owner decision.
+**Migration steps, in order:**
 
-**Migration steps, in order** (recommendation):
+1. The owner's decisions P1 to P10.
+2. ADR-0002 records them and amends ADR-0001 by reference (P10).
+3. Documentation updates. These are not protected:
+   - `docs/architecture.md`, `docs/native-interface-policy.md` and `docs/thread-sync.md`;
+   - `docs/messaging-contract.md` and `docs/serial-contract.md` (the freeze);
+   - `docs/component-readiness.md`;
+   - `README.md:5`, the Embedded Linux wording;
+   - `README.md:9,14-15`, which list Thread, Sync, Queue and Serial for applications.
+   - `CONTRIBUTING.md:45` must change too, and it is protected.
+4. The template's include check and shared-state example, and per-service priority Kconfig, by test-driven development.
+5. Replace #174 with the slim-Sync fix.
+6. D10 phase 1 with B', the `native_sim` sanitizer probe, and the slim-Sync spike.
+7. P9's decision. If the deprecations are decided:
+   - `crux-controller` migrates first, coordinated with its session;
+   - tier table and `Status:` lines (ADR-0001 follow-up 5);
+   - `CRUX_DEPRECATED` at the first tag, removal in the next;
+   - `docs/composition-interfaces.md:7,35`, which name `crux::queue_linux`, is updated.
 
-1. The independent and adversarial reviews of this note, then the owner's decisions P1 to P10.
-2. A new ADR-0002 records the accepted decisions and amends ADR-0001 by reference. Documentation updates follow: `docs/architecture.md`, `docs/native-interface-policy.md`, `docs/thread-sync.md`, `docs/messaging-contract.md`, `docs/serial-contract.md`, `docs/component-readiness.md`, and `README.md` lines 5, 33 and 37. None of these is protected.
-3. Freeze Thread, Sync, Queue and Serial against new features, by documentation.
-4. Rescope #174 (P7).
-5. The priority Kconfig and an example priority map in `templates/product`, by test-driven development.
-6. D10 phase 1 with Build B amended, and the `native_sim` sanitizer probe.
-7. `crux-controller` moves its workload threads and queue to its Zephyr zone (195 lines in `app/src/workload_thread.c`). That is that repository's change, coordinated with its session.
-8. Tier table and `Status:` lines (ADR-0001 follow-up 5), with Internal for Thread, Sync and Interrupt. `CRUX_DEPRECATED` on Queue, Serial, GPIO, I2C and SPI at the first tag.
-9. Removal in the next tagged release.
-10. Optional: a check that rejects internal targets in a product's domain.
+**Protected paths.** Each needs the owner's approval of that change when it is made.
 
-**Protected paths that would be touched.** Each needs the owner's approval of that change when it is made.
-
-| Path | Step | Why |
+| Path | When | Why |
 | --- | --- | --- |
-| `scripts/test-messaging.sh`, `scripts/test-serial.sh`, `scripts/test-gpio.sh`, `scripts/test-i2c.sh`, `scripts/test-spi.sh` | 9 | Removal of the retired public APIs' runners, or their reduction to internal tests |
-| `.github/workflows/host.yml:63,71`, `.github/workflows/zephyr.yml:167,173,188,193,198` | 9 | The workflow steps that call those runners |
-| `cmake/CruxConsumerBoundary.cmake`, `scripts/check-native-interfaces.py` | 10, optional | Enforcing Internal for products |
-| `CONTRIBUTING.md` | 2, optional | Naming the developer rule next to the public-header rules |
-| `AGENTS.md` | None needed | `AGENTS.md:22` already says to use Zephyr-native kernel facilities when suitable |
-| `CMakePresets.json`, `scripts/check-host.sh` | None under O4 | O2 would change them |
-| `docs/evidence/` | None | Retained evidence stays unchanged |
+| `CONTRIBUTING.md:45` | Now (P2) | Names `crux::queue` and `crux::thread` as example application targets |
+| `CONTRIBUTING.md:40` | Later, if Internal (P9) | "Publish only interfaces required by consumers" against headers that stay public but internal |
+| `scripts/test-messaging.sh`, `scripts/measure-messaging.sh:36,58`, `scripts/analyze-host.sh:83-84`, `scripts/test-m5-integrated-smoke.sh:32`, `scripts/measure-tidy-coverage.py:56`, `cmake/CruxConsumerBoundary.cmake:90` | Later, if Queue is removed | Queue runners, measurements, clang-tidy file list, a required Kconfig option, a tidy-coverage rule, the `crux_queue_linux` guard |
+| `.github/workflows/host.yml:63,105`, `.github/workflows/zephyr.yml:167-168,259,340-345` | Later, with the above | Queue steps and artefacts, and the integrated smoke step that requires `CONFIG_CRUX_QUEUE` |
+| `scripts/test-serial.sh`, `.github/workflows/host.yml:71`, `.github/workflows/zephyr.yml:173` | Later, if Serial's public tests shrink | Serial runners |
+| `scripts/test-gpio.sh`, `scripts/test-i2c.sh`, `scripts/test-spi.sh`, `.github/workflows/zephyr.yml:188,193,198` | D4 removal, already decided | Retired APIs' runners |
+| `cmake/CruxConsumerBoundary.cmake`, `scripts/check-native-interfaces.py` | Optional, later | Enforcing Internal for products |
+| `CMakePresets.json`, `scripts/check-host.sh` | Only under O2 | Removing the Linux providers |
+| `AGENTS.md`, `docs/evidence/` | None | `AGENTS.md:22` already prefers Zephyr-native kernel facilities; evidence stays unchanged |
 
 **Evidence still missing, and the cheapest probe for each:**
 
 | Gap | Cheapest probe | Needs |
 | --- | --- | --- |
-| Does `native_sim` give ASan and UBSan results for a services image, and at what turnaround compared with `host-sanitize`? | One CI run of an existing `native_sim` services image with `CONFIG_ASAN=y` and `CONFIG_UBSAN=y`, timed | CI only |
-| H2: is Host execution of Crux-using domain code worth its cost against `native_sim`? | D10 phase 1, with Build B amended | Approved for phase 1 |
-| The latency that #174's scheduler lock adds | A cycle-counter measurement of the longest Sync section on the EVKB, or a fix that takes no scheduler lock | A board run needs the owner's approval |
-| Jitter of a native real-time thread while Crux services run | A board run of a high-priority native thread with the services image composed | Board approval, and a composed image that does not exist yet |
-| Edit-to-result turnaround of Host and `native_sim` tests | Timestamps in CI logs, or D10's turnaround measure | CI only |
-| Whether Crux services call product callbacks while holding an internal lock (rule 2) | Code review of the services' callback paths | Reading only |
+| `native_sim` ASan and UBSan for a services image, and turnaround against `host-sanitize` | One CI run of an existing services image with `CONFIG_ASAN=y` and `CONFIG_UBSAN=y`, timed | CI only |
+| H2, and O1 against O4 for domain code | D10 phase 1 with B and B' | Phase 1, approved |
+| Whether services can use a slimmed Sync | A spike: composition-lifetime objects embedding `k_mutex`, no metadata lock, existing service tests on both providers | CI only |
+| Latency of any scheduler lock in Sync | A cycle-counter measurement on the EVKB, avoided entirely by the slim fix | A board run needs approval |
+| Jitter of a native real-time thread with Crux services running | A board run with the services composed | Board approval and an image that does not exist yet |
+| Whether services hold an internal lock while calling product code (rule 3) | Code review of the F17 callback paths | Reading only |
 
 ## 9. Owner decisions
 
 | # | Decision | Recommendation | Reason | Alternative |
 | --- | --- | --- | --- | --- |
-| P1 | Adopt O4 as the platform direction, with the three-question developer rule | Approve | It scores highest, follows what both consumers do on their critical paths, and gives one rule | O2, if one OS API matters more than Host tests of the services. Or O4a, for the smallest change |
-| P2 | Make Thread and Sync Crux-internal: tier Internal, no real-time extension, product use deprecated at the first tag | Approve | Real-time code bypasses them already; the services still need them; a second thread API in products is the confusion named | Keep them public as Experimental with a non-real-time rule (O4a) |
-| P3 | Retire Queue: freeze now, deprecate at the first tag, remove in the next; `crux-controller` moves to `k_msgq` | Approve | No Crux component uses it; it is a thin copy of `k_msgq` | Make it internal instead, or keep it public until D10 reports |
-| P4 | Make Serial internal to the command line's console, and deprecate product use at the first tag | Approve | It is the last device API after D4; its only Crux consumer is the console | Keep it public as Experimental until the console has a Zephyr composition |
-| P5 | Keep the Linux providers as test providers; retire the GPIO, I2C, SPI and Queue Host providers with their APIs; add none without a Crux test need; revisit after the probes | Approve | They hold the services' Host and ThreadSanitizer evidence | Remove them now (O2) |
-| P6 | Embedded Linux: no design now; a named product and your decision trigger it; the boundary is the service; reword `README.md:5` | Approve | It matches your decision of no non-Zephyr port and the precedents | Delete the sentence (Zephyr only, fully), or keep it, which leaves it reading against ADR-0001 |
-| P7 | #174: do not merge as it is. Keep its test; pick a fix that meets rule 3, or measure the scheduler lock on the board; drop the 256 change | Approve | The scheduler lock can delay native real-time threads by an unmeasured amount | Merge as it is and document the one-CPU limit and the unmeasured delay |
-| P8 | Adopt the coexistence rules, with a new Kconfig setting per Crux thread class, defaulting to today's values | Approve | Products need to place Crux's workers in their priority map | Document the rules without the Kconfig settings, leaving Crux's priorities fixed at 4, 5 and 6 |
-| P9 | Amend D10 phase 1 Build B: a plain C domain with Crux Time, Logging, and Configuration or File; threads in a Zephyr shell. Add the `native_sim` sanitizer probe | Approve | The experiment should measure the direction chosen, not the one left | Run Build B as approved, which measures O1 |
-| P10 | Record the result as a new ADR-0002 that amends ADR-0001 by reference, including the corrected H2 evidence | Approve | It keeps the accepted record intact and the change traceable | Add a dated amendment section to ADR-0001 itself |
+| P1 | Adopt the three-question rule for product code now, in the documentation and the product template | Approve | It fits the real-time evidence, is the same under O2 and O4, and is reversible | O4a: keep Crux Thread open for non-real-time product work |
+| P2 | Freeze Thread, Sync, Queue and Serial for new product code: no new features, no real-time extension; template include check; change `CONTRIBUTING.md:45` | Approve | Stops growth of a second kernel API without breaking `crux-controller` before D10 | Leave them open until D10 (O1 as is) |
+| P3 | Per-service priority Kconfig for Crux's workers and SSH threads, defaulting to today's priorities | Approve | Products must place Crux threads; per-service settings survive O2 and O4 | Three per-class settings: simpler, but public interface tied to the shim |
+| P4 | Put the shared-state pattern (section 5.4) in `templates/product` before any product migrates | Approve | Service callbacks run on Crux threads (F17), and the domain owns no lock | An exclusive-area lock port per product |
+| P5 | D10 phase 1: Build B as approved, plus Build B'; add the `native_sim` sanitizer probe and the slim-Sync spike | Approve | Measures O1 against O4 directly, without turning the test into a confirmation | B only, with no direct comparison; or replace B with B', which tests only the chosen direction |
+| P6 | #174: do not merge as is. Fix the defect by slimming internal Sync, or by #174's third alternative; no scheduler lock; drop 256; keep its test; tell the runtime port that its locks stay native | Approve | Removes the defect's cause and an unmeasured system-wide delay | Merge as is and document one CPU and the unmeasured delay |
+| P7 | Keep the Linux providers as test providers; add none without a Crux test need; decide the rest with P9 | Approve | They carry the services' Host suites; removing them now preempts the probe | Remove them now (O2) |
+| P8 | Reword `README.md:5`: Embedded Linux not planned for the foreseeable future; if needed, designed at the service boundary | Approve | Uses the owner's own wording in ADR-0001 | Keep it, which reads against ADR-0001, or delete it |
+| P9 | Defer to after D10, the probe and the spike: the Internal tier and deprecations, O2 or O4 for internals, the Linux providers. Fix the rule before the runs. Proposed: deprecate the four for products if B' meets the ADR's limits against B (within 1.3 times the effort, domain tests on Host). Choose O2 if `native_sim` sanitizers work within twice the `host-sanitize` time and the services' concurrency tests can move; otherwise keep the slim shim (O4) | Approve | Decides with evidence, as on 12 November | Decide the deprecations now (the first version's O4), which takes up option c untested |
+| P10 | ADR-0002 records P1 to P9 and the corrected H2 evidence, amending ADR-0001 by reference | Approve | Keeps the accepted record intact and the change traceable | A dated amendment section in ADR-0001 |
 
 ## 10. Limits of this review
 
-- **Not built or run.** No code was compiled and no test was run for this review. The CI times are from two recorded runs (F14).
-- **External facts.** The research passes read pages through a fetch tool that summarises them, so their wording is paraphrase. Several Pigweed, Matter, OpenThread and nRF Connect SDK details are marked *unverified* in section 3.
-- **Scores are judgement.** The weights and scores are this review's reading of the evidence. Their sensitivity is stated in section 4.7.
-- **The runtime port is private.** Its records were read only for generic facts (F10). A reviewer without access to it can check only what #174 states.
-- **`crux-controller`** was read at `405cce47ed` through the GitHub API, not from a local clone.
-- **Line counts** are raw `wc -l` of `.c` and `.h` files and include comments and blank lines.
-- **Not examined.** The services' callback paths and lock use (rule 2), the effort to migrate the runtime port's timer wait, and whether a fix for #174 exists that needs neither a scheduler lock nor an unbounded inversion.
-- **Planning documents** that are maintained outside this repository were not used. Where the README and ADR-0001 differ on Embedded Linux, only those two are cited.
+- No code was built or run. The CI times are from two recorded runs (F14).
+- External facts are paraphrased by a fetch tool, and several are marked *unverified*. The Matter and Memfault lock shims come from a reviewer's memory. AUTOSAR runnables are general practice, not fetched.
+- Weights and scores are judgement, and section 4.9 states their range.
+- The runtime port is private. Only its generic needs are used, and a public reader cannot check them.
+- `crux-controller` was read at `405cce47ed` through the GitHub API.
+- Line counts are raw `wc -l` and include comments.
+- Not examined:
+  - the services' callback paths and lock use (rule 3);
+  - whether all Sync creations happen at initialisation;
+  - a single Crux service executor, such as a `k_work_q`, in place of five workers;
+  - whether `native_sim` builds natively on arm64 Linux.
+- Planning documents maintained outside this repository were not used. On Embedded Linux, only the README and ADR-0001 are cited.
