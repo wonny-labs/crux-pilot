@@ -231,6 +231,61 @@ ZTEST(sync_priority, test_give_lets_the_higher_taker_run_before_it_returns)
     zassert_equal(crux_semaphore_destroy(&shared_semaphore), CRUX_OK);
 }
 
+/* Destroy does not wait for a call in progress: the woken thread runs before the signaller's
+ * give or unlock has returned, so its destroy finds that call still admitted. */
+static crux_status_t destroy_result;
+
+static void take_then_destroy(void *unused1, void *unused2, void *unused3)
+{
+    (void)unused1;
+    (void)unused2;
+    (void)unused3;
+    crux_semaphore_t copy = shared_semaphore;
+    waiter_result = crux_semaphore_take(copy, 1000);
+    destroy_result = crux_semaphore_destroy(&copy);
+    atomic_set(&waiter_done, 1);
+}
+
+static void lock_unlock_then_destroy(void *unused1, void *unused2, void *unused3)
+{
+    (void)unused1;
+    (void)unused2;
+    (void)unused3;
+    crux_mutex_t copy = shared_mutex;
+    waiter_result = crux_mutex_lock(copy, 1000);
+    if (waiter_result == CRUX_OK) {
+        waiter_result = crux_mutex_unlock(copy);
+    }
+    destroy_result = crux_mutex_destroy(&copy);
+    atomic_set(&waiter_done, 1);
+}
+
+ZTEST(sync_priority, test_destroy_by_the_woken_taker_is_busy_until_the_give_returns)
+{
+    k_thread_priority_set(k_current_get(), HOLDER_PRIORITY);
+    destroy_result = CRUX_ERR_IO;
+    zassert_equal(crux_semaphore_create(0, 1, &shared_semaphore), CRUX_OK);
+    start_waiter(take_then_destroy, 0);
+    zassert_equal(crux_semaphore_give(shared_semaphore), CRUX_OK);
+    zassert_equal(atomic_get(&waiter_done), 1);
+    zassert_equal(waiter_result, CRUX_OK);
+    zassert_equal(destroy_result, CRUX_ERR_BUSY, "the give was still in progress");
+    zassert_equal(k_thread_join(&threads[0], K_SECONDS(5)), 0);
+    zassert_equal(crux_semaphore_destroy(&shared_semaphore), CRUX_OK);
+}
+
+ZTEST(sync_priority, test_destroy_by_the_woken_locker_is_busy_until_the_unlock_returns)
+{
+    destroy_result = CRUX_ERR_IO;
+    hold_shared_mutex();
+    start_waiter(lock_unlock_then_destroy, 0);
+    zassert_equal(crux_mutex_unlock(shared_mutex), CRUX_OK);
+    zassert_equal(atomic_get(&waiter_done), 1);
+    zassert_equal(waiter_result, CRUX_OK);
+    zassert_equal(destroy_result, CRUX_ERR_BUSY, "the unlock was still in progress");
+    release_shared_mutex();
+}
+
 static uint32_t stress_count;
 static atomic_t stress_errors;
 

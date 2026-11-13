@@ -20,7 +20,8 @@ For application/composition responsibilities, see the [architecture](architectur
   without native headers/types. Consumers link `crux::thread` and/or `crux::sync`.
   Final composition selects each native implementation independently. Sync uses
   native OS identity and does not depend on Crux Thread. Each component owns its
-  resource metadata, lock and deadline helpers; neither accesses the other's state.
+  resource metadata, its protection (a lock in Thread, atomics in Sync) and deadline
+  helpers; neither accesses the other's state.
   Providers own native objects, stacks, configuration and private headers.
   Thread additionally depends on Time for typed monotonic observation/deadlines;
   Time does not depend on Thread or Sync, and monotonic use requires no RTC/init.
@@ -218,8 +219,14 @@ Limits:
 - Lock-free 32-bit and identity-sized atomics are required (a pointer on Zephyr,
   `unsigned long` for glibc `pthread_t`); the build fails without them, for example
   on ARMv6-M. There is no CPU-count, meta-IRQ or scheduler assumption and no scheduler
-  or interrupt lock. A compare-and-swap retries only when another thread changed the
-  same slot word.
+  or interrupt lock. A compare-and-swap loop runs again only after another thread
+  changed the same word or, on load-linked/store-conditional processors, after a
+  spurious failure; no Sync call waits for another.
+- Destroy no longer waits for an operation in progress. It returns busy while another
+  thread's call on the same object has not returned, including a give or unlock that
+  has already woken the destroying thread: on Zephyr a higher-priority waiter runs
+  before the signaller's call returns. Join the signalling thread first, or retry on
+  busy. With the old metadata mutex, "signal, then the woken waiter destroys" succeeded.
 - At most 16383 operations can be admitted on one object at a time; another returns
   no-resources, and destroy returns busy.
 - Create checks the slots one at a time. While other threads create and destroy
@@ -277,7 +284,7 @@ variant. Zephyr cross-builds do not establish physical board behavior.
   timeout ownership failure on its Zephyr revision. Those observations are about
   that recorded pin, not a claim about all POSIX or current upstream Zephyr.
 - **Separate component ownership.** Thread and Sync have independent native state,
-  metadata protection and deadline helpers. Small private duplication avoids a
+  metadata (Thread under a lock, Sync with atomics) and deadline helpers. Small private duplication avoids a
   shared provider dependency; Sync relies on native identity, not a Crux worker.
 
 The [archived decision and approval record](history/execution-contract-proposal.md)
