@@ -1,6 +1,6 @@
 # Platform direction review: Zephyr, Linux and the application API
 
-Status: **decided by the owner on 13 November 2026**: P1 to P10 in [section 9](#9-owner-decisions) were approved as recommended, and [ADR-0002](../decisions/0002-platform-direction-zephyr-execution-crux-services.md) records them. This note stays as the evidence behind that record. It was revised after an independent review (REVISE) and an adversarial review, then passed an independent review. It changes no code, check, contract or protected path. Written on 13 November 2026 against main `828021cf`.
+Status: **decided by the owner on 13 November 2026** (at 08:12:55 UTC by the session transcript; after that, P2, P4 and P6 in section 9 were reworded to apply the independent re-check's non-blocking points, and no decision changed: Build B's exemption follows from P5's "Build B as approved", and the requirement for the runtime port's agreement was already in sections 4.2 and 5.6 at `b43d40ba`): P1 to P10 in [section 9](#9-owner-decisions) were approved as recommended, and [ADR-0002](../decisions/0002-platform-direction-zephyr-execution-crux-services.md) records them. This note stays as the evidence behind that record. It was revised after an independent review (REVISE) and an adversarial review, then passed an independent review. It changes no code, check, contract or protected path. Written on 13 November 2026 against main `828021cf`.
 
 **Sources.** Repository facts are cited as `path:line` at `828021cf`. `crux-controller` facts are from its public `main` at `405cce47ed`. One further consumer is external and private: it ports a third-party real-time runtime onto Crux, and is called the **runtime port** below. Only its generic needs are stated. External facts come from two research passes, one on other platforms and one on drivers and host execution. They are given as those passes report them, with their URLs, and their *unverified* marks are kept.
 
@@ -106,7 +106,7 @@ Condensed from the two research passes. In "Outcome", a statement is fact where 
 | F14 | Host CI job, 12 November: 27.5 minutes, including 574 s of build provenance safeguards, 151 s of clang-tidy and 268 s of host sanitizers (run 43321893524). Zephyr shards: 12.6 to 28.6 minutes (run 43321893624) | `gh run view` |
 | F15 | Provisional tiers: Thread, Sync, Queue, Serial, Logging, System Experimental; Time, File, Netif, Sockets Unstable | `docs/component-readiness.md:43-56` |
 | F16 | Linux Host is a development and test environment. Embedded Linux is a longer-term goal and a future variant | `README.md:5,33,37,39`; `docs/architecture.md:11` |
-| F17 | Services call product code on their own threads or on the caller's: command and web handlers and the reboot busy check run on a Crux thread, and a status read runs on the caller's thread, which need not be a Crux thread, and may run concurrently | `components/cli/include/crux/cli.h:61`; `components/web/include/crux/web.h:66`; `components/mgmt_status/include/crux/management_status.h:62`; `components/reboot/include/crux/reboot.h:98,106` |
+| F17 | Services call product code on several threads: a command handler runs on the thread of its session (console or SSH); a web handler runs on the single Zephyr HTTP server thread; the reboot busy check runs on the reboot worker, a Crux thread, and the reboot policy on the server thread for a request and on the worker for the second check; a status read runs on the caller's thread, which need not be a Crux thread, and may run concurrently | `components/cli/include/crux/cli.h:6,52`; `components/web/include/crux/web.h:9-10`; `components/mgmt_status/include/crux/management_status.h:62`; `components/reboot/include/crux/reboot.h:89-90,101`; `docs/architecture.md:287` |
 | F18 | A POSIX subset was evaluated. `PTHREAD_PRIO_INHERIT` returned `ENOTSUP` at the pin. Timed waits convert realtime deadlines. Message queues allocate from the heap. Native and POSIX images used 52,328/17,412 and 73,928/82,516 bytes of flash/RAM, not all of it API overhead. POSIX stays an option for another evidenced consumer | `docs/execution-profile.md:64-67,131-134,143`; `docs/thread-sync.md:218-224` |
 
 ### 4.2 What consumers asked for
@@ -206,7 +206,7 @@ What changed from the first version, which gave O4 395 and O2 370:
   - No product uses a Crux Host provider (F12).
   - O4a fits both consumers most closely, so it scores highest here.
 - **C6.** It contradicted section 6. Under the service-boundary rule, internal providers give a Linux product nothing.
-- **C7.** It claimed that kernel changes reach only two internal mechanisms. At least six Zephyr ports call the kernel directly (F7), and others, such as Logging, Interrupt and Netif, also do, and `k_mutex`, `k_sem` and `k_thread` are among Zephyr's most stable APIs.
+- **C7.** It claimed that kernel changes reach only two internal mechanisms. At least six Zephyr ports call the kernel directly (F7), and the Web adapter (`components/web/ports/zephyr/web_http_server.c`) does too, and `k_mutex`, `k_sem` and `k_thread` are among Zephyr's most stable APIs.
 
 **Range.** Defensible one-point changes move each of O2 and O4 between about 365 and 390: O2's C4 at 2, C1 at 4 for both, or O4's C6 at 3 for the public contracts' Linux providers. **The matrix does not separate O2 from O4.** Both stay ahead of O4a by at least 20 points, and of O1 and O3 by at least 100. The choice between O2 and O4 is an engineering choice inside Crux, left to the evidence (section 5.1).
 
@@ -261,7 +261,7 @@ Today's tiers are the provisional ones in `docs/component-readiness.md:42-69`. "
 
 ### 5.4 Domain state shared with service callbacks
 
-Crux services call product code on their own threads, and a status read runs on the caller's thread, which need not be a Crux thread (F17). The domain owns no lock, so the pattern goes into `templates/product` before any product migrates (P4):
+Crux services call product code on the console or SSH session thread, the HTTP server thread, the reboot worker, and, for a status read, the caller's thread, which need not be a Crux thread (F17). The domain owns no lock, so the pattern goes into `templates/product` before any product migrates (P4):
 
 1. **One owner.** Each piece of domain state has one owning thread in the shell. Domain functions run only there.
 2. **Reads by snapshot.** The owner publishes a snapshot after each step. It uses C11 atomics (`<stdatomic.h>`, ISO C) for single values, or a double buffer whose swap an adapter protects with its own `k_mutex`. Status reads, which run on the caller's thread and may be concurrent, and reboot busy checks read the snapshot.
@@ -340,7 +340,7 @@ Recommended then: (a) with (c).
    - SSH's native threads at the lowest application priority (F7).
 
    **Per-service priority settings** (P3) let the map place Crux's threads. Per-service settings survive O2 and O4. Per-class settings would become public interface tied to the internal shim.
-2. **The product sets Crux's resource budgets**: thread and mutex pools, and one stack size for every worker (F4, F5). Product callbacks on Crux threads run on those stacks (F17).
+2. **The product sets Crux's resource budgets**: thread and mutex pools, and one stack size for every worker (F4, F5). Product callbacks that run on a Crux worker use those stacks (F17).
 3. **One lock, one kind.** Product state follows section 5.4. A product never holds a lock across a Crux call that can call back into code that takes it.
 4. **No unbounded scheduler or interrupt lock in Crux.** Any such section states a bound measured on the target. Crux workers sit below real-time threads unless the product decides otherwise.
 5. **Real-time code calls only Crux APIs that take no lock**, such as the monotonic read. Realtime Time, File, System, Queue and Serial take global locks (F7).
@@ -424,7 +424,7 @@ Recommended then: (a) with (c).
 | P1 | Adopt the three-question rule for product code now, in the documentation and the product template | Approve | It fits the real-time evidence, is the same under O2 and O4, and is reversible | O4a: keep Crux Thread open for non-real-time product work |
 | P2 | Freeze Thread, Sync, Queue and Serial for new product code: no new features, no real-time extension; template include check, from which D10's Build B is exempt; change `CONTRIBUTING.md:45` | Approve | Stops growth of a second kernel API without breaking `crux-controller` before D10 | Leave them open until D10 (O1 as is) |
 | P3 | Per-service priority Kconfig for Crux's workers and SSH threads, defaulting to today's priorities | Approve | Products must place Crux threads; per-service settings survive O2 and O4 | Three per-class settings: simpler, but public interface tied to the shim |
-| P4 | Put the shared-state pattern (section 5.4) in `templates/product` before any product migrates | Approve | Service callbacks run on Crux threads or the caller's thread (F17), and the domain owns no lock | An exclusive-area lock port per product |
+| P4 | Put the shared-state pattern (section 5.4) in `templates/product` before any product migrates | Approve | Service callbacks run on session, server, worker or caller threads (F17), and the domain owns no lock | An exclusive-area lock port per product |
 | P5 | D10 phase 1: Build B as approved, plus Build B'; add the `native_sim` sanitizer probe and the slim-Sync spike | Approve | Measures O1 against O4 directly, without turning the test into a confirmation | B only, with no direct comparison; or replace B with B', which tests only the chosen direction |
 | P6 | #174: do not merge as is. Fix the defect by slimming internal Sync, or by #174's third alternative; no scheduler lock; drop 256; keep its test; get the runtime port's agreement that its locks stay native | Approve | Removes the defect's cause and an unmeasured system-wide delay | Merge as is and document one CPU and the unmeasured delay |
 | P7 | Keep the Linux providers as test providers; add none without a Crux test need; decide the rest with P9 | Approve | They carry the services' Host suites; removing them now preempts the probe | Remove them now (O2) |
