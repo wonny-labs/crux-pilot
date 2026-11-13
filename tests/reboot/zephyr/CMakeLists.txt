@@ -1,0 +1,76 @@
+# Stage A of the reboot pilot (ADR-0002 P9): the existing reboot suites of tests/reboot, compiled
+# unchanged, on native_sim over the Crux Thread and Sync Zephyr providers. The sources of the service
+# are not touched and no assertion of a suite is changed. What differs from the Host is how a case is
+# isolated, since Zephyr has no fork(): zephyr_case.c runs one case for each process, and
+# scripts/test-reboot-native.sh starts the image once for each case.
+#
+# One image for each wrapping set. REBOOT_IMAGE selects it:
+#   core            service, steps, concurrency and reason, as on the Host
+#   lock_faults     the suite whose link wraps crux_mutex_lock
+#   sleep_provider  the sleep provider, whose link wraps crux_semaphore_take
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_reboot_native LANGUAGES C)
+
+set(REBOOT_IMAGE "core" CACHE STRING "Which suites this image holds: core, lock_faults or sleep_provider")
+set(repo "${CMAKE_CURRENT_LIST_DIR}/../../..")
+set(reboot_tests "${repo}/tests/reboot")
+set(access_tests "${repo}/tests/access")
+
+# A suite's main() is the Host entry. Here it is a function that the ztest case calls.
+function(reboot_suite_source file name)
+    set_source_files_properties("${file}" PROPERTIES COMPILE_DEFINITIONS "main=reboot_${name}_main")
+endfunction()
+
+target_sources(app PRIVATE main_${REBOOT_IMAGE}.c)
+# compat/ holds the pthread.h that the suites find first; see there for why.
+target_include_directories(app BEFORE PRIVATE ${CMAKE_CURRENT_LIST_DIR}/compat)
+target_include_directories(app PRIVATE ${reboot_tests} ${access_tests}
+    ${repo}/components/reboot/src ${repo}/components/reboot/include
+    ${repo}/components/access/src ${repo}/components/access/include ${repo}/components/access/adapter
+    ${repo}/components/configuration/include)
+target_link_libraries(app PRIVATE crux::thread crux::sync crux_service_priority_placement)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+
+if(REBOOT_IMAGE STREQUAL "core" OR REBOOT_IMAGE STREQUAL "lock_faults")
+    # The service and the Access core, as the Host test composition builds them.
+    target_sources(app PRIVATE
+        ${repo}/components/reboot/src/reboot.c
+        ${repo}/components/configuration/src/configuration_text.c
+        ${repo}/components/access/src/access.c
+        ${repo}/components/access/src/access_accounts.c
+        ${repo}/components/access/src/access_delay.c
+        ${repo}/components/access/src/access_login.c
+        ${repo}/components/access/src/access_record.c
+        ${repo}/components/access/src/access_session.c
+        ${access_tests}/fake_ports.c ${access_tests}/access_test.c
+        ${reboot_tests}/fake_port.c ${reboot_tests}/reboot_test.c)
+    target_sources(app PRIVATE zephyr_case.c compat_pthread.c)
+    target_compile_definitions(app PRIVATE CRUX_ACCESS_TESTING=1 CRUX_ACCESS_TEST_COMPOSITION=1)
+    # reboot_test.c forks each case on the Host. Its two entry points are renamed away and
+    # zephyr_case.c supplies the Zephyr ones.
+    set_source_files_properties(${reboot_tests}/reboot_test.c PROPERTIES COMPILE_DEFINITIONS
+        "reboot_run_case=reboot_host_run_case;reboot_finish=reboot_host_finish")
+endif()
+
+if(REBOOT_IMAGE STREQUAL "core")
+    foreach(suite IN ITEMS service steps concurrency reason)
+        target_sources(app PRIVATE ${reboot_tests}/${suite}.c)
+        reboot_suite_source(${reboot_tests}/${suite}.c ${suite})
+        set_source_files_properties(${reboot_tests}/${suite}.c PROPERTIES COMPILE_DEFINITIONS
+            "main=reboot_${suite}_main;_GNU_SOURCE")
+    endforeach()
+elseif(REBOOT_IMAGE STREQUAL "lock_faults")
+    target_sources(app PRIVATE ${reboot_tests}/lock_faults.c)
+    set_source_files_properties(${reboot_tests}/lock_faults.c PROPERTIES COMPILE_DEFINITIONS
+        "main=reboot_lock_faults_main;_GNU_SOURCE")
+    # app is a static library: the wrap has to reach the final link.
+    target_link_options(app PUBLIC -Wl,--wrap=crux_mutex_lock)
+elseif(REBOOT_IMAGE STREQUAL "sleep_provider")
+    target_sources(app PRIVATE ${reboot_tests}/sleep_provider.c ${repo}/components/reboot/src/reboot_sleep.c)
+    set_source_files_properties(${reboot_tests}/sleep_provider.c PROPERTIES COMPILE_DEFINITIONS
+        "main=reboot_sleep_provider_main")
+    target_link_options(app PUBLIC -Wl,--wrap=crux_semaphore_take)
+else()
+    message(FATAL_ERROR "unknown REBOOT_IMAGE ${REBOOT_IMAGE}")
+endif()

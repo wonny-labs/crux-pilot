@@ -155,6 +155,11 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-portable-execution.sh
 
+      - name: Run the reboot suites on native_sim with ASan and UBSan
+        if: matrix.shard == 'runtime'
+        working-directory: crux-pilot
+        run: scripts/test-reboot-native.sh
+
       - name: Validate Time CPU Busy-wait without hardware
         if: matrix.shard == 'runtime'
         working-directory: crux-pilot
