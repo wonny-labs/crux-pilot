@@ -2,17 +2,17 @@
 
 **Crux** is a reusable embedded software platform for controller and firmware applications. It provides portable C17 components and selected standard APIs, supported by OS-specific integration, build tools and tests. Portable application code remains separate from operating-system and board details.
 
-This repository is Crux's development and architecture-validation Pilot. It currently provides Zephyr integration and a Linux development/test environment. Production Embedded Linux support is a longer-term goal. Crux is not yet a production-qualified or installable SDK.
+This repository is Crux's development and architecture-validation Pilot. It currently provides Zephyr integration and a Linux development/test environment. Embedded Linux is not planned for the foreseeable future; if it is ever needed, it is designed at the service boundary. Crux is not yet a production-qualified or installable SDK.
 
 ## Capabilities
 
-Applications select the components they need. Portable application and runtime-porting code use public interfaces, while board/project configuration selects the OS implementations and hardware resources.
+Applications select the components they need, and choose where each kind of code goes with the [developer rule](docs/choosing-an-api.md): OS and hardware facilities use Zephyr directly, platform services use Crux, and product behaviour is plain C in the domain. Portable application and runtime-porting code use public interfaces, while board/project configuration selects the OS implementations and hardware resources.
 
 | Area | Components | Purpose |
 | --- | --- | --- |
 | Foundation and timing | `base`, `time` | Shared status, typed clocks/authority/calendar, deadlines and bounded CPU busy-wait |
-| Execution and synchronisation | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
-| Communication and networking | `serial`, `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
+| Execution and synchronisation (frozen for new product code, see [Choosing an API](docs/choosing-an-api.md)) | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
+| Communication and networking | `serial` (frozen for new product code), `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
 | Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load |
 | Diagnostics and system | `logging`, `system` | Diagnostic logging, service status, reset diagnostics and watchdog operations |
 | Device I/O | `gpio`, `i2c`, `spi` | Synchronous GPIO input, I2C transfers and SPI exchange, each on one statically composed resource |
@@ -34,7 +34,7 @@ See the [architecture overview](docs/architecture.md) for component ownership, p
 | Simulated Zephyr target | Zephyr `native_sim` | Selected Zephyr component and reference-controller tests without physical hardware |
 | Physical Zephyr target | MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | Initial physical target, with results limited to documented firmware and configurations |
 | Physical Zephyr target | RT1170-EVK Rev A1 Cortex-M7 | Second board, software scope of M6 and M7 (cross-build, identification, review); hardware verification deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155), not qualified |
-| Future variant | Production Embedded Linux | Future platform variant, not currently implemented or qualified |
+| Not planned | Production Embedded Linux | Not planned for the foreseeable future and not implemented or qualified; if ever needed, designed at the service boundary |
 
 **What the Linux Host providers are used for today.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners. `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](docs/build.md#external-linux-application-using-crux-source), [`tests/consumer_poc`](tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
 

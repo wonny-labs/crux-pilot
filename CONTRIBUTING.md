@@ -42,7 +42,7 @@ Do not create a second central copy of a public header.
   Backends implementing an existing API do not each need a new public header tree.
 - Keep test controls outside public headers and expose their directories only to the affected
   test targets. Sample-owned headers belong to samples, not the platform API.
-- Applications consume public CMake usage targets, such as `crux::queue` or `crux::thread`,
+- Applications consume public CMake usage targets, such as `crux::time` or `crux::logging`,
   instead of naming implementation/backend targets or adding another component's include directory
   themselves.
   The target propagates its public headers and required dependencies.

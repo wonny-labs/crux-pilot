@@ -1,5 +1,7 @@
 # Portable event and queue contract
 
+**Freeze notice (13 November 2026).** Queue is frozen for new product code: no new features and no real-time extension. New product code uses Zephyr directly for threads, locks, queues and UARTs; see [Choosing an API](choosing-an-api.md). This adds no promise and removes none. The contract below and its tests and evidence stay as they are, and existing users keep working. Whether the interface is deprecated waits for a later decision. A product template check that rejects the header is planned, not implemented.
+
 Status: Queue/event policy remains approved from Issue #26. The typed Time redesign supersedes the original Monotonic API; current timing rules are in [Time](time-contract.md) and [Thread/Sync](thread-sync.md). Historical provider evaluations and alternatives below are rationale, not current timing configuration instructions.
 The default cooperative-stop profile is approved; optional terminal abort remains excluded.
 This document retains the reviewed design rationale; implementation and qualification results are recorded separately.

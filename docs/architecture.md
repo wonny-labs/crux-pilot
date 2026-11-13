@@ -62,6 +62,8 @@ For product code, the ADR names three layers:
 
 A **port** is a header that the product owns, in the domain's tree, written in the product's terms (a temperature, a valve position, a measurement period) and not in a device's terms such as a register or a bus. It holds no Zephyr type. An adapter implements it, and a Host fake implements it in tests. Crux publishes no product ports. A port becomes a Crux capability only under [Extending Crux](#extending-crux) and the rule against pass-through wrappers of native APIs in [AGENTS.md](../AGENTS.md#engineering-approach). This is ports and adapters: the domain calls ports, and adapters implement them with Zephyr, so a product needing a Zephyr feature that Crux does not offer writes an adapter and needs no change in Crux.
 
+**Which API to use.** The [developer rule in Choosing an API](choosing-an-api.md) turns the layers into three questions: OS and hardware facilities use Zephyr directly in the product's adapters, platform services use Crux, and product behaviour is plain C in the domain behind product-owned ports. It also freezes Thread, Sync, Queue and Serial for new product code (approved 13 November 2026): no new features, no real-time extension, existing users keep working, and the deprecation decision waits. In the layer table above, the domain's "public `<crux/NAME.h>` headers" therefore means the non-frozen ones for new code. The product template's include check that rejects the four headers is planned, not implemented.
+
 Where Zephyr is allowed (Decision 2):
 
 | Place | Zephyr allowed |
@@ -104,7 +106,7 @@ provider; see [File root binding](file-composition-interface.md). The general ru
 
 For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CPU Busy-wait](time-busy-wait.md) and authority state, with a controlled memory realtime implementation separately from Linux/Zephyr system realtime and an optional Zephyr RTC adapter. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
 
-Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
+Thread and Sync are separate component-owned capabilities, frozen for new product code (see [Choosing an API](choosing-an-api.md)). `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
 
 Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples, and the reference controller with them, are under `samples/` today, and no `applications/` folder exists yet. The owner decided on 9 November 2026 that the maintained integrated applications get their own top-level folder, [`applications/`](#applications-proposed), beside `samples/`. The folder does not exist yet, and `samples/controller` would move into it. That move is not scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposed) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
 
@@ -262,14 +264,14 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | --- | --- | --- | --- |
 | Base | Common status declarations | Header-only usage in Host and Zephyr; no OS provider | [Public header](../components/base/include/crux/status.h) |
 | Time | Typed monotonic/realtime, authority, calendar and optional CPU Busy-wait | Explicit Memory or Linux system realtime; Zephyr system realtime without RTC, optional RTC storage; no implicit fallback | [Contract](time-contract.md) |
-| Thread | Bounded joinable workers | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
-| Sync | Nonrecursive mutexes and bounded semaphores | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
-| Queue | Bounded copy messaging | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |
+| Thread | Bounded joinable workers (frozen for new product code) | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
+| Sync | Nonrecursive mutexes and bounded semaphores (frozen for new product code) | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
+| Queue | Bounded copy messaging (frozen for new product code) | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |
 | Netif | Read-only primary-interface status | Linux selected-interface and Zephyr network integration | [Networking contract](networking-contract.md) |
 | Sockets | Qualified IPv4 client standard-API profile | Linux libc and selected Zephyr POSIX facilities; no Crux wrapper or separate stack | [Qualified profile](networking-contract.md#socket-profile) |
 | Configuration | Scalar and bounded string validation, explicit save/load and encoding | Portable core with deterministic Host test provider, a selectable no-provider port and simulator-only Zephyr Settings/NVS integration; no EVKB persistence qualification | [Host contract and validation](configuration-validation.md), [simulator validation](configuration-native-validation.md) |
 | File | Bounded synchronous file operations | Linux Host provider and simulator-only Zephyr VFS/LittleFS provider; an optional Reliance Edge provider (GPLv2 west group, simulator tests, RT1060 link only); no EVKB writable-storage qualification | [Contract](file-contract.md), [Host validation](file-validation.md), [simulator validation](file-native-validation.md), [microSD composition](microsd-composition.md), [eMMC composition](emmc-reliance-composition.md) |
-| Serial | Bounded synchronous UART/TTY byte transfer | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
+| Serial | Bounded synchronous UART/TTY byte transfer (frozen for new product code) | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
 | GPIO | Synchronous input on one statically composed logical line | Host simulation and Zephyr native GPIO driver; no output or interrupt API, no physical qualification | [Contract](gpio-contract.md) |
 | Logging | Validated bounded text records and filtering | Linux stderr and selected Zephyr deferred UART logger compositions; explicit UART ownership/configuration checks; no physical qualification | [Contract](logging-contract.md), [validation](logging-validation.md) |
 | System | Service observations, reset diagnostics and single-owner watchdog | Linux watchdog simulation and selected Zephyr HWINFO/watchdog/reset composition; normal Host reset/cause unsupported; physical acceptance pending | [Approved contract](superpowers/specs/2026-10-24-system-health-design.md), [validation](system-validation.md) |
@@ -384,6 +386,7 @@ Use [CONTRIBUTING](../CONTRIBUTING.md) for code, PR and review requirements and 
 The [capability inventory](#current-capability-integration) links to component-specific API contracts and validation records. For cross-cutting information, use:
 
 - [Build and Integration Guide](build.md)
+- [Choosing an API for product code](choosing-an-api.md)
 - [GPIO contract](gpio-contract.md)
 - [Native-free consumer policy](native-interface-policy.md)
 - [ADR-0001: application boundary and public API stability](decisions/0001-application-boundary-and-api-stability.md) and [composition interface rules](composition-interfaces.md)
