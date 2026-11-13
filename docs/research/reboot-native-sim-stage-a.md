@@ -12,9 +12,9 @@ Part of the P9 evidence of [ADR-0002](../decisions/0002-platform-direction-zephy
 | `compat/pthread.h`, `compat_pthread.c` (the pthread calls of the suites over Zephyr threads) | 75, 134 |
 | `zephyr_case.c` (one case for each process) | 103 |
 | `main_core.c`, `main_lock_faults.c`, `main_pending.c`, `main_sleep_provider.c`, `main_web.c`, `main_web_no_service.c`, `main_common.h` (ztest wrappers) | 22, 13, 14, 11, 19, 13, 5 |
-| `scripts/test-reboot-native.sh` (new, protected path) | 126 |
+| `scripts/test-reboot-native.sh` (new, protected path) | 127 |
 | `.github/workflows/zephyr.yml` (one added step, protected path) | 5 |
-| `tests/README.md` | 12 |
+| `tests/README.md` | 11 |
 
 Six images are built from the Host sources of `tests/reboot`, `tests/web/reboot` and `tests/access`, with a suite's `main()` renamed to a function by a compile definition and nothing else changed:
 
@@ -44,17 +44,18 @@ All of this is *measured (local)* unless it says CI.
 
 | Run | Result |
 | --- | --- |
-| `scripts/test-reboot-native.sh` (ASan + UBSan, `UBSAN_OPTIONS=halt_on_error=1`) | 79 cases, 0 failed |
+| `scripts/test-reboot-native.sh` (ASan + UBSan, `UBSAN_OPTIONS=halt_on_error=1`), cold, at head `aa7a5a6b` | 79 cases, 0 failed, 127 s |
+| `scripts/test-reboot-native.sh --plain`, cold, at head `aa7a5a6b` | 79 cases, 0 failed, 91 s |
 | Host `host-sanitize`, clang-18, the same 10 ctest tests (with the stack clamp) | 10 of 10 passed |
 | CI | **to be added from the PR's run** |
 
 ### M1 effort
 
-Agent wall clock, one agent, no human hours: 21:03 to about 22:50 UTC, 1.7 h. By phase: reading and design 0.15 h; project, shim and the fork, pthread and libc dead ends 0.3 h; script, CI step, README 0.1 h; measuring 0.7 h (two M2 batches of about 0.3 h each, mostly waiting, plus flake runs and three mutant rebuilds); `pending` 0.05 h; web route suites and the review fixes 0.3 h; this record 0.1 h. The first measuring phase and the second M2 batch overlapped other sessions' Docker work (see M2). The report's estimate for Stage A was 8 to 14 h.
+Agent wall clock, one agent, no human hours: 21:03 to about 23:05 UTC, about 2.0 h. The phases overlap (the record and the PR text were written while batches ran), so their hours add to about 2.2 h: reading and design 0.15 h; project, shim and the fork, pthread and libc dead ends 0.3 h; script, CI step, README 0.1 h; measuring about 1.0 h (the first M2 batch 0.3 h, the second 0.4 h, flake runs, the Host baseline and three mutant rebuilds about 0.2 h, the final reruns 0.1 h; most of it waiting); `pending` 0.05 h; web route suites and the review fixes 0.4 h; the record 0.15 h. The first M2 batch and the second overlapped other sessions' Docker work (see M2). The report's estimate for Stage A was 8 to 14 h.
 
 ### M2 turnaround (measured, local, concurrent load)
 
-Final batch, 5 runs each, the Host's 10 tests against the 79 native cases, run one batch after another. **Not idle.** At the start of the native batches (22:18 UTC): the other session's container `crux-stageb-impl` at 0% CPU, the Mac's load average 3.3. At the end (22:43): `crux-stageb-impl` at 55% CPU and load average 3.4, 4.2 over five minutes. The Mac carries other work throughout (load about 3).
+Final batch, 5 runs each, the Host's 10 tests against the 79 native cases, run one batch after another at head `cbe94f65`. **Not idle.** Load snapshots, two for the batch: at 22:18 UTC, during the native batches, the other session's container `crux-stageb-impl` at 0% CPU and the Mac's load average 3.3; at 22:43, after them, `crux-stageb-impl` at 55% CPU and load average 3.4 (4.2 over five minutes), a figure that includes this session's own builds. Nothing else was sampled, so the load during each run is not known, and the Mac's load of about 3 in both snapshots is an inference, not a measurement of the whole batch.
 
 | Build | Cold, median (min to max) | Warm, median (min to max) |
 | --- | --- | --- |
@@ -64,13 +65,15 @@ Final batch, 5 runs each, the Host's 10 tests against the 79 native cases, run o
 | ratio over the whole `host-sanitize` preset (178 s local from the probe, 268 s CI run 43321893524) | 0.65 (0.43 against CI) | |
 | native_sim plain, 3 runs | 105 s (100 to 116) | 61 s (60 to 62) |
 
-The plain figures were taken last, while the other session's container was busy, and are **very likely inflated**: the same plain build took 46 s cold and 29 s warm with four images in the earlier batch, and six images cost about 1.5 times that. The sanitized batch ran earlier and its spread is tight (111 to 136), so it is probably less affected, but nothing here is an idle-machine figure.
+The plain figures (3 cold and 3 warm runs, each of which printed 79 cases, 0 failed at head `cbe94f65`; all sanitized runs printed the same) were taken last, while the other session's container was busy, and are **very likely inflated**: the same plain build took 46 s cold and 29 s warm with four images in the earlier batch, and six images cost about 1.5 times that. The sanitized batch ran earlier and its spread is tight (111 to 136), so it is probably less affected, but nothing here is an idle-machine figure.
+
+A rerun of both variants at the final script head `aa7a5a6b` (one cold run each, again with `crux-stageb-impl` busy: 70% CPU at 22:53, 29% at 22:57, load average 4.9 then 4.4) gave 127 s sanitized and 91 s plain, 79 cases and 0 failures each: consistent with the batch, and not independent timing evidence.
 
 The earlier batch (four images, 54 cases, before the web suites) gave 78 s cold (74 to 111) and 55 s warm (53 to 59) for the sanitized build, 46 s and 29 s plain, while other sessions ran Docker work from about 21:15 to 21:35. It is superseded by the table above. Both batches give about 19 s for each image, so the time is image count, not tests: a case run takes about 0.1 s, and 300 case runs of `Reboot.concurrency` take 7 s. "Warm" re-runs the script with the build directories in place; CMake and Ninja run again.
 
 ### M3 lines by zone
 
-`git diff --numstat origin/main...HEAD`: components, public headers, `docs/reboot-service.md` and every existing test source: 0 changed lines. New: tests 567 lines (above), protected 131 (script 126, workflow step 5), docs 12 + this file.
+`git diff --numstat origin/main...HEAD`: components, public headers, `docs/reboot-service.md` and every existing test source: 0 changed lines. New: tests 567 lines (above), protected 132 (script 127, workflow step 5), docs 11 + this file.
 
 ### M4 behaviour and tests identical
 
@@ -82,7 +85,7 @@ The earlier batch (four images, 54 cases, before the web suites) gave 78 s cold 
 
 ### M6 fault-injection parity
 
-Every wrapped case of the seven `tests/reboot` suites and the three web route suites passes on native_sim: `lock_faults` 4 of 4 (waits of 20 ms and 1000 ms, the Nth wait of a length), `pending` 9 of 9 (wait of 20 ms), `sleep_provider` (take answers: timeout, `ERR_IO`, `ERR_INVALID_ARGUMENT`, `ERR_INVALID_STATE`, `OK`), the fake-sleep failures in `steps`, and the web `busy` answers (`crux_mutex_lock` wrapped, 25 of 25 cases). No case needed a pointer-discriminated wrap. That the wraps reach the service was shown by the mutants below. Not covered: any wrap in a suite outside these ten.
+Every wrapped case of the seven `tests/reboot` suites and the three web route suites passes on native_sim: `lock_faults` 4 of 4 (waits of 20 ms and 1000 ms, the Nth wait of a length), `pending` 9 of 9 (wait of 20 ms), `sleep_provider` (take answers: timeout, `ERR_IO`, `ERR_INVALID_ARGUMENT`, `ERR_INVALID_STATE`, `OK`), the fake-sleep failures in `steps`, and all 25 web cases (they include the `busy` answers that the wrapped `crux_mutex_lock` produces). No case needed a pointer-discriminated wrap. That the wraps reach the service in the `core` and `lock_faults` images was shown by the mutants below. For the `web` images the evidence is the routes suite's `busy` assertions, which cannot pass without the injected failure, and the OpenAPI checker's `"code":"busy"` needle; the mutants were not run on them. Not covered: any wrap in a suite outside these ten.
 
 ### M7 mutation probe (measured, local; `components/reboot/src/reboot.c` edited, run, restored; run before the web image was added)
 
@@ -105,7 +108,7 @@ Against the criteria of the P9 report section 3.5 (adopted as D-D), what Stage A
 | M4 identical | met: 476 `CHECK(`, 79 cases, components diff empty |
 | M5 flake bar | met for `Reboot.concurrency` |
 | M6 fault-case parity | met for the ten suites that run |
-| Test shim not larger than the Linux Sync + Thread providers (302 lines) | pthread shim 209 lines; with the per-case harness 312 lines, 10 over. The shim is what the Host's fork and pthreads needed, not a Zephyr provider |
+| Test shim not larger than the Linux Sync + Thread providers (302 lines) | pthread shim 209 lines (`wc -l` at `aa7a5a6b`: `pthread.h` 75, `compat_pthread.c` 134); with the per-case harness (`zephyr_case.c`, 103) 312 lines, 10 over. The shim is what the Host's fork and pthreads needed, not a Zephyr provider |
 | M2 ratio of 2 or less to `host-sanitize` | **not met on the like-for-like basis**: the ten suites take about 33 times (cold) and 52 times (warm) the Host's seconds, measured under concurrent load. Against the whole `host-sanitize` preset (178 s local, 268 s CI) the same set is 0.43 to 0.65 times. Which denominator D-D means decides this row, and it is for the owner to say |
 | Stage B extrapolation, 4 person-weeks or less | not measured: Stage B is not part of this file |
 
