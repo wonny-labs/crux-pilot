@@ -15,6 +15,13 @@ if(CONFIG_CRUX_PILOT_MODULE)
     add_library(crux::base ALIAS crux_base)
 endif()
 
+# The per-service priority placement of the services' workers (ADR-0002 P3). It exposes nothing by
+# itself: a composition links crux_service_priority_placement to the target that compiles a worker.
+if(CONFIG_CRUX_PILOT_MODULE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/service_priority"
+        "${CMAKE_CURRENT_BINARY_DIR}/service_priority")
+endif()
+
 if(CONFIG_CRUX_TIME OR CONFIG_CRUX_THREAD OR CONFIG_CRUX_SYNC OR CONFIG_CRUX_QUEUE OR CONFIG_CRUX_SYSTEM)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/interrupt"
         "${CMAKE_CURRENT_BINARY_DIR}/interrupt")

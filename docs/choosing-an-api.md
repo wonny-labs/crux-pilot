@@ -1,6 +1,6 @@
 # Choosing an API for product code
 
-**Status: developer rule, approved by the owner on 13 November 2026 (decisions P1 and P2 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md); the shared-state pattern and coexistence rules follow P3 and P4).** This guide tells an application developer where each kind of code goes. It adds no public interface. The product template carries the domain include check and the shared-state example; per-service priority settings are later work. The reasoning, the alternatives and the evidence are in the [platform direction review](research/platform-direction-review.md). The three layers it builds on are in [Three layers for a product](architecture.md#three-layers-for-a-product-adr-0001).
+**Status: developer rule, approved by the owner on 13 November 2026 (decisions P1 and P2 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md); the shared-state pattern and coexistence rules follow P3 and P4).** This guide tells an application developer where each kind of code goes. It adds no public interface. The product template carries the domain include check and the shared-state example. The per-service priority settings of P3 are in [Priority map of Crux threads](thread-sync.md#priority-map-of-crux-threads). The reasoning, the alternatives and the evidence are in the [platform direction review](research/platform-direction-review.md). The three layers it builds on are in [Three layers for a product](architecture.md#three-layers-for-a-product-adr-0001).
 
 ## The rule: three questions
 
@@ -17,7 +17,7 @@ Ask them in order for each piece of code.
 | Cyclic task timers of a ported real-time runtime | One `k_thread` per timer at mapped priorities; `k_sem` or `k_timer` for a wakeable wait; recursive `k_mutex` | Monotonic timestamps, Logging, File for retained data, System watchdog | The runtime's scheduling logic, above its port layer |
 | A controller workload (the `crux-controller` shape) | Producer, consumer and queue as `k_thread` and `k_msgq` | Logging; File for its configuration record | The workload stays plain C with Host tests. The existing `crux-controller` keeps its Crux Thread and Queue code until the P9 decision |
 | A temperature sensor | A Zephyr driver or `i2c_dt_spec` code behind a product port such as `temperature_read(&millikelvin)`; an emulator on `native_sim` | The status service for a remote reading; Configuration or File for limits | Filtering, limits and hysteresis, tested with a fake of the port |
-| An SSH service | The product's priority map will place Crux's SSH threads once per-service priority settings (P3) land | The `CONFIG_CRUX_SSH`, `CONFIG_CRUX_SSH_CLI` and `CONFIG_CRUX_SSH_SFTP` options; Access; the credential store | Which commands exist and who may run them |
+| An SSH service | The product's priority map places Crux's SSH listener and workers with `CONFIG_CRUX_SSH_LISTENER_PRIORITY` and `CONFIG_CRUX_SSH_WORKER_PRIORITY` (P3) | The `CONFIG_CRUX_SSH`, `CONFIG_CRUX_SSH_CLI` and `CONFIG_CRUX_SSH_SFTP` options; Access; the credential store | Which commands exist and who may run them |
 
 ## Frozen for new product code: Thread, Sync, Queue and Serial
 
@@ -32,13 +32,13 @@ Do not use `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` or `<crux/serial
 
 When Zephyr code and Crux run together:
 
-1. **One priority map per product, declared once.** It lists the product's own real-time threads, Zephyr's own threads (network, logging, work queues, the HTTP server under the web adapter), Crux's pool workers, and SSH's native threads. Crux workers sit below real-time threads unless the product decides otherwise.
+1. **One priority map per product, declared once.** It lists the product's own real-time threads, Zephyr's own threads (network, logging, work queues, the HTTP server under the web adapter), Crux's service workers, and SSH's native threads. Crux workers sit below real-time threads unless the product decides otherwise. Each Crux thread has its own priority setting, listed with its default in [Priority map of Crux threads](thread-sync.md#priority-map-of-crux-threads).
 2. **The product sets Crux's resource budgets:** thread and mutex pools, and one stack size for every worker. Product callbacks that run on a Crux worker use those stacks.
 3. **One lock kind per piece of state.** Do not guard the same state with both a Crux lock and a Zephyr lock. Do not hold a lock across a Crux call that can call back into code that takes it.
 4. **No unbounded scheduler or interrupt lock in Crux.** Any such section must state a bound measured on the target.
 5. **Real-time code calls only Crux APIs that take no lock,** such as the monotonic clock read. Realtime Time, File, System, Queue and Serial take global locks.
 
-Rules 1 and 4 describe the direction the platform follows. Per-service priority settings and the scheduler-lock review are separate, later work and are not part of this guide.
+Rules 1 and 4 describe the direction the platform follows. The per-service priority settings of rule 1 exist (P3). The scheduler-lock review is separate, later work and is not part of this guide.
 
 ## State shared with Crux service callbacks
 

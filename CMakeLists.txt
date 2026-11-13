@@ -192,6 +192,7 @@ if(CRUX_BUILD_TESTS)
 
     if(CRUX_BUILD_THREAD)
         add_subdirectory(tests/thread)
+        add_subdirectory(tests/service_priority)
     endif()
     add_subdirectory(tests/controller)
     if(CRUX_BUILD_THREAD AND CRUX_BUILD_SYNC)

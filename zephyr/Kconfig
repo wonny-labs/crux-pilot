@@ -58,6 +58,59 @@ config CRUX_THREAD_STACK_BYTES
 	default 4096
 	range 1024 65536
 
+menu "Priorities of Crux service workers"
+
+comment "Each is a Zephyr preemptive priority, 0 to NUM_PREEMPT_PRIORITIES - 1"
+
+# ADR-0002 P3. Each default is today's number: the worker is a LOW-class Crux Thread, which the
+# Zephyr port maps to 6. Another value moves that one worker, and the classes keep 4, 5 and 6. A
+# value of NUM_PREEMPT_PRIORITIES, the idle priority, passes the range and fails the build in
+# components/service_priority. See docs/thread-sync.md#priority-map-of-crux-threads.
+
+config CRUX_SECURITY_EVENT_DRAIN_PRIORITY
+	int "Security event drain"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The thread that writes security event records to the log, started by
+	  crux_security_event_start().
+
+config CRUX_REBOOT_WORKER_PRIORITY
+	int "Reboot service worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that runs reboot requests and the busy check, started by
+	  crux_reboot_start_worker().
+
+config CRUX_NETWORK_SETTINGS_WORKER_PRIORITY
+	int "Network settings service worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that saves and applies network settings, started by
+	  crux_network_settings_start_worker().
+
+config CRUX_WEB_SESSION_WORKER_PRIORITY
+	int "Web session login worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that runs web login attempts, started by
+	  crux_web_session_start_worker(). At the default it preempts the HTTP
+	  server thread, which runs at the lowest application priority: see
+	  docs/web-session.md.
+
+config CRUX_WEB_MANAGEMENT_WORKER_PRIORITY
+	int "Web management save worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that saves configuration for the web management routes,
+	  started by crux_web_management_start_worker().
+
+endmenu
+
 endif # CRUX_THREAD
 
 config CRUX_SYNC
@@ -456,6 +509,24 @@ config CRUX_SSH_LISTENER_STACK_BYTES
     int "Stack of the listener thread"
     default 4096
     range 2048 32768
+
+config CRUX_SSH_WORKER_PRIORITY
+    int "Zephyr priority of every connection's worker thread, or -1 for the lowest application one"
+    default -1
+    range -1 NUM_PREEMPT_PRIORITIES
+    help
+      ADR-0002 P3. -1, the default, keeps today's K_LOWEST_APPLICATION_THREAD_PRIO, which is
+      NUM_PREEMPT_PRIORITIES - 1 and so follows that setting. Otherwise a preemptive priority, 0 to
+      NUM_PREEMPT_PRIORITIES - 1: the provider refuses the idle priority at compilation. The workers
+      share this priority and a time slice. Read by crux_ssh_wolf_settings(). See
+      docs/thread-sync.md#priority-map-of-crux-threads.
+
+config CRUX_SSH_LISTENER_PRIORITY
+    int "Zephyr priority of the listener thread, or -1 for the lowest application one"
+    default -1
+    range -1 NUM_PREEMPT_PRIORITIES
+    help
+      As CRUX_SSH_WORKER_PRIORITY, for the thread that accepts connections and starts their workers.
 
 config CRUX_SSH_STACK_REPORT
     bool "Name the SSH threads and keep the lowest unused stack of the workers that ended"

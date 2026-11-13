@@ -58,9 +58,27 @@
 #ifndef CRUX_SSH_WOLF_LISTENER_STACK_BYTES
 #define CRUX_SSH_WOLF_LISTENER_STACK_BYTES 4096
 #endif
+/*
+ * The priorities of the listener and of the workers, which CONFIG_CRUX_SSH_LISTENER_PRIORITY and
+ * CONFIG_CRUX_SSH_WORKER_PRIORITY set through crux_ssh_wolf_settings() (ADR-0002 P3). Where neither
+ * is set, both stay at CRUX_SSH_WOLF_THREAD_PRIORITY, the lowest application priority unless a test
+ * image sets it.
+ */
 #ifndef CRUX_SSH_WOLF_THREAD_PRIORITY
 #define CRUX_SSH_WOLF_THREAD_PRIORITY K_LOWEST_APPLICATION_THREAD_PRIO
 #endif
+#ifndef CRUX_SSH_WOLF_LISTENER_PRIORITY
+#define CRUX_SSH_WOLF_LISTENER_PRIORITY CRUX_SSH_WOLF_THREAD_PRIORITY
+#endif
+#ifndef CRUX_SSH_WOLF_WORKER_PRIORITY
+#define CRUX_SSH_WOLF_WORKER_PRIORITY CRUX_SSH_WOLF_THREAD_PRIORITY
+#endif
+BUILD_ASSERT(CRUX_SSH_WOLF_LISTENER_PRIORITY >= 0 &&
+                 CRUX_SSH_WOLF_LISTENER_PRIORITY < CONFIG_NUM_PREEMPT_PRIORITIES,
+             "The SSH listener must be a preemptible application thread");
+BUILD_ASSERT(CRUX_SSH_WOLF_WORKER_PRIORITY >= 0 &&
+                 CRUX_SSH_WOLF_WORKER_PRIORITY < CONFIG_NUM_PREEMPT_PRIORITIES,
+             "The SSH workers must be preemptible application threads");
 /* The longest a command can be, which is more than the CLI's line. */
 #ifndef CRUX_SSH_WOLF_COMMAND_MAX
 #define CRUX_SSH_WOLF_COMMAND_MAX 1023u
@@ -1003,7 +1021,7 @@ static void start_connection(int socket, const struct net_sockaddr_storage *addr
     atomic_set(&connection->state, SLOT_RUNNING);
     (void)k_thread_create(&connection->thread, worker_stacks[index],
                           K_THREAD_STACK_SIZEOF(worker_stacks[index]), connection_thread,
-                          connection, NULL, NULL, CRUX_SSH_WOLF_THREAD_PRIORITY, 0, K_NO_WAIT);
+                          connection, NULL, NULL, CRUX_SSH_WOLF_WORKER_PRIORITY, 0, K_NO_WAIT);
     STACK_REPORT_NAME(&connection->thread, "ssh_worker");
 }
 
@@ -1242,7 +1260,7 @@ static crux_status_t provider_start(const crux_ssh_config_t *config,
         }
         (void)k_thread_create(&server.listener, listener_stack,
                               K_THREAD_STACK_SIZEOF(listener_stack), listener_thread, NULL, NULL,
-                              NULL, CRUX_SSH_WOLF_THREAD_PRIORITY, 0, K_NO_WAIT);
+                              NULL, CRUX_SSH_WOLF_LISTENER_PRIORITY, 0, K_NO_WAIT);
         STACK_REPORT_NAME(&server.listener, "ssh_listener");
         server.started = true;
     }

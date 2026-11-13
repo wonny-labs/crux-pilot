@@ -18,6 +18,9 @@
 
 #include <crux/sync.h>
 #include <crux/thread.h>
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+#include "service_priority.h"
+#endif
 
 #include <string.h>
 
@@ -619,6 +622,10 @@ bool crux_network_settings_work_once(void)
 static void worker_main(void *argument)
 {
     (void)argument;
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+    /* First, so that the worker does its work at its per-service priority (ADR-0002 P3). */
+    crux_service_priority_place(CRUX_SERVICE_THREAD_NETWORK_SETTINGS_WORKER);
+#endif
     for (;;) {
         (void)crux_semaphore_take(work_signal, CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS);
         while (crux_network_settings_work_once()) {
