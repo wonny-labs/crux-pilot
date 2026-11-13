@@ -294,7 +294,7 @@ Limits:
 
 | Integration | Selection | Resource and native limits |
 | --- | --- | --- |
-| Linux Host | `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`, independently selectable; Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for controlled Host realtime); top-level defaults ON, dependency defaults OFF | Default 4 workers, 8 mutexes and 8 semaphores; current thread provider requests 65536 stack bytes for every worker, raised to the libc's `PTHREAD_STACK_MIN` where that is larger (131072 on aarch64 glibc, 16384 on x86-64 glibc, so 65536 there), and rejects requests above 65536 |
+| Linux Host | `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`, independently selectable; Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for controlled Host realtime); top-level defaults ON, dependency defaults OFF | Default 4 workers, 8 mutexes and 8 semaphores; current thread provider requests 65536 stack bytes for every worker, raised to the libc's `PTHREAD_STACK_MIN` where that is larger (131072 on aarch64 glibc; on x86-64 glibc the fixed minimum is 16384, and the run-time value can be higher on machines with large signal frames, but the effective stack stays 65536), and rejects requests above 65536 |
 | Zephyr Thread | `CONFIG_CRUX_THREAD` | `CONFIG_CRUX_THREAD_COUNT` (default 4, range 1..64), `CONFIG_CRUX_THREAD_STACK_BYTES` (default 4096, range 1024..65536 usable bytes) |
 | Zephyr Sync | `CONFIG_CRUX_SYNC` | `CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` (each default 8, range 1..64) |
 

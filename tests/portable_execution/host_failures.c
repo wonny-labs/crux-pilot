@@ -8,7 +8,10 @@
 #include <time.h>
 
 /* The provider raises its 64 KiB stack to PTHREAD_STACK_MIN where that is larger (aarch64 glibc).
- * On x86-64 this stays exactly 65536. */
+ * The provider is built with _GNU_SOURCE, where glibc 2.34 and later expand PTHREAD_STACK_MIN to a
+ * run-time value. This test is built with _POSIX_C_SOURCE, where it is glibc's fixed constant
+ * (131072 on aarch64, 16384 on x86-64). The two agree on glibc x86-64 and aarch64, so the
+ * expectation is 65536 on x86-64. */
 #define EXPECTED_STACK ((size_t)PTHREAD_STACK_MIN > 65536U ? (size_t)PTHREAD_STACK_MIN : 65536U)
 
 #define CHECK(value)                                                                               \
