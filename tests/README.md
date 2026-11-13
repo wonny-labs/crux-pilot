@@ -226,7 +226,12 @@ not been exercised.
 ## Product template
 
 `tests/build/test_product_template.py` checks `templates/product`: its C file and CMake
-use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
+use only public Crux names, and its manifest pins nothing Crux pins. The template splits plain C
+in `domain/` from the shell in `app/src/main.c`. The tests run `check_domain_includes.py` on the
+shipped domain and on mutated copies (each frozen Crux header, each Zephyr header class, composition
+interfaces, dot components, a byte order mark, an empty directory), build the domain on the Host with
+a fake port and `-Wpedantic`, and check the shared-state example by reading the shell. They need
+only Python and a C compiler, so the host CI job runs them. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
 runs the frozen-manifest flow, the build record's input capture and the guide's routes: a vendor

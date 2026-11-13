@@ -42,7 +42,7 @@ The template has two zones, after the three questions of [Choosing an API](https
 
 | Zone | Where | May include | Owns |
 | --- | --- | --- | --- |
-| Domain | `domain/` | ISO C headers, non-frozen public `<crux/NAME.h>` headers and its own headers | The product's behaviour. No thread, no lock. It reaches the outside through `product_port.h` only |
+| Domain | `domain/` | ISO C headers, public `<crux/NAME.h>` headers of the contracts that are not frozen (Time, Logging, File and so on) and its own headers | The product's behaviour. No thread, no lock. Whatever else it needs from outside the domain, such as a sensor, comes through a port declared in `product_port.h` |
 | Shell | `app/src/` | Zephyr, public Crux headers and the domain's headers | Threads, queues, locks, the implementation of the port and the adapters that Crux services call |
 
 Run the check from the repository root after each change to the domain. It needs Python 3.9 or later and nothing else.
@@ -51,9 +51,11 @@ Run the check from the repository root after each change to the domain. It needs
 python3 check_domain_includes.py
 ~~~
 
-It fails on `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>`, `<crux/serial.h>` and every `<zephyr/...>` header in `domain/`, in either quoted or angle form and in any file. It also fails on a quoted include of a file outside `domain/` and on an include operand that it cannot read, such as a macro. The four Crux headers are frozen for new product code, and the domain is plain C. The check is lexical, so review still matters: it cannot see an include path that CMake adds, and the template adds none. Build the domain on the Linux Host with a fake of `product_port.h` as well, because a Zephyr header does not exist there. Crux's own test builds the shipped domain that way and runs it against a fake port.
+It fails on `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>`, `<crux/serial.h>`, every `<zephyr/...>` header and the Crux composition interfaces `<crux/NAME_zephyr.h>` and `<crux/NAME_linux.h>` in `domain/`, in either quoted or angle form and in any file. It also fails on a header name with a `.` or `..` component, on a quoted include of a file outside `domain/`, on an include operand that it cannot read, such as a macro, and on a domain directory that holds no file. The four Crux headers are frozen for new product code, the composition interfaces name a provider, and the domain is plain C.
 
-The check does not apply to the shell. A product that has a reason to include a frozen header in its domain, such as a ported runtime that already uses Crux Thread, edits the check and records the reason in its repository.
+The check is lexical and lists only these names. Other native headers (SoC, CMSIS, vendor HAL, POSIX under `CONFIG_POSIX_API`) are caught only by the Host build of the domain, because they do not exist there, so build the domain on the Linux Host with a fake of `product_port.h` as well. Crux's own test builds the shipped domain that way and runs it against a fake port. A lexical check cannot see an include path that CMake adds, and the template adds none, so review still matters.
+
+The check does not apply to the shell. The freeze (P2 of [ADR-0002](https://github.com/wonny-labs/crux-pilot/blob/main/docs/decisions/0002-platform-direction-zephyr-execution-crux-services.md)) exempts only D10's Build B, which is a separate repository, and existing code that already uses a frozen header keeps working outside this template. Do not edit the check to allow another case. A new case is an owner decision.
 
 ## Shared-state example
 
@@ -61,7 +63,7 @@ The check does not apply to the shell. A product that has a reason to include a 
 
 1. One owner thread, `product_owner_entry`, is the only code that calls the domain.
 2. A status read, `product_status_read`, loads a snapshot that the owner stores in a C11 atomic after each step. It takes no lock and never calls the domain.
-3. A command, `product_command_set_limit`, posts a message to the owner's `k_msgq` without waiting. The owner applies it between two steps.
+3. A command, `product_command_set_limit`, posts a message to the owner's `k_msgq` without waiting. The owner applies it between two steps. The queue is four messages deep: a command that arrives when it is full is refused with `-ENOMSG` and is not applied, so the handler reports "busy" to its caller and does not wait.
 4. A lock would live in the shell. This example needs none, because the snapshot is one value.
 
 `main()` stands in for the callbacks of a service, so the example needs no extra Crux component. A real handler calls the same adapter and does nothing more. It is an example, not a framework: replace the stand-in port with a driver, and replace the one command with the product's own.

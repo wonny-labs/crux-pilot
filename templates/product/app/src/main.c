@@ -30,6 +30,10 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 
+/* The snapshot is a C11 atomic, so a read takes no lock only if int atomics are lock-free. Zephyr's
+ * own atomic_t has a C fallback that takes a global spinlock on some targets. */
+BUILD_ASSERT(ATOMIC_INT_LOCK_FREE == 2, "The snapshot needs lock-free int atomics");
+
 #define PRODUCT_STEP_MS 100
 #define PRODUCT_DEFAULT_LIMIT_MK 330000
 #define PRODUCT_OWNER_STACK_SIZE 1024
@@ -45,6 +49,7 @@ struct product_command {
     int32_t value;
 };
 
+/* Four messages deep. A fifth message that arrives before the owner drains the queue is refused. */
 K_MSGQ_DEFINE(product_command_queue, sizeof(struct product_command), 4, 4);
 
 /* The snapshot: written by the owner, read by any thread. */
@@ -74,7 +79,9 @@ static int product_command_set_limit(int32_t limit_millikelvin)
         .value = limit_millikelvin,
     };
 
-    /* A full queue is the caller's answer to give: return it, do not wait. */
+    /* Return 0 when the owner will apply the command. A full queue returns -ENOMSG and the command
+     * is not applied: the handler reports that to its caller, for example as "busy, try again".
+     * Do not wait for room, because a handler may run on a thread that must not block. */
     return k_msgq_put(&product_command_queue, &command, K_NO_WAIT);
 }
 
@@ -118,7 +125,11 @@ int main(void)
     printk("product-x: ready\n");
 
     /* Stand-ins for service callbacks: a command, then a status read. */
-    (void)product_command_set_limit(PRODUCT_DEFAULT_LIMIT_MK + 10000);
+    const int queued = product_command_set_limit(PRODUCT_DEFAULT_LIMIT_MK + 10000);
+
+    if (queued != 0) {
+        printk("product-x: command refused, status=%d\n", queued);
+    }
     k_msleep(2 * PRODUCT_STEP_MS);
     printk("product-x: filtered=%d mK\n", (int)product_status_read());
     return 0;

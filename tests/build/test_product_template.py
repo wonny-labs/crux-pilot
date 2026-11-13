@@ -266,7 +266,7 @@ int main(void)
             source = Path(tmp) / "fake.c"
             source.write_text(fake)
             binary = Path(tmp) / "fake"
-            subprocess.run(["cc", "-std=c17", "-Wall", "-Wextra", "-Werror", "-I", str(self.domain),
+            subprocess.run(["cc", "-std=c17", "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-I", str(self.domain),
                             str(source), str(self.domain / "product_domain.c"), "-o", str(binary)],
                            check=True)
             lines = subprocess.run([str(binary)], check=True, capture_output=True,
@@ -299,7 +299,8 @@ class DomainIncludeCheckTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self.domain_copy(tmp)
             path = root / name
-            path.write_text(text + path.read_text() if prepend else path.read_text() + text)
+            original = path.read_text(encoding="utf-8")
+            path.write_text(text + original if prepend else original + text, encoding="utf-8")
             return self.check.check(root)
 
     def test_the_template_as_shipped_passes(self):
@@ -349,6 +350,7 @@ class DomainIncludeCheckTest(unittest.TestCase):
             "#include <crux/thread.h> // trailing comment\n",
             "/* note */ #include <crux/thread.h>\n",
             "#include <crux/thread.h>\r\n",
+            "\ufeff#include <crux/thread.h>\n",  # a byte order mark at offset 0
         )
         for text in spellings:
             with self.subTest(text=text):
@@ -364,12 +366,38 @@ class DomainIncludeCheckTest(unittest.TestCase):
         text = "#include <crux/time.h>\n#include <crux/status.h>\n#include <stdint.h>\n#include <stdbool.h>\n"
         self.assertEqual([], self.violations_of(text))
 
-    def test_an_include_that_cannot_be_read_or_leaves_the_tree_fails(self):
-        for text in ("#define H <crux/thread.h>\n#include H\n",
-                     '#include "../app/src/main.c"\n',
-                     '#include "missing.h"\n'):
+    def test_a_crux_composition_interface_fails(self):
+        for header in ("crux/file_zephyr.h", "crux/queue_linux.h", "crux/anything_zephyr.h"):
+            with self.subTest(header=header):
+                found = self.violations_of(f"#include <{header}>\n")
+                self.assertEqual([header], [v.include for v in found])
+                self.assertIn("composition", found[0].reason)
+
+    def test_a_header_name_cannot_hide_behind_dot_components(self):
+        for header in ("crux/./thread.h", "./zephyr/kernel.h", "crux/../crux/thread.h",
+                       "crux/../zephyr/kernel.h", "zephyr//kernel.h", "crux/./file_zephyr.h"):
+            for form in ("<{}>", '"{}"'):
+                text = "#include " + form.format(header) + "\n"
+                with self.subTest(text=text):
+                    self.assertTrue(self.violations_of(text), text)
+
+    def test_a_macro_operand_or_a_missing_header_fails(self):
+        for text in ("#define H <crux/thread.h>\n#include H\n", '#include "missing.h"\n'):
             with self.subTest(text=text):
                 self.assertTrue(self.violations_of(text), text)
+
+    def test_a_quoted_include_of_a_real_file_outside_the_domain_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.domain_copy(tmp)
+            (Path(tmp) / "outside.h").write_text("#define OUTSIDE 1\n")
+            (root / "product_domain.h").write_text(
+                (root / "product_domain.h").read_text() + '#include "../outside.h"\n')
+            found = self.check.check(root)
+        self.assertEqual(["../outside.h"], [v.include for v in found])
+        self.assertIn("inside the domain", found[0].reason)
+
+    def test_a_quoted_include_of_another_domain_file_passes(self):
+        self.assertEqual([], self.violations_of('#include "product_port.h"\n'))
 
     def test_the_command_names_the_file_line_and_header_and_exits_nonzero(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -380,6 +408,18 @@ class DomainIncludeCheckTest(unittest.TestCase):
             result = self.run_cli(str(root))
         self.assertEqual(1, result.returncode)
         self.assertIn(f"product_domain.c:{line}: zephyr/kernel.h", result.stdout)
+
+    def test_an_empty_domain_directory_is_an_error_not_a_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "domain"
+            root.mkdir()
+            result = self.run_cli(str(root))
+            with self.assertRaises(ValueError):
+                self.check.check(root)
+            (root / "empty-subdirectory").mkdir()
+            self.assertEqual(2, self.run_cli(str(root)).returncode)
+        self.assertEqual(2, result.returncode)
+        self.assertNotIn("passed", result.stdout)
 
     def test_a_missing_domain_directory_is_an_error_not_a_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -421,6 +461,11 @@ class SharedStatePatternTest(unittest.TestCase):
         self.assertIn("K_NO_WAIT", body)
         self.assertNotRegex(body, r"product_domain_")
         self.assertIn("K_MSGQ_DEFINE(", self.shell)
+
+    def test_the_snapshot_read_is_lock_free_on_every_target_and_a_full_queue_is_documented(self):
+        self.assertIn("BUILD_ASSERT(ATOMIC_INT_LOCK_FREE == 2", self.shell)
+        self.assertIn("-ENOMSG", self.shell)
+        self.assertIn("-ENOMSG", (TEMPLATE / "README.md").read_text())
 
     def test_the_owner_applies_messages_between_steps(self):
         body = self.function("product_owner_entry")

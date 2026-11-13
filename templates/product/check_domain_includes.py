@@ -7,30 +7,39 @@ no lock, so it must not include:
 
 * ``<crux/thread.h>``, ``<crux/sync.h>``, ``<crux/queue.h>`` or ``<crux/serial.h>``, the four
   interfaces that are frozen for new product code, or
-* any Zephyr header (``<zephyr/...>``).
+* any ``<zephyr/...>`` header (or ``<zephyr.h>``), or
+* a Crux composition interface, ``<crux/NAME_zephyr.h>`` or ``<crux/NAME_linux.h>``, which names
+  a provider.
 
-Use Zephyr in the product's shell (``app/src``) and let the domain reach the outside only
-through the product-owned port header. The other public ``<crux/NAME.h>`` headers and the
-ISO C headers stay allowed. A quoted include must name a file inside the domain directory.
+Use Zephyr in the product's shell (``app/src``) and let the domain reach what it needs from
+outside through the product-owned port header. The other public ``<crux/NAME.h>`` headers and
+the ISO C headers stay allowed. A quoted include must name a file inside the domain directory.
+A header name with a ``.`` or ``..`` component is rejected, so no spelling hides a name.
+
+Other native headers (SoC, CMSIS, vendor HAL, POSIX under ``CONFIG_POSIX_API``) are not listed
+here. The Host build of the domain catches them, because they do not exist there.
 
 The check reads every file under the directory, whatever its suffix, and every ``#include``,
 ``#include_next`` and ``#import`` directive, after joining lines that end in a backslash,
 reading CRLF line ends, the digraph ``%:`` and the trigraph ``??=`` as ``#``, and removing
-comments. An operand that is not a literal ``<name>`` or ``"name"`` (a macro, for example)
+comments, after dropping a leading byte order mark. An operand that is not a literal ``<name>`` or ``"name"`` (a macro, for example)
 fails, because it cannot be checked. The check does not see include paths that CMake adds, so
 the template's build adds none.
 
 Usage: check_domain_includes.py [DOMAIN_DIR]    (default: ``domain/`` beside this file)
-Exit status: 0 passed, 1 violations, 2 usage error.
+Exit status: 0 passed, 1 violations, 2 usage error or no file to check.
 """
 
 import argparse
 import dataclasses
 import pathlib
+import posixpath
 import re
 import sys
 
 FROZEN_CRUX_HEADERS = frozenset({"crux/thread.h", "crux/sync.h", "crux/queue.h", "crux/serial.h"})
+
+COMPOSITION_INTERFACE = re.compile(r"^crux/[A-Za-z0-9_]+_(zephyr|linux)\.h$")
 
 DIRECTIVE = re.compile(r"^[ \t\f\v]*#[ \t\f\v]*(include_next|include|import)\b(.*)$", re.DOTALL)
 OPERAND = re.compile(r'^\s*(?:<([^>\n]+)>|"([^"\n]+)")')
@@ -103,22 +112,33 @@ def resolves_inside(include, source, root):
 
 def classify(include, angle, source, root):
     """Return a reason when the include is not allowed in the domain, otherwise None."""
-    if include in FROZEN_CRUX_HEADERS:
+    name = posixpath.normpath(include)
+    if name in FROZEN_CRUX_HEADERS:
         return "frozen Crux header: use Zephyr in the shell and reach it through a port"
-    if include.startswith("zephyr/") or include == "zephyr.h":
+    if name.startswith("zephyr/") or name == "zephyr.h":
         return "Zephyr header: the domain is plain C, use a port"
+    if COMPOSITION_INTERFACE.match(name):
+        return "Crux composition interface: it names a provider, use a port"
+    if angle and {".", ".."} & set(include.split("/")):
+        return "header name has a . or .. component, so it cannot be checked"
     if not angle and not resolves_inside(include, source, root):
         return "quoted header is not a file inside the domain directory"
     return None
 
 
 def check(root):
-    """Return the violations under the domain directory."""
+    """Return the violations under the domain directory.
+
+    Raise ValueError when there is no file to check, so an empty directory cannot pass.
+    """
     root = pathlib.Path(root)
+    sources = sorted(p for p in root.rglob("*") if p.is_file())
+    if not sources:
+        raise ValueError(f"{root} holds no file to check")
     violations = []
-    for source in sorted(p for p in root.rglob("*") if p.is_file()):
+    for source in sources:
         relative = source.relative_to(root.parent).as_posix()
-        text = strip_comments(normalise(source.read_bytes().decode("utf-8", errors="replace")))
+        text = strip_comments(normalise(source.read_bytes().decode("utf-8-sig", errors="replace")))
         for line, logical in logical_lines(text):
             directive = DIRECTIVE.match(logical)
             if not directive:
@@ -155,7 +175,11 @@ def main(argv=None):
     if not root.is_dir():
         print(f"error: {root} is not a directory", file=sys.stderr)
         return 2
-    violations = check(root)
+    try:
+        violations = check(root)
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
     for v in violations:
         print(f"{v.path}:{v.line}: {v.include}: {v.reason}")
     if violations:
