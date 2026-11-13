@@ -1,6 +1,8 @@
 # File root binding: a composition interface for products
 
-Status: **proposed**, software only. It adds a public CMake target and a header for the Zephyr File root binding. It changes no File behaviour and no portable contract, and it authorises no hardware operation.
+Status: **implemented**, software only. The target and header were merged in [PR #346](https://github.com/wonny-labs/crux-pilot/pull/346) and its follow-ups in [PR #359](https://github.com/wonny-labs/crux-pilot/pull/359), after the owner approved the public target and header (decision 5 below). The sections below describe what was built and what was untested when they were written. It adds a public CMake target and a header for the Zephyr File root binding. It changes no File behaviour and no portable contract, and it authorises no hardware operation.
+
+The general rules for composition interfaces, adopted with [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), are in [Composition interface rules](composition-interfaces.md). This document records the decisions for the File binding only.
 
 ## The gap
 

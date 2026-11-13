@@ -48,6 +48,33 @@ The diagram distinguishes two supported consumer paths. Crux-owned APIs use comp
 
 Consumers of Crux-owned APIs include `<crux/...>` headers and use their public CMake targets. Sockets consumers instead include the [qualified standard headers](networking-contract.md#socket-profile) and link `crux::sockets`. The [native-free consumer policy](native-interface-policy.md) defines the permitted standard APIs, native restrictions and enforcement limits. Platform-specific samples, test fixtures and product composition code may use OS APIs where their roles require them; that permission does not extend to reusable portable logic.
 
+### Three layers for a product (ADR-0001)
+
+**Source and status.** This subsection restates [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), Decisions 1 and 2, which the owner accepted on 12 November 2026 (D1 to D3). It refines the roles above and replaces none of them: the domain is the existing "portable application logic", adapters are a named part of the existing "platform composition", and the native-free boundary stays where it is. It prescribes no directory layout, and the statement above that roles are not mandatory directories still holds. It adds no check. In Crux the two existing checks stay (`scripts/check-native-interfaces.py` and `cmake/CruxConsumerBoundary.cmake`). The product template's example include check and Host build of the domain are a later follow-up of the ADR and do not exist yet.
+
+For product code, the ADR names three layers:
+
+| Layer | Owns | May use | Must not use | Tested by |
+| --- | --- | --- | --- | --- |
+| Domain | Product policy, state, workflows | ISO C. Public `<crux/NAME.h>` headers and `crux::` usage targets. Qualified standard profiles such as Sockets. The product's own port headers | Zephyr, board, vendor or Crux private headers. Crux composition interfaces. Devicetree identifiers | Linux Host, with Crux Host providers and product fakes of its ports |
+| Adapters and platform composition (product-owned) | The implementation of each port. Mounting, Devicetree, Kconfig, device initialisation | Any Zephyr API, Devicetree, drivers and subsystems. Crux public headers. Crux composition interfaces | Crux private headers and `ports/` include paths | `native_sim` with Zephyr emulators where they exist, and the board |
+| Crux platform services | Public contracts, usage targets, providers | Inside providers, Zephyr, as today | Product knowledge | Crux's own Host, `native_sim` and board evidence |
+
+A **port** is a header that the product owns, in the domain's tree, written in the product's terms (a temperature, a valve position, a measurement period) and not in a device's terms such as a register or a bus. It holds no Zephyr type. An adapter implements it, and a Host fake implements it in tests. Crux publishes no product ports. A port becomes a Crux capability only under [Extending Crux](#extending-crux) and the rule against pass-through wrappers of native APIs in [AGENTS.md](../AGENTS.md#engineering-approach). This is ports and adapters: the domain calls ports, and adapters implement them with Zephyr, so a product needing a Zephyr feature that Crux does not offer writes an adapter and needs no change in Crux.
+
+Where Zephyr is allowed (Decision 2):
+
+| Place | Zephyr allowed |
+| --- | --- |
+| Product domain | No |
+| Product adapters and platform composition | Yes: any Zephyr API, Devicetree, driver or subsystem. A vendor HAL only where Zephyr has no driver |
+| Crux public headers, `components/<c>/include/crux/` | No, as today |
+| Crux composition interfaces, `components/<c>/ports/zephyr/include/crux/` | Only where a binding needs a Zephyr type, under the [composition interface rules](composition-interfaces.md) |
+| Crux providers, `components/<c>/ports/zephyr/` | Yes, as today |
+| Crux samples' `zephyr/` folders, and tests | Yes, by role, as today |
+
+In a product, the ADR recommends two checks: a lexical include check per zone, and a Host build of the domain. A Zephyr header does not exist in a Linux Host build, so a Zephyr include in the domain then fails to compile. The product owns both checks and may make them stricter. Lexical checks can be bypassed and need review, as the [native-free consumer policy](native-interface-policy.md#three-layers-and-ports-adr-0001) states.
+
 ## Component ownership and source layout
 
 Each component owns its applicable public contract, common code, private helpers, build definitions and optional OS-specific implementations:
@@ -72,7 +99,8 @@ cross-OS support. These names do not imply production qualification.
 
 A composition target is not a portable usage target: the native-free consumer check rejects it, and only platform
 composition code or a final application executable links it. `crux::file_zephyr` is the Zephyr example, the binding of a mounted directory to the File
-provider; see [File root binding](file-composition-interface.md).
+provider; see [File root binding](file-composition-interface.md). The general rules for composition interfaces, adopted with
+[ADR-0001](decisions/0001-application-boundary-and-api-stability.md), are in [Composition interface rules](composition-interfaces.md).
 
 For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CPU Busy-wait](time-busy-wait.md) and authority state, with a controlled memory realtime implementation separately from Linux/Zephyr system realtime and an optional Zephyr RTC adapter. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
 
@@ -358,6 +386,7 @@ The [capability inventory](#current-capability-integration) links to component-s
 - [Build and Integration Guide](build.md)
 - [GPIO contract](gpio-contract.md)
 - [Native-free consumer policy](native-interface-policy.md)
+- [ADR-0001: application boundary and public API stability](decisions/0001-application-boundary-and-api-stability.md) and [composition interface rules](composition-interfaces.md)
 - [Test organisation and commands](../tests/README.md)
 - [Reference controller and supported scenarios](../samples/controller/README.md)
 
