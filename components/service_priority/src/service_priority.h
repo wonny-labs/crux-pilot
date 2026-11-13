@@ -4,10 +4,11 @@
  * Private: places a Crux service worker at its per-service priority (ADR-0002 P3). Not a Thread
  * feature and not a consumer interface. See docs/thread-sync.md#priority-map-of-crux-threads.
  *
- * Each worker is a LOW-class Crux Thread. On Zephyr, where the Crux module defines
- * CRUX_SERVICE_PRIORITY_PLACEMENT, its entry calls crux_service_priority_place() first, and the
- * worker then runs at its CONFIG_CRUX_<SERVICE>_<ROLE>_PRIORITY. On the Linux Host nothing is
- * called, as Host Thread has no priorities.
+ * Each worker is a LOW-class Crux Thread. On Zephyr, where the target that compiles the worker
+ * links crux_service_priority_placement and so has CRUX_SERVICE_PRIORITY_PLACEMENT, its entry calls
+ * crux_service_priority_place() first, and the worker then runs at its
+ * CONFIG_CRUX_<SERVICE>_<ROLE>_PRIORITY. On the Linux Host nothing is called, as Host Thread has no
+ * priorities.
  */
 typedef enum {
     CRUX_SERVICE_THREAD_SECURITY_EVENT_DRAIN,

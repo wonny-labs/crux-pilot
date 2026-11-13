@@ -5,8 +5,8 @@ The native_sim suite in tests/service_priority/zephyr reads the priorities back 
 worker that calls the placement as a service worker does. It cannot start the services themselves,
 which need their whole composition, and the SSH provider needs wolfSSH. This check covers that part
 statically: which entry calls which identifier, the Kconfig defaults, the map from identifier to
-symbol, the SSH provider's two thread priorities, and that no service creates a thread outside this
-list. It is a lexical check of the sources as they are written, not a C parser.
+symbol, the SSH provider's two thread priorities, that no service creates a thread outside this
+list, and that every Zephyr CMake file that compiles a worker links the placement's interface. It is a lexical check of the sources as they are written, not a C parser.
 """
 import argparse
 import re
@@ -131,7 +131,8 @@ def ssh_errors(root, kconfig):
 def creator_errors(root):
     errors = []
     workers = {source for source, _, _ in WORKERS}
-    for path in sorted((root / "components").rglob("*.c")):
+    paths = sorted((root / "components").rglob("*.c")) + sorted((root / "zephyr").rglob("*.c"))
+    for path in paths:
         relative = path.relative_to(root).as_posix()
         if "/tests/" in relative or relative.startswith(THREAD_CREATORS[0]):
             continue
@@ -144,12 +145,53 @@ def creator_errors(root):
     return errors
 
 
+# How a CMake file names a worker source: the file's name, or a list variable that holds it.
+WORKER_SOURCE_NAMES = tuple(Path(source).name for source, _, _ in WORKERS) + (
+    "CRUX_SECURITY_EVENT_SOURCES", "CRUX_REBOOT_SOURCES", "CRUX_NETWORK_SETTINGS_SOURCES",
+    "CRUX_WEB_SESSION_SOURCES", "CRUX_WEB_MANAGEMENT_SOURCES")
+PLACEMENT_TARGET = "crux_service_priority_placement"
+SKIPPED_DIRS = {"build", ".git", "twister-out"}
+
+
+def is_zephyr_cmake(relative, text):
+    """A Zephyr build: an application, a file under a Zephyr test or the module, or one that adds to app."""
+    return (re.search(r"find_package\s*\(\s*Zephyr", text) is not None
+            or relative.startswith(("tests/native/", "tests/zephyr/", "zephyr/"))
+            or "/zephyr/" in relative
+            or re.search(r"\btarget_sources\s*\(\s*app\b", text) is not None)
+
+
+def wiring_errors(root):
+    """Each Zephyr CMake file that compiles a worker source must link the placement's interface.
+
+    The files that only define a source list (a component's sources.cmake, or a component's Host
+    CMakeLists.txt that sets the list) compile nothing for Zephyr, and the Host builds call nothing.
+    """
+    errors = []
+    for path in sorted(root.rglob("*")):
+        if path.name != "CMakeLists.txt" and path.suffix != ".cmake":
+            continue
+        relative = path.relative_to(root).as_posix()
+        if SKIPPED_DIRS.intersection(path.relative_to(root).parts) or relative.startswith("components/"):
+            continue
+        text = re.sub(r"#[^\n]*", "", path.read_text(errors="replace"))
+        if not any(re.search(r"\b" + re.escape(name) + r"\b", text) for name in WORKER_SOURCE_NAMES):
+            continue
+        if not is_zephyr_cmake(relative, text):
+            continue
+        if not re.search(r"\btarget_link_libraries\s*\([^)]*\b" + PLACEMENT_TARGET + r"\b", text):
+            errors.append(f"{relative}: compiles a service worker for Zephyr without linking {PLACEMENT_TARGET}, "
+                          "so the worker would stay at its class's priority")
+    return errors
+
+
 def errors(root):
     kconfig = (root / "zephyr/Kconfig").read_text()
     placement_path = root / PLACEMENT
     placement = placement_path.read_text() if placement_path.is_file() else ""
     found = [] if placement else [f"{PLACEMENT}: missing"]
-    return found + worker_errors(root, kconfig, placement) + ssh_errors(root, kconfig) + creator_errors(root)
+    return (found + worker_errors(root, kconfig, placement) + ssh_errors(root, kconfig) + creator_errors(root)
+            + wiring_errors(root))
 
 
 def main():

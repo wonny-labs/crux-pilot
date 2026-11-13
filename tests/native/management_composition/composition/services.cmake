@@ -65,7 +65,7 @@ function(crux_native_management_compose_services)
         "${component}/tls_certificate/src"
         "${component}/cli/include" "${component}/cli/adapter" "${component}/cli/src"
         "${component}/file_service/include" "${component}/file_service/src")
-    target_link_libraries(app PRIVATE crux_web_adapter)
+    target_link_libraries(app PRIVATE crux_web_adapter crux_service_priority_placement)
     target_compile_definitions(app PRIVATE CRUX_NATIVE_MANAGEMENT_SERVICES=1
         CRUX_CLI_LINE_MAX=320 CRUX_CLI_TOKENS_MAX=10)
     if(CRUX_NATIVE_MANAGEMENT_TEST_IMAGE)
