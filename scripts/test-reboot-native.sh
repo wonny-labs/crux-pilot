@@ -59,7 +59,7 @@ export ASAN_OPTIONS=detect_leaks=0
 export UBSAN_OPTIONS=log_path=stdout:halt_on_error=1
 
 # Image, then the suites that it holds. The suite names are those of the tests/reboot sources.
-images=(core:service,steps,concurrency,reason lock_faults:lock_faults sleep_provider:)
+images=(core:service,steps,concurrency,reason lock_faults:lock_faults pending:pending sleep_provider:)
 total=0
 failed=0
 started=$SECONDS
@@ -88,7 +88,7 @@ for entry in "${images[@]}"; do
     for suite in "${suite_list[@]}"; do
         filter="reboot_${suite}::test_run"
         listed="$("$exe" -test="$filter" -reboot-list 2>&1 | sed -n 's/^SUITE .* CASES \([0-9]*\)$/\1/p')"
-        host_cases="$(grep -c 'reboot_run_case(' "$repo/tests/reboot/$suite.c")"
+        host_cases="$(grep -cE '(reboot|net)_run_case\(' "$repo/tests/reboot/$suite.c")"
         if [[ -z "$listed" || "$listed" != "$host_cases" ]]; then
             printf 'Reboot native: suite %s lists %s cases, the Host source runs %s.\n' \
                 "$suite" "${listed:-none}" "$host_cases" >&2

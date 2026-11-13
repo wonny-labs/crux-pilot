@@ -55,7 +55,7 @@ void reboot_native_expect_one_case(const char *suite)
     next_index = 0;
 }
 
-void reboot_run_case(const char *name, void (*body)(void))
+static void run_selected(const char *name, void (*body)(void))
 {
     const int index = next_index++;
 
@@ -71,9 +71,33 @@ void reboot_run_case(const char *name, void (*body)(void))
     ++cases_run;
 }
 
-int reboot_finish(const char *suite)
+static int finish(const char *suite)
 {
     printk("%s: case %d ran, %u checks, %u failures\n", suite, selected, access_test_checks,
            access_test_failures);
     return access_test_failures == 0u ? 0 : 1;
+}
+
+void reboot_run_case(const char *name, void (*body)(void))
+{
+    run_selected(name, body);
+}
+
+int reboot_finish(const char *suite)
+{
+    return finish(suite);
+}
+
+/* The network settings fixture, which the pending suite takes, forks its cases in the same way. */
+void net_run_case(const char *name, void (*body)(void));
+int net_finish(const char *suite);
+
+void net_run_case(const char *name, void (*body)(void))
+{
+    run_selected(name, body);
+}
+
+int net_finish(const char *suite)
+{
+    return finish(suite);
 }

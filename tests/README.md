@@ -358,13 +358,13 @@ board. See [reboot service](../docs/reboot-service.md).
 
 ### Reboot suites on `native_sim` (pilot, Stage A)
 
-`tests/reboot/zephyr` builds the Host sources of `Reboot.service`, `steps`, `concurrency`, `reason`, `lock_faults` and `sleep_provider`
+`tests/reboot/zephyr` builds the Host sources of `Reboot.service`, `steps`, `concurrency`, `reason`, `lock_faults`, `pending` and `sleep_provider`
 unchanged for `native_sim/native/64`, over the Crux Thread and Sync Zephyr providers, with ASan and UBSan.
-`scripts/test-reboot-native.sh [--plain]` builds three images and runs them. Zephyr has no `fork()`, so the script starts the image once for
+`scripts/test-reboot-native.sh [--plain]` builds four images and runs them. Zephyr has no `fork()`, so the script starts the image once for
 each case, which is what the Host's forked child does, and it fails if a suite lists a different number of cases from the Host source.
 `tests/reboot/zephyr/compat/pthread.h` supplies the few pthread calls of the suites over Zephyr threads, because Zephyr's POSIX layer needs
 a C library that the host toolchain does not have. This is not a Host result: `native_sim` runs one Zephyr thread at a time and has no
-ThreadSanitizer. `Reboot.pending` and the web routes are not part of it. See
+ThreadSanitizer. The `Web.reboot_*` route suites are not part of it. See
 [the pilot record](../docs/research/reboot-native-sim-stage-a.md).
 
 ## Packaged web assets
