@@ -135,7 +135,7 @@ Decision P3 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-cru
 | Thread | Started by | Today's priority | Setting | Default |
 | --- | --- | --- | --- | --- |
 | Security event drain | `crux_security_event_start()` | 6, a `LOW` Crux Thread worker | `CONFIG_CRUX_SECURITY_EVENT_DRAIN_PRIORITY` | 6 |
-| Reboot service worker | `crux_reboot_start_worker()` | 6, `LOW` | `CONFIG_CRUX_REBOOT_WORKER_PRIORITY` | 6 |
+| Reboot service worker | `crux_reboot_start_worker()` | 6, a Zephyr-direct `k_thread`, not a Crux Thread | `CONFIG_CRUX_REBOOT_WORKER_PRIORITY` | 6 |
 | Network settings service worker | `crux_network_settings_start_worker()` | 6, `LOW` | `CONFIG_CRUX_NETWORK_SETTINGS_WORKER_PRIORITY` | 6 |
 | Web session login worker | `crux_web_session_start_worker()` | 6, `LOW` | `CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY` | 6 |
 | Web management save worker | `crux_web_management_start_worker()` | 6, `LOW` | `CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY` | 6 |

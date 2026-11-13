@@ -2,24 +2,20 @@ add_library(crux_reboot_api INTERFACE)
 target_include_directories(crux_reboot_api INTERFACE include)
 target_link_libraries(crux_reboot_api INTERFACE crux_access_api)
 
-set(CRUX_REBOOT_SOURCES src/reboot.c)
-list(TRANSFORM CRUX_REBOOT_SOURCES PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
-set(CRUX_REBOOT_SOURCES "${CRUX_REBOOT_SOURCES}" CACHE INTERNAL "Portable reboot service sources")
-
-# The core calls the private ports in src/reboot_port.h: the reset, the sleep, the events that are
-# still pending, and the event port. No provider is linked here, so that an image links only once a
-# composition chooses one, as for the network settings service. The fakes in tests/reboot are a test
-# composition that exists only when Crux builds its own tests.
-add_library(crux_reboot_core STATIC ${CRUX_REBOOT_SOURCES})
-target_include_directories(crux_reboot_core PRIVATE src)
-target_link_libraries(crux_reboot_core
-    PUBLIC crux_reboot_api
-    PRIVATE crux::access crux::sync crux::thread crux_configuration_text)
-target_compile_options(crux_reboot_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
+# The service is Zephyr-direct (pilot of ADR-0002 P9): its core and its sleep use k_mutex, k_sem,
+# k_thread and k_msleep, so both sources live under ports/zephyr and no Host build compiles them. A
+# Zephyr composition names these two files, the core and the sleep port, with CONFIG_CRUX_REBOOT_WORKER_PRIORITY and
+# CONFIG_CRUX_REBOOT_WORKER_STACK_SIZE from zephyr/Kconfig. The Host builds the public interface
+# and the two providers below, which call nothing of the kernel. Crux's own tests build the core on
+# the Host over a test-only kernel stub (tests/reboot/host_kernel) and on native_sim over Zephyr.
+set(CRUX_REBOOT_SOURCES "${CMAKE_CURRENT_LIST_DIR}/ports/zephyr/reboot_zephyr.c"
+    CACHE INTERNAL "Zephyr-direct reboot service core")
+set(CRUX_REBOOT_SLEEP_SOURCE "${CMAKE_CURRENT_LIST_DIR}/ports/zephyr/reboot_sleep_zephyr.c"
+    CACHE INTERNAL "Zephyr-direct sleep port of the reboot service")
 
 add_library(crux_reboot INTERFACE)
 add_library(crux::reboot ALIAS crux_reboot)
-target_link_libraries(crux_reboot INTERFACE crux_reboot_api crux_reboot_core)
+target_link_libraries(crux_reboot INTERFACE crux_reboot_api)
 
 # Thin providers, which a composition links by name. They are objects, so that a final link always
 # takes them, and a second provider of a port is a duplicate symbol.
@@ -29,11 +25,6 @@ function(crux_reboot_provider target)
     target_link_libraries(${target} PUBLIC crux_reboot_api)
     target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endfunction()
-
-# The sleep of the worker, on Sync's semaphore: one that is never given, so that taking it with a
-# time limit is a sleep.
-crux_reboot_provider(crux_reboot_sleep src/reboot_sleep.c)
-target_link_libraries(crux_reboot_sleep PUBLIC crux::sync)
 
 # The reset over crux_system_reset(), which does not return on a target. On the Host it returns
 # CRUX_ERR_NOT_SUPPORTED and the request fails, so no Host image resets by this provider.

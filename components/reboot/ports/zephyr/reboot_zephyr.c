@@ -1,6 +1,11 @@
 /* The reboot service: the permission, the policy asked twice, the event, and the worker that waits
  * a bounded time for events and saves before it resets. See docs/reboot-service.md.
  *
+ * Zephyr-direct (pilot of ADR-0002 P9): the lock, the signal and the worker are Zephyr kernel
+ * objects (k_mutex, k_sem, k_thread), defined statically, so none of them can fail to be created.
+ * This file is Zephyr only and lives under ports/zephyr for that reason. Its behaviour is that of
+ * docs/reboot-service.md, and the public header is unchanged.
+ *
  * One request is carried out at a time. A request made while one is pending is accepted and starts
  * nothing, and it runs no policy. The worker holds no lock while it sleeps, polls or calls the
  * policy, the sources or the reset, so a request or a read is never kept waiting by it.
@@ -18,11 +23,8 @@
 #include "reboot_port.h"
 
 #include <crux/configuration.h>
-#include <crux/sync.h>
-#include <crux/thread.h>
-#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
-#include "service_priority.h"
-#endif
+
+#include <zephyr/kernel.h>
 
 #include <stdatomic.h>
 #include <string.h>
@@ -50,6 +52,15 @@
 #define CRUX_REBOOT_POLL_MS 50u
 #endif
 
+#ifndef CONFIG_CRUX_REBOOT_WORKER_PRIORITY
+#error "CONFIG_CRUX_REBOOT_WORKER_PRIORITY comes from zephyr/Kconfig"
+#endif
+/* Kconfig's range stops at NUM_PREEMPT_PRIORITIES, the idle priority: refuse it, as the placement
+ * of the other workers does (components/service_priority). */
+BUILD_ASSERT(CONFIG_CRUX_REBOOT_WORKER_PRIORITY >= 0 &&
+                 CONFIG_CRUX_REBOOT_WORKER_PRIORITY < CONFIG_NUM_PREEMPT_PRIORITIES,
+             "CRUX_REBOOT_WORKER_PRIORITY must be a preemptible application priority");
+
 _Static_assert(CRUX_REBOOT_POLL_MS > 0u, "the wait must step");
 _Static_assert(CRUX_REBOOT_REASON_SIZE == 64u,
                "the reason holds 63 bytes of text, as a status text");
@@ -71,20 +82,34 @@ static struct {
     crux_access_session_t session;
 } svc;
 
-static crux_mutex_t state_lock;
-static crux_semaphore_t work_signal;
-static bool sync_created;
+static K_MUTEX_DEFINE(state_lock);
+static K_SEM_DEFINE(work_signal, 0, 1);
+static K_THREAD_STACK_DEFINE(worker_stack, CONFIG_CRUX_REBOOT_WORKER_STACK_SIZE);
+static struct k_thread worker_thread;
 static bool worker_started;
-static crux_thread_t worker_thread;
+
+#ifdef CRUX_REBOOT_TESTING
+/* The tests' fault injection finds the state lock by its address, which no other lock shares, and
+ * the worker's priority is read from its thread. */
+struct k_mutex *crux_reboot_test_state_lock(void)
+{
+    return &state_lock;
+}
+
+struct k_thread *crux_reboot_test_worker(void)
+{
+    return &worker_thread;
+}
+#endif
 
 static bool lock_state(uint32_t wait_ms)
 {
-    return crux_mutex_lock(state_lock, wait_ms) == CRUX_OK;
+    return k_mutex_lock(&state_lock, K_MSEC(wait_ms)) == 0;
 }
 
 static void unlock_state(void)
 {
-    (void)crux_mutex_unlock(state_lock);
+    (void)k_mutex_unlock(&state_lock);
 }
 
 /* Start. */
@@ -129,13 +154,6 @@ crux_reboot_result_t crux_reboot_start(const crux_reboot_config_t *config)
     checked = check_config(config);
     if (checked != CRUX_REBOOT_OK) {
         return checked;
-    }
-    if (!sync_created) {
-        if (crux_mutex_create(&state_lock) != CRUX_OK ||
-            crux_semaphore_create(0u, 1u, &work_signal) != CRUX_OK) {
-            return CRUX_REBOOT_ERR_NOT_READY;
-        }
-        sync_created = true;
     }
     memset(&svc, 0, sizeof(svc));
     atomic_init(&svc.announced, false);
@@ -295,7 +313,7 @@ crux_reboot_result_t crux_reboot_request(crux_access_session_t session,
      * before the record of the request. */
     crux_reboot_port_event(CRUX_REBOOT_EVENT_REQUESTED, session);
     atomic_store_explicit(&svc.announced, true, memory_order_release);
-    (void)crux_semaphore_give(work_signal);
+    k_sem_give(&work_signal);
     return CRUX_REBOOT_OK;
 }
 
@@ -412,15 +430,13 @@ bool crux_reboot_work_once(void)
     return true;
 }
 
-static void worker_main(void *argument)
+static void worker_main(void *unused1, void *unused2, void *unused3)
 {
-    (void)argument;
-#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
-    /* First, so that the worker does its work at its per-service priority (ADR-0002 P3). */
-    crux_service_priority_place(CRUX_SERVICE_THREAD_REBOOT_WORKER);
-#endif
+    (void)unused1;
+    (void)unused2;
+    (void)unused3;
     for (;;) {
-        (void)crux_semaphore_take(work_signal, CRUX_REBOOT_WORKER_WAIT_MS);
+        (void)k_sem_take(&work_signal, K_MSEC(CRUX_REBOOT_WORKER_WAIT_MS));
         while (crux_reboot_work_once()) {
         }
     }
@@ -428,17 +444,17 @@ static void worker_main(void *argument)
 
 crux_reboot_result_t crux_reboot_start_worker(void)
 {
-    static const crux_thread_options_t options = {0u, CRUX_THREAD_PRIORITY_LOW};
-
     if (!svc.started) {
         return CRUX_REBOOT_ERR_NOT_READY;
     }
     if (worker_started) {
         return CRUX_REBOOT_OK;
     }
-    if (crux_thread_create(&options, worker_main, NULL, &worker_thread) != CRUX_OK) {
-        return CRUX_REBOOT_ERR_NOT_READY;
-    }
+    /* The thread starts at once, at the priority of ADR-0002 P3 (default 6, today's LOW class), and
+     * is never joined: the service has no stop. */
+    (void)k_thread_create(&worker_thread, worker_stack, K_THREAD_STACK_SIZEOF(worker_stack),
+                          worker_main, NULL, NULL, NULL, CONFIG_CRUX_REBOOT_WORKER_PRIORITY, 0,
+                          K_NO_WAIT);
     worker_started = true;
     return CRUX_REBOOT_OK;
 }
