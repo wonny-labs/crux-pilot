@@ -341,6 +341,22 @@ flowchart TD
 - **Maintenance branch.** A released product is maintained on a maintenance branch from its release tag.
 - **Support period.** Each product must set its own. This guide gives no number.
 
+### Crypto library pins
+
+Crux pins `mbedtls` and `tf-psa-crypto` from Zephyr's forks, in the optional group `crux-secure-management`. A pin is an upstream release plus Zephyr's commits, and it follows Zephyr's own pin at the Zephyr tag unless a [dependency review](dependency-review.md) moves it. The policy is [ADR-0006](decisions/0006-cryptographic-dependency-policy.md). `west crux-pins` reports the pin, not the library line or version. To see those, use the pin base check of the [guide](dependency-review.md#check-what-a-pin-is) and the release notes line that a pin move adds.
+
+A product **can**:
+
+- Take Crux's pins as they are.
+- Move both pins to a later Zephyr-fork revision in its own manifest, and declare each with `crux-override`, with the advisory and the review as the reason. Crux's evidence does not cover that pin, so the product owns its own.
+
+A product **must**:
+
+- Keep `mbedtls` and `tf-psa-crypto` from the same line, as Zephyr pins them.
+- Review the advisories against its own configuration and code with the [guide](dependency-review.md). Crux's review covers Crux's components and Mbed profile, not a product's TLS client, PKCS #7, RSA or certificate validation.
+- Record which crypto line and version each released product carries.
+- Meet the licence terms of every group it enables. The wolf projects are GPL-3.0-or-later or commercial.
+
 ### Taking a Zephyr patch release
 
 A Zephyr patch release such as 4.4.3 trips both checks until Crux moves its baseline.

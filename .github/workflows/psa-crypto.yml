@@ -89,6 +89,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-native-composition.sh mbed
 
+      - name: The management service cores built by the Zephyr module, Mbed profile, on native_sim
+        working-directory: crux-pilot
+        run: scripts/test-management-module.sh
+
       - name: The web adapter over HTTPS on the composition, Mbed profile, on native_sim
         working-directory: crux-pilot
         run: scripts/test-web.sh https mbedtls
