@@ -1,6 +1,6 @@
 # ADR-0005: How a consumer composes the Crux System service on native_sim with a test watchdog (proposal)
 
-Status: **Proposed**. Nothing here is adopted. Baseline: `origin/main` at `5c09d431049adee62f87332968e0235bb53cc0aa`. Author: Claude Code, model `claude-sonnet-5-5` (a lower model than a design record deserves; the independent review is by the `reviewer` agent on Opus). The owner asked for this in the Crux Controller chat on 14 November 2026 ("Crux에 요청", relayed) and approved writing this proposal, and only the proposal, in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC ("추천대로 승인할게", relayed by that session), with the order that the work starts after [ADR-0004](0004-product-composition-of-management-services.md) merges (it merged as #403). The same words and time are recorded in ADR-0004 for its acceptance; I did not see the chat and cannot say whether one message or two carried them.
+Status: **Accepted** on 14 November 2026, as recommended: S1 to S9. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `5c09d431049adee62f87332968e0235bb53cc0aa`. Author: Claude Code, model `claude-sonnet-5-5` (a lower model than a design record deserves; the independent review is by the `reviewer` agent on Opus). The owner asked for this in the Crux Controller chat on 14 November 2026 ("Crux에 요청", relayed) and approved writing this proposal, and only the proposal, in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC ("추천대로 승인할게", relayed by that session), with the order that the work starts after [ADR-0004](0004-product-composition-of-management-services.md) merges (it merged as #403). The same words and time are recorded in ADR-0004 for its acceptance; I did not see the chat and cannot say whether one message or two carried them.
 
 This record is documentation only. It adds no code, check, target, header, Kconfig symbol or test seam, adopts no public interface and changes no protected path. It does not edit an accepted ADR. Every change that it puts forward would be its own reviewed change, listed under [Follow-up changes](#follow-up-changes).
 
@@ -201,6 +201,28 @@ The recommendation comes first in each row.
 | S8 | Put the System scenario in ADR-0004's out-of-tree fixture mechanism, shipped first on its own? | **Yes** | One mechanism for both, and the System scenario needs no phase 0. Alternative: a separate script now |
 | S9 | Approve the protected-path changes per follow-up, as ADR-0004 C9 did? | **Per follow-up** | Only follow-up 4 (the guard rule) and follow-up 5 (CI workflow) touch protected files |
 
+### The owner's decisions
+
+The owner accepted this record as recommended, in the Crux Pilot main session chat on 14 November 2026 at about 18:37 UTC. The time is the one the Crux Pilot main session read from its shell (18:37:03Z) when it acted, moments after the owner's message, and the owner's time zone was not recorded. The owner's words, relayed by that session, answered its question "accept ADR-0005 as recommended (S1-S9)". In that message the main session had pointed out S4 and S6 for a second look:
+
+> 추천대로 승인할게
+
+This means "I approve as you recommended". Acceptance was recorded from the owner's words as that session relayed them; I did not see the chat.
+
+| # | Decision |
+| --- | --- |
+| S1 | Route A: a `native_sim`-only simulated watchdog that the Zephyr module provides and one Kconfig symbol selects, with a configure error on any other board |
+| S2 | Crux may add one Kconfig symbol for it, at tier Experimental, with a name that says `native_sim` and test only (`CRUX_SYSTEM_NATIVE_SIM_WATCHDOG` is illustrative) |
+| S3 | `watchdog_emulated` is `true` only when the simulated device of the A symbol is bound |
+| S4 | The `native_sim` process restart on a missed feed is allowed under the System spec's "never call an actual machine reset" |
+| S5 | The simulated device prints one line and then calls `sys_reboot`, and the A symbol selects `NATIVE_SIM_REBOOT` |
+| S6 | A narrow rule in the consumer guard refuses `--wrap` of `crux_`-prefixed symbols, as its own protected-path change |
+| S7 | A docs-only note says that arming order and loop policy belong to the product |
+| S8 | The System scenario uses the out-of-tree fixture mechanism of ADR-0004 and ships first on its own |
+| S9 | Protected-path changes are approved per follow-up change |
+
+Accepting this record decides these questions. It changes no code, check, target, header, Kconfig symbol or protected path, and it authorises no hardware operation. Each follow-up under [Follow-up changes](#follow-up-changes) is its own reviewed change and needs its own approval, including for every protected path that it touches ([the convention](README.md#convention)).
+
 ## What was run
 
 On native macOS, in the worktree at `5c09d431`: `git fetch`, reads of the files cited above, `grep`, `gh api` for the Controller issue, comment, PR and findings note, `gh pr list` to check that number 0005 was free, and `git show` and `git diff --stat` in the local Zephyr checkout (read-only) for the pinned revision. The consumer-guard probes of section 1.2: eight throwaway CMake projects in the session scratchpad, configured with `cmake` 4.4.5 against the unmodified guard. They changed nothing in the repository. Not run: `west`, any Zephyr build, Twister, `native_sim`, any test of the repository, any hardware command. The documentation link check is recorded in the pull request.
@@ -214,3 +236,4 @@ On native macOS, in the worktree at `5c09d431`: `git fetch`, reads of the files 
 | Model | `claude-sonnet-5-5`, Claude Code |
 | Independent review | The `reviewer` agent, verdict in the pull request |
 | Approval | Proposal only, by the owner in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC: "추천대로 승인할게", relayed by that session. The request came from the Crux Controller chat ("Crux에 요청"), relayed. Acceptance of this record is not given |
+| Acceptance | The owner, as recommended (S1 to S9), 14 November 2026 at about 18:37 UTC in the Crux Pilot main session chat: "추천대로 승인할게". Relayed by that session. See [the owner's decisions](#the-owners-decisions) |
