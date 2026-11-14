@@ -1,10 +1,10 @@
 /*
  * ADR-0004 phase 0. Access, the credential store and the security events come from the Zephyr
  * module under CONFIG_CRUX_ACCESS, and the Configuration and status services under
- * CONFIG_CRUX_CONFIG_SERVICE and CONFIG_CRUX_MGMT_STATUS, on real PSA providers, a real FatFs on a simulated disk and the
- * Crux Logging provider. This file is the application: it starts them in the order of
- * docs/management-in-a-product.md and checks that they work together. Test only: the entropy is
- * test-only and the first account is a declared input.
+ * CONFIG_CRUX_CONFIG_SERVICE and CONFIG_CRUX_MGMT_STATUS, on real PSA providers, a real FatFs on a
+ * simulated disk and the Crux Logging provider. This file is the application: it starts them in the
+ * order of docs/management-in-a-product.md and checks that they work together. Test only: the
+ * entropy is test-only and the first account is a declared input.
  */
 #include "crux_tf_psa_threading.h"
 
@@ -173,7 +173,8 @@ ZTEST(management_module, test_03_events_status_and_configuration_are_the_module_
     zassert_true(count_events(admin, CRUX_SECURITY_EVENT_ID_ACCESS_LOGIN_OK) >= 1u);
 
     /* The status service, with its System, Time, network, credential and event sources. */
-    zassert_equal(crux_mgmt_status_report_json(admin, document, sizeof(document), &length), CRUX_OK);
+    zassert_equal(crux_mgmt_status_report_json(admin, document, sizeof(document), &length),
+                  CRUX_OK);
     zassert_not_null(strstr(document, "\"system.uptime_ms\""));
     zassert_not_null(strstr(document, "\"security.events_emitted\""));
     zassert_not_null(strstr(document, "\"security.credential_state\""));
@@ -181,15 +182,17 @@ ZTEST(management_module, test_03_events_status_and_configuration_are_the_module_
     zassert_equal(crux_mgmt_status_report_json(never_valid, document, sizeof(document), &length),
                   CRUX_ERR_INVALID_STATE);
 
-    /* The Configuration service, over the no-provider port: it updates in memory and cannot save. */
-    zassert_equal(crux_config_service_read(never_valid, PARAM_INTERVAL, text, sizeof(text), &length,
-                                           &type),
-                  CRUX_CONFIG_SERVICE_ERR_SESSION_INVALID);
+    /* The Configuration service, over the no-provider port: it updates in memory and cannot save.
+     */
+    zassert_equal(
+        crux_config_service_read(never_valid, PARAM_INTERVAL, text, sizeof(text), &length, &type),
+        CRUX_CONFIG_SERVICE_ERR_SESSION_INVALID);
     zassert_equal(crux_config_service_update(admin, PARAM_INTERVAL, "2000", 4u, &applied),
                   CRUX_CONFIG_SERVICE_OK);
     zassert_equal(applied.activation, CRUX_CONFIG_ACTIVATION_RESTART);
-    zassert_equal(crux_config_service_read(admin, PARAM_INTERVAL, text, sizeof(text), &length, &type),
-                  CRUX_CONFIG_SERVICE_OK);
+    zassert_equal(
+        crux_config_service_read(admin, PARAM_INTERVAL, text, sizeof(text), &length, &type),
+        CRUX_CONFIG_SERVICE_OK);
     zassert_equal(type, CRUX_CONFIG_U32);
     zassert_mem_equal(text, "2000", 4u);
     zassert_equal(crux_config_service_update(admin, PARAM_INTERVAL, "x", 1u, &applied),

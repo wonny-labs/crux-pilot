@@ -9,6 +9,13 @@ add_compile_definitions(CRUX_INTERNAL_BUILD)
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxManagementShell.cmake")
 crux_check_management_shell()
 
+# CONFIG_CRUX_ACCESS needs hwinfo for the credential store's device ID. This is checked here, before the
+# System selection's own check of the same symbol, so that the refusal names the symbol that was set.
+if(CONFIG_CRUX_ACCESS AND NOT CONFIG_HWINFO)
+    message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_HWINFO: the credential store's device ID "
+                        "comes from it")
+endif()
+
 if(CONFIG_CRUX_PILOT_MODULE)
     include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxZephyrBaseline.cmake")
     crux_check_zephyr_baseline()
@@ -177,10 +184,6 @@ if(CONFIG_CRUX_ACCESS)
     if(NOT CONFIG_CRUX_LOGGING)
         message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_CRUX_LOGGING: the security events "
                             "write their records through it")
-    endif()
-    if(NOT CONFIG_HWINFO)
-        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_HWINFO: the credential store's device ID "
-                            "comes from it")
     endif()
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/access/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/access")
