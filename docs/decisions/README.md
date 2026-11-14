@@ -11,6 +11,7 @@ A decision record holds one platform-wide decision that stays in force: its cont
 | [0003](0003-p9-result-services-keep-narrow-thread-sync.md) | P9 result: services keep a narrow Crux Thread and Sync | Accepted, 14 November 2026 |
 | [0004](0004-product-composition-of-management-services.md) | How a product composes the Crux management services (proposal) | Accepted, 14 November 2026, as recommended (C8 deferred) |
 | [0005](0005-native-sim-test-watchdog-for-system-consumers.md) | How a consumer composes the Crux System service on native_sim with a test watchdog (proposal) | Accepted, 14 November 2026, as recommended (S1 to S9) |
+| [0006](0006-cryptographic-dependency-policy.md) | How Crux handles its cryptographic dependencies over time (proposal) | Accepted, 14 November 2026, as recommended (Q1 to Q8) |
 
 ## Convention
 
