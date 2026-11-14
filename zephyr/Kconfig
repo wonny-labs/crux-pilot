@@ -426,6 +426,51 @@ config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
 
 endif # CRUX_WEB
 
+# ADR-0004 phase 0. The management service cores, built by the module so that an application outside
+# this repository enables them with Kconfig and ZEPHYR_EXTRA_MODULES, and does not compile Crux's source
+# files into its own target. Access, the credential store and the security events are wired to each
+# other (Access calls the store and the event provider, the store calls the event provider, and the
+# events call Access), so one visible symbol builds the three. The service symbols select Thread, Sync
+# and Time themselves (ADR-0004 C6), so that a product's configuration names service symbols only.
+config CRUX_ACCESS
+    bool "Crux Access with its credential store and security events (Experimental)"
+    depends on CRUX_PILOT_MODULE && MULTITHREADING
+    select CRUX_CREDENTIAL
+    select CRUX_SECURITY_EVENT
+    select CRUX_THREAD
+    select CRUX_SYNC
+    select CRUX_TIME
+    help
+      Experimental (ADR-0001 Decision 4): the symbol, and what it builds, may change before a tier is
+      assigned. Off by default, and nothing changes in an image that leaves it off.
+
+      Builds the Access core with its PSA Crypto and Time ports, the credential store with its Access
+      store port, PSA ports and device ID, and the security events with their drain thread and the
+      provider of Access's event port, and registers the three with the Zephyr link. It starts
+      nothing, adds no crux:: target and no public header: the application writes the start
+      sequence (docs/management-in-a-product.md), and reaches the public <crux/access.h> through its
+      own include path until the composition interfaces of ADR-0004 phase 1a exist.
+
+      The configuration is checked when it is made. The image needs the Mbed profile of PSA Crypto
+      (CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS and the algorithms of
+      tests/native/management_composition/profile-psa.conf), a Crux File provider for the store's two
+      roots, Crux Logging for the events, and CONFIG_HWINFO for the device ID. No SSH provider and
+      no other PSA profile is part of this symbol.
+
+config CRUX_CREDENTIAL
+    bool
+    depends on CRUX_PILOT_MODULE
+    help
+      Experimental. The credential store of CONFIG_CRUX_ACCESS, selected by it. It has no prompt
+      because the store cannot be linked without Access and the security events.
+
+config CRUX_SECURITY_EVENT
+    bool
+    depends on CRUX_PILOT_MODULE
+    help
+      Experimental. The security events of CONFIG_CRUX_ACCESS, selected by it. It has no prompt
+      because the events cannot be linked without Access and the credential store.
+
 menuconfig CRUX_SSH
     bool "Crux SSH management service on the wolfSSH provider"
     depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4 && NET_SOCKETS && MULTITHREADING
