@@ -1,0 +1,24 @@
+# ADR-0005 route A. A console oracle, not Ztest: the scenario restarts its own process on a missed
+# feed, and a Ztest run would start over with it. The simulated watchdog is not hardware evidence.
+tests:
+  crux.system.native_sim_watchdog:
+    timeout: 60
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - system
+      - portable
+    harness: console
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "simwdt: boot 1 cause POR"
+        - "simwdt: idle before start, simulated"
+        - "simwdt: started, 2000 ms, active, simulated"
+        - "simwdt: feed cycle ok, 6 feeds over 3000 ms, no restart"
+        - "simwdt: missed feed, no more feeds"
+        - "Crux simulated watchdog expired: no feed for 2000 ms; restarting the simulated process"
+        - "simwdt: boot 2 cause SOFTWARE, not WATCHDOG"
+        - "simwdt: boot 2 fresh state, idle, simulated"
+        - "simwdt: boot 2 started and feeding, scenario complete"

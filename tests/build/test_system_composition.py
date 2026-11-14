@@ -24,6 +24,12 @@ class SystemCompositionTest(unittest.TestCase):
             'evkb_missing': ('/ { aliases { /delete-property/ crux-watchdog0; }; };', '', 'requires explicit crux-watchdog0'),
             'evkb_disabled': ('&wdog0 { status = "disabled"; };', '', 'watchdog must be enabled'),
             'evkb_wrong': ('/ { aliases { crux-watchdog0 = &wdog1; }; };\n&wdog1 { status = "okay"; };', '', 'requires the qualified RT1060 WDOG1'),
+            # ADR-0005: the native_sim test watchdog is refused on the board (the component's configure error,
+            # with the binding's #error as the second line) and does not bypass the existing native checks.
+            'evkb_native_sim_watchdog': ('', 'CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG=y\n',
+                                         'CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG is a native_sim test setting'),
+            'sim_watchdog_no_watchdog': ('', 'CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG=y\nCONFIG_WATCHDOG=n\n',
+                                         'requires CONFIG_WATCHDOG=y'),
             'evkb_revision': ('', '', 'unsupported EVKB board revision'),
         }
         selected = os.environ.get('CRUX_SYSTEM_COMPOSITION_CASE')
