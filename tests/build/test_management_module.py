@@ -162,5 +162,36 @@ class SourceParityTest(unittest.TestCase):
             self.assertLessEqual(set(port_sources(component)), allowed, component)
 
 
+SCRIPT = REPO / "scripts/test-management-module.sh"
+
+
+class ScriptTest(unittest.TestCase):
+    """What scripts/test-management-module.sh must do, so that a defect in it fails here first."""
+
+    def setUp(self):
+        self.text = SCRIPT.read_text()
+
+    def test_the_image_run_has_a_time_limit(self):
+        self.assertRegex(self.text, r"(?m)^\s*timeout\s+\S+\s+\"\$build/zephyr/zephyr\.exe\"")
+
+    def test_no_nm_output_is_piped_into_grep_quiet(self):
+        # grep -q exits at the first match, nm then gets SIGPIPE, and pipefail turns a match into a failure
+        # that an `if` reads as "no match".
+        self.assertIsNone(re.search(r"nm [^\n]*\|\s*grep\s+-\w*q", self.text))
+
+    def test_the_default_off_check_covers_every_service_symbol_of_the_module(self):
+        for symbol in ("CRUX_ACCESS", "CRUX_CONFIG_SERVICE", "CRUX_MGMT_STATUS"):
+            self.assertRegex(self.text, rf"CONFIG_{symbol}=y")
+        for function in ("crux_access_init", "crux_credential_start", "crux_security_event_init",
+                         "crux_config_service_start", "crux_mgmt_status_start"):
+            self.assertIn(function, self.text)
+
+    def test_the_header_claims_only_what_the_script_checks(self):
+        header = self.text.split("set -euo pipefail")[0]
+        if "libraries are in the link" in header:
+            self.assertIn("defined_symbols", self.text, "the header claims a link check that is absent")
+        self.assertIn("defined_symbols", self.text)
+
+
 if __name__ == "__main__":
     unittest.main()
