@@ -26,16 +26,34 @@ comments, after dropping a leading byte order mark. An operand that is not a lit
 fails, because it cannot be checked. The check does not see include paths that CMake adds, so
 the template's build adds none.
 
+Product mode runs the same reading over a whole product repository, so that its adapters are
+checked too::
+
+    check_domain_includes.py --product ROOT [--domain DIR]... [--exclude PATH]...
+
+In product mode every source file under ROOT (suffix .c .h .cc .cpp .cxx .hh .hpp .hxx .inc or .S)
+must not include one of the four frozen headers. A directory named by ``--domain`` (default:
+``domain`` when it exists) keeps every rule above. Elsewhere, the adapters, ``<zephyr/...>`` headers,
+composition interfaces and other public Crux headers stay allowed, and an operand that is not a
+literal is not a violation, because adapters use Zephyr macros. ``--exclude`` skips a legacy path
+under ROOT, so that code that already uses a frozen header can be listed and migrated. The
+directories ``.git``, ``.west`` and ``build`` and symbolic links to directories are never scanned.
+
 Usage: check_domain_includes.py [DOMAIN_DIR]    (default: ``domain/`` beside this file)
+       check_domain_includes.py --product ROOT [--domain DIR]... [--exclude PATH]...
 Exit status: 0 passed, 1 violations, 2 usage error or no file to check.
 """
 
 import argparse
 import dataclasses
+import os
 import pathlib
 import posixpath
 import re
 import sys
+
+SOURCE_SUFFIXES = frozenset({".c", ".h", ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx", ".inc", ".S"})
+SKIPPED_DIRECTORIES = frozenset({".git", ".west", "build"})
 
 FROZEN_CRUX_HEADERS = frozenset({"crux/thread.h", "crux/sync.h", "crux/queue.h", "crux/serial.h"})
 
@@ -53,30 +71,50 @@ class Violation:
     reason: str
 
 
+INCLUDE_PREFIX = re.compile(r"^[ \t\f\v]*#[ \t\f\v]*(?:include_next|include|import)[ \t\f\v]*$")
+
+
 def strip_comments(text):
-    """Blank out comments, keep string and character literals, and keep every newline."""
+    """Blank out comments, keep string, character and header-name literals, and keep every newline.
+
+    The ``<...>`` after an include directive is a header name, not code: ``//`` inside it does not
+    start a comment, so ``<crux//thread.h>`` is read whole.
+    """
     out = []
+    line = []  # the text of the current line so far, with comments blanked
     i, n = 0, len(text)
+
+    def emit(chunk):
+        out.append(chunk)
+        tail = chunk.rsplit("\n", 1)
+        line[:] = [tail[-1]] if len(tail) > 1 else line + [chunk]
+
     while i < n:
         c = text[i]
         pair = text[i : i + 2]
         if pair == "//":
             while i < n and text[i] != "\n":
-                out.append(" ")
+                emit(" ")
                 i += 1
         elif pair == "/*":
             end = text.find("*/", i + 2)
             end = n if end < 0 else end + 2
-            out.append("".join("\n" if ch == "\n" else " " for ch in text[i:end]))
+            emit("".join("\n" if ch == "\n" else " " for ch in text[i:end]))
             i = end
+        elif c == "<" and INCLUDE_PREFIX.match("".join(line)):
+            j = i + 1
+            while j < n and text[j] not in ">\n":
+                j += 1
+            emit(text[i : j + 1] if j < n and text[j] == ">" else text[i:j])
+            i = j + 1 if j < n and text[j] == ">" else j
         elif c in "\"'":
             j = i + 1
             while j < n and text[j] != c and text[j] != "\n":
                 j += 2 if text[j] == "\\" else 1
-            out.append(text[i : j + 1])
+            emit(text[i : j + 1])
             i = j + 1
         else:
-            out.append(c)
+            emit(c)
             i += 1
     return "".join(out)
 
@@ -126,6 +164,44 @@ def classify(include, angle, source, root):
     return None
 
 
+def read_includes(source):
+    """Yield (line, operand text, include or None, angle) for each include directive of a file.
+
+    The include is None when the operand is not a literal <name> or "name".
+    """
+    text = strip_comments(normalise(source.read_bytes().decode("utf-8-sig", errors="replace")))
+    for line, logical in logical_lines(text):
+        directive = DIRECTIVE.match(logical)
+        if not directive:
+            continue
+        operand = OPERAND.match(directive.group(2))
+        if not operand:
+            yield line, directive.group(2).strip() or "(empty)", None, False
+            continue
+        angle = operand.group(1) is not None
+        yield line, None, operand.group(1) if angle else operand.group(2), angle
+
+
+def check_file(source, relative, root):
+    """Return the violations of one file under the full domain rules, with root as the domain."""
+    violations = []
+    for line, unreadable, include, angle in read_includes(source):
+        if include is None:
+            violations.append(
+                Violation(
+                    relative,
+                    line,
+                    unreadable,
+                    'include operand is not a literal <name> or "name", so it cannot be checked',
+                )
+            )
+            continue
+        reason = classify(include, angle, source, root)
+        if reason:
+            violations.append(Violation(relative, line, include, reason))
+    return violations
+
+
 def check(root):
     """Return the violations under the domain directory.
 
@@ -137,28 +213,97 @@ def check(root):
         raise ValueError(f"{root} holds no file to check")
     violations = []
     for source in sources:
-        relative = source.relative_to(root.parent).as_posix()
-        text = strip_comments(normalise(source.read_bytes().decode("utf-8-sig", errors="replace")))
-        for line, logical in logical_lines(text):
-            directive = DIRECTIVE.match(logical)
-            if not directive:
-                continue
-            operand = OPERAND.match(directive.group(2))
-            if not operand:
-                violations.append(
-                    Violation(
-                        relative,
-                        line,
-                        directive.group(2).strip() or "(empty)",
-                        'include operand is not a literal <name> or "name", so it cannot be checked',
-                    )
-                )
-                continue
-            angle = operand.group(1) is not None
-            include = operand.group(1) if angle else operand.group(2)
-            reason = classify(include, angle, source, root)
-            if reason:
-                violations.append(Violation(relative, line, include, reason))
+        violations.extend(check_file(source, source.relative_to(root.parent).as_posix(), root))
+    return violations
+
+
+ADAPTER_FROZEN_REASON = (
+    "frozen Crux header: use Zephyr threads, locks, queues and drivers (docs/choosing-an-api.md)"
+)
+
+
+UNREADABLE_LITERAL_REASON = "include operand opens a header name that does not close, so it cannot be checked"
+
+
+def check_adapter_file(source, relative):
+    """Return the violations of a file outside the domain: the four frozen headers only."""
+    violations = []
+    for line, unreadable, include, _angle in read_includes(source):
+        if include is None:
+            # A macro operand is not checked here, but a broken literal could hide a name.
+            if unreadable[:1] in ('<', '"'):
+                violations.append(Violation(relative, line, unreadable, UNREADABLE_LITERAL_REASON))
+        elif posixpath.normpath(include) in FROZEN_CRUX_HEADERS:
+            violations.append(Violation(relative, line, include, ADAPTER_FROZEN_REASON))
+    return violations
+
+
+def contained_path(root, name, what):
+    """Return an existing path inside root named relative to it, or raise ValueError."""
+    candidate = pathlib.PurePosixPath(name)
+    if not name or candidate.is_absolute() or ".." in candidate.parts:
+        raise ValueError(f"{what} {name!r} must be a path inside the product root")
+    path = (root / candidate).resolve()
+    if path == root.resolve() or not path.is_relative_to(root.resolve()):
+        raise ValueError(f"{what} {name!r} must be a path inside the product root")
+    if not path.exists():
+        raise ValueError(f"{what} {name!r} does not exist under {root}")
+    return path
+
+
+def check_product(root, domain_dirs=None, excludes=()):
+    """Return the violations of every source file under a product repository.
+
+    Files under a domain directory follow the domain rules, all others the frozen-header rule.
+    Raise ValueError on a bad path option or when there is no source file, so a mistake cannot pass.
+    """
+    root = pathlib.Path(root)
+    if not root.is_dir():
+        raise ValueError(f"{root} is not a directory")
+    if domain_dirs is None:
+        domain_dirs = ("domain",) if (root / "domain").is_dir() else ()
+    domains = [contained_path(root, name, "domain directory") for name in domain_dirs]
+    for domain in domains:
+        if not domain.is_dir():
+            raise ValueError(f"domain directory {domain} is not a directory")
+    skipped = [contained_path(root, name, "excluded path") for name in excludes]
+    for path in skipped:
+        for domain in domains:
+            if path == domain or path.is_relative_to(domain) or domain.is_relative_to(path):
+                raise ValueError(f"excluded path {path} overlaps the domain directory {domain}")
+    resolved_root = root.resolve()
+
+    def domain_of(path):
+        return next((d for d in domains if path.is_relative_to(d)), None)
+
+    sources = []
+    for current, names, files in os.walk(root, followlinks=False):
+        here = pathlib.Path(current)
+        names[:] = sorted(
+            n
+            for n in names
+            if n not in SKIPPED_DIRECTORIES
+            and not (here / n).is_symlink()
+            and (here / n).resolve() not in skipped
+        )
+        for name in sorted(files):
+            path = here / name
+            if (
+                pathlib.Path(name).suffix in SOURCE_SUFFIXES
+                and path.is_file()
+                and path.resolve() not in skipped
+            ):
+                sources.append(path)
+    if not sources:
+        raise ValueError(f"{root} holds no source file to check")
+    violations = []
+    for source in sources:
+        relative = source.resolve().relative_to(resolved_root).as_posix()
+        domain = domain_of(source.resolve())
+        if domain is None:
+            violations.extend(check_adapter_file(source, relative))
+        else:
+            violations.extend(check_file(source, relative, domain))
     return violations
 
 
@@ -167,11 +312,47 @@ def main(argv=None):
     parser.add_argument(
         "domain",
         nargs="?",
-        default=str(pathlib.Path(__file__).resolve().parent / "domain"),
+        default=None,
         help="the domain directory (default: domain/ beside this file)",
     )
+    parser.add_argument("--product", metavar="ROOT", help="check every source file of a product repository")
+    parser.add_argument(
+        "--domain",
+        dest="domain_dirs",
+        action="append",
+        metavar="DIR",
+        help="with --product: a domain directory under ROOT (repeatable; default: domain when it exists)",
+    )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="with --product: skip a legacy path under ROOT (repeatable)",
+    )
     args = parser.parse_args(argv)
-    root = pathlib.Path(args.domain)
+    if args.product is not None:
+        if args.domain is not None:
+            parser.error("--product takes no positional domain directory; use --domain")
+        return run_product(args)
+    if args.domain_dirs or args.exclude:
+        parser.error("--domain and --exclude need --product")
+    return run_domain(
+        pathlib.Path(args.domain or pathlib.Path(__file__).resolve().parent / "domain")
+    )
+
+
+def report(violations, label):
+    for v in violations:
+        print(f"{v.path}:{v.line}: {v.include}: {v.reason}")
+    if violations:
+        print(f"{len(violations)} {label} include violation(s)")
+        return 1
+    print(f"{label} include check passed")
+    return 0
+
+
+def run_domain(root):
     if not root.is_dir():
         print(f"error: {root} is not a directory", file=sys.stderr)
         return 2
@@ -180,13 +361,19 @@ def main(argv=None):
     except ValueError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
-    for v in violations:
-        print(f"{v.path}:{v.line}: {v.include}: {v.reason}")
-    if violations:
-        print(f"{len(violations)} domain include violation(s)")
-        return 1
-    print("domain include check passed")
-    return 0
+    return report(violations, "domain")
+
+
+def run_product(args):
+    try:
+        violations = check_product(args.product, args.domain_dirs, args.exclude)
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    status = report(violations, "product")
+    if args.exclude:
+        print("excluded: " + ", ".join(args.exclude))
+    return status
 
 
 if __name__ == "__main__":

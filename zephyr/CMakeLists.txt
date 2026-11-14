@@ -1,5 +1,10 @@
 message(STATUS "Crux Zephyr integration module discovered")
 
+# Crux's own targets are not product code. This directory definition reaches the targets that
+# the module creates and no usage requirement, so the application does not inherit it. It keeps
+# the opt-in frozen header warning (CRUX_WARN_FROZEN_HEADERS) out of Crux's own sources.
+add_compile_definitions(CRUX_INTERNAL_BUILD)
+
 # Rule L5 of the command line contract applies to every image, including one with no management.
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxManagementShell.cmake")
 crux_check_management_shell()

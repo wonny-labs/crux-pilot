@@ -11,7 +11,7 @@ No Crux release tag exists yet. The [Product Composition Guide](https://github.c
 | `west.yml` | Imports `crux-pilot`, with comments for the optional group, a product-only module and an override |
 | `app/` | A Zephyr application, the execution shell, that links `crux::time` and calls the domain |
 | `domain/` | The product's own behaviour as plain C, with one product-owned port header |
-| `check_domain_includes.py` | The domain include check |
+| `check_domain_includes.py` | The domain include check, and with `--product` the include check of the whole product repository |
 | `RELEASE.md` | A [release record](RELEASE.md) to copy for each release: dependency inventory, routes for modified upstreams, support period, release steps, bundle contents, revision and checks |
 | `.gitignore` | Keeps `build/` out of the source tree that the build record hashes |
 
@@ -55,7 +55,32 @@ It fails on `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>`, `<crux/serial.
 
 The check is lexical and lists only these names. Other native headers (SoC, CMSIS, vendor HAL, POSIX under `CONFIG_POSIX_API`) are caught only by the Host build of the domain, because they do not exist there, so build the domain on the Linux Host with a fake of `product_port.h` as well. Crux's own test builds the shipped domain that way and runs it against a fake port. A lexical check cannot see an include path that CMake adds, and the template adds none, so review still matters.
 
-The check does not apply to the shell. The freeze (P2 of [ADR-0002](https://github.com/wonny-labs/crux-pilot/blob/main/docs/decisions/0002-platform-direction-zephyr-execution-crux-services.md)) exempts only D10's Build B, which is a separate repository, and existing code that already uses a frozen header keeps working outside this template. Do not edit the check to allow another case. A new case is an owner decision.
+Without an option the check does not look at the shell. The freeze (P2 of [ADR-0002](https://github.com/wonny-labs/crux-pilot/blob/main/docs/decisions/0002-platform-direction-zephyr-execution-crux-services.md)) exempts only D10's Build B, which is a separate repository. Do not edit the check to allow another case. A new case is an owner decision.
+
+### Check the whole product repository
+
+A product repository, or a copy of this template, checks all its sources with `--product`: the domain and the adapters in the shell. Run it from the repository root, in CI and before a review.
+
+~~~sh
+python3 check_domain_includes.py --product .
+~~~
+
+It reads every `.c`, `.h`, `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx`, `.inc` and `.S` file under the root, in the same lexical way, and applies two rules:
+
+- **Everywhere**, adapters included, it fails on `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` and `<crux/serial.h>`, in quoted or angle form and in every spelling that the domain check reads. An adapter may include `<zephyr/...>` headers, the composition interfaces and the other public Crux headers. An operand that is a macro is not a violation in an adapter, because Zephyr code uses macros, but a header name that opens and does not close is.
+- **In `domain/`** it keeps every rule above: no `<zephyr/...>`, no composition interface, no operand it cannot read, and no quoted include of a file outside the directory. `domain/` is the default and is used only if it exists. Name other plain C directories with `--domain DIR`, once for each, and an option that names a missing directory is an error.
+
+Code that already uses a frozen header and has not moved yet is listed once, so that the check can run in CI today and still catches every new use: add `--exclude PATH` for each legacy file or directory, relative to the root. An excluded path must exist and cannot cover a domain directory, and the check prints what it excluded. Remove the entry when the code moves to Zephyr.
+
+~~~sh
+python3 check_domain_includes.py --product . --exclude app/src/legacy_threads.c
+~~~
+
+It never reads `.git`, `.west`, `build` or a symbolic link to a directory, and it exits with status 2, not 0, on a root without a source file. It is lexical like the domain check. For code that is compiled, the opt-in compiler warning of the frozen headers is the second layer: it sees what the preprocessor sees, including a header that a macro or another header pulls in. Define `CRUX_WARN_FROZEN_HEADERS` for the product's own targets only, as in [Choosing an API](https://github.com/wonny-labs/crux-pilot/blob/main/docs/choosing-an-api.md#frozen-for-new-product-code-thread-sync-queue-and-serial).
+
+~~~cmake
+target_compile_definitions(product_app PRIVATE CRUX_WARN_FROZEN_HEADERS)
+~~~
 
 ## Shared-state example
 
