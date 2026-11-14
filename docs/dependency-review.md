@@ -41,7 +41,7 @@ Record it where the work is tracked: in the PR that moves the pin or in the issu
 2. **Read Crux's configuration** for the profile concerned. For the Mbed profile that is `tests/native/tls_offload_probe/mbed.conf`, `tests/native/management_composition/profile-psa.conf`, the web adapter's listener setup (`components/web/ports/zephyr/web_http_server.c`), the PSA call sites under `components/*/ports/psa/`, and Zephyr's Kconfig and configuration header at Crux's Zephyr tag (`modules/mbedtls/Kconfig.mbedtls`, `Kconfig.tf-psa-crypto`, `configs/config-mbedtls.h`, `configs/config-tf-psa-crypto.h`, `subsys/net/lib/sockets/sockets_tls.c`). The resolved `.config` of the build is the source of truth. Where none is in the repository, say so, and name the symbols a CI log should show.
 3. **For each advisory decide:** **applies** when the configuration compiles the affected feature and Crux reaches it, **no** when the evidence shows it does not, and **cannot tell** when it does not settle the question, with what would settle it. State what would make a "no" false.
 4. **Check the fix inclusion** for the candidate (below).
-5. **Decide:** **take** (move the pin, with the evidence below), **defer** (with the reason and a date or event to revisit), or **not applicable** (with the evidence of step 3). A "cannot tell" is a take or a defer, never a silent "not applicable".
+5. **Decide:** **take** (move the pin, with the evidence below), **defer** (with the reason and a date or event to revisit), or **not applicable** (with the evidence of step 3). A "cannot tell" is a defer, never a silent "not applicable", as ADR-0006 section 5 says. A defer names what would settle it, and reading the source can settle it.
 6. **Record it**, with the unestablished points, and have the `reviewer` agent check the record against the advisories and the configuration. Its PASS is not an approval of the pin move.
 7. **A pin move needs the owner's approval of the move itself.** After the first two moves, ADR-0006 (Q3) allows reviewer PASS plus green CI for a move within the same upstream line with unchanged results.
 
@@ -54,7 +54,7 @@ gh api 'repos/zephyrproject-rtos/mbedtls/contents/include/mbedtls/build_info.h?r
 ```
 
 ```bash
-gh api repos/Mbed-TLS/mbedtls/tags --jq '.[] | select(.name=="mbedtls-4.1.1") | .commit.sha'
+gh api repos/Mbed-TLS/mbedtls/tags --paginate --jq '.[] | select(.name=="mbedtls-4.1.1") | .commit.sha'
 ```
 
 ```bash
@@ -67,7 +67,7 @@ In a west workspace the same questions have offline answers: the version macros 
 
 ## Check that a revision holds a fix
 
-Each upstream advisory has a "Fix commits" table by branch. For the 4.1.x column of an Mbed TLS advisory, and the 1.1.x column of a TF-PSA-Crypto one, test each listed hash, and both ends of a range:
+Each upstream advisory has a "Fix commits" table by branch. For the 4.1.x column of an Mbed TLS advisory, and the 1.1.x column of a TF-PSA-Crypto one, test each listed hash, and both ends of a range. In a range `A..B` the commit A is excluded from the fix, so it is a range start and not a fix commit, and in `A^..B` the commit A is the first fix commit:
 
 ```bash
 gh api repos/zephyrproject-rtos/<module>/compare/<fix commit>...<revision> --jq .status
@@ -77,7 +77,7 @@ gh api repos/zephyrproject-rtos/<module>/compare/<fix commit>...<revision> --jq 
 
 ## What a pin move runs
 
-[ADR-0006 option B item 4](decisions/0006-cryptographic-dependency-policy.md#3-policy-options): the pin consistency check, the Host and `native_sim` PSA conformance, and the Mbed-profile HTTPS composition on `native_sim`, with RT1060 compile steps, and the resolved `.config` read. The `psa-crypto` workflow already runs these on every pull request (`.github/workflows/psa-crypto.yml`). A physical-board run is not required, and an earlier board result does not carry over to a new pin. [The first review](dependency-review-mbed-tls-4.1.1.md#plan-for-the-pin-move-evidence) has the step list.
+[ADR-0006 option B item 4](decisions/0006-cryptographic-dependency-policy.md#3-policy-options): the pin consistency check, the Host and `native_sim` PSA conformance, and the Mbed-profile HTTPS composition on `native_sim`, with RT1060 compile steps. The `psa-crypto` workflow already runs these on every pull request (`.github/workflows/psa-crypto.yml`). It does **not** keep the resolved `.config`: its uploaded `config.txt` files are filtered, so reading the full `.config` of the HTTPS image needs a recorded build or a change to a check script or the workflow, which are protected paths (see the plan's step 7). A physical-board run is not required, and an earlier board result does not carry over to a new pin. [The first review](dependency-review-mbed-tls-4.1.1.md#plan-for-the-pin-move-evidence) has the step list.
 
 ## What a consumer sees
 
