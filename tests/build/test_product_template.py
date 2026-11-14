@@ -526,6 +526,14 @@ class ProductIncludeCheckTest(unittest.TestCase):
                 path.write_text(text + path.read_text())
                 self.assertEqual(["domain/product_domain.c"], [v.path for v in self.check.check_product(root)])
 
+    def test_a_comment_across_lines_cannot_hide_a_frozen_include_in_an_adapter(self):
+        for text in ("#include /*\n*/ <crux/thread.h>\n", "#include\\\n"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
+                root = self.product_copy(tmp)
+                self.write(root, "app/src/adapter.c", text)
+                found = self.check.check_product(root)
+                self.assertEqual(["app/src/adapter.c"], [v.path for v in found])
+
     def test_an_adapter_macro_operand_is_not_a_violation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self.product_copy(tmp)

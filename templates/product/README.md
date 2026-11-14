@@ -76,11 +76,13 @@ Code that already uses a frozen header and has not moved yet is listed once, so 
 python3 check_domain_includes.py --product . --exclude app/src/legacy_threads.c
 ~~~
 
-It never reads `.git`, `.west`, `build` or a symbolic link to a directory, and it exits with status 2, not 0, on a root without a source file. It is lexical like the domain check. For code that is compiled, the opt-in compiler warning of the frozen headers is the second layer: it sees what the preprocessor sees, including a header that a macro or another header pulls in. Define `CRUX_WARN_FROZEN_HEADERS` for the product's own targets only, as in [Choosing an API](https://github.com/wonny-labs/crux-pilot/blob/main/docs/choosing-an-api.md#frozen-for-new-product-code-thread-sync-queue-and-serial).
+It never reads `.git`, `.west`, `build` or a symbolic link to a directory, and it exits with status 2, not 0, on a root without a source file. It is lexical like the domain check. For code that is compiled, the opt-in compiler warning of the frozen headers is the second layer: it sees what the preprocessor sees, including a header that a macro or another header pulls in. Define `CRUX_WARN_FROZEN_HEADERS` for a target that compiles only the product's own sources, as in [Choosing an API](https://github.com/wonny-labs/crux-pilot/blob/main/docs/choosing-an-api.md#frozen-for-new-product-code-thread-sync-queue-and-serial).
 
 ~~~cmake
-target_compile_definitions(product_app PRIVATE CRUX_WARN_FROZEN_HEADERS)
+target_compile_definitions(product_adapters PRIVATE CRUX_WARN_FROZEN_HEADERS)
 ~~~
+
+The warning is silent in the targets that Crux's own CMake creates. A Zephyr image usually adds the sources of Crux services to `app`. Those sources include frozen headers on purpose, so they warn if you define the macro on `app` (and fail under the template's `-Werror`). Put the product's adapters in their own library, or accept the warnings from Crux's sources, and rely on `--product` for `app`.
 
 ## Shared-state example
 

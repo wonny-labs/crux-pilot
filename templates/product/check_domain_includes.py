@@ -222,7 +222,7 @@ ADAPTER_FROZEN_REASON = (
 )
 
 
-UNREADABLE_LITERAL_REASON = "include operand opens a header name that does not close, so it cannot be checked"
+UNREADABLE_LITERAL_REASON = "include operand is empty or opens a header name that does not close, so it cannot be checked"
 
 
 def check_adapter_file(source, relative):
@@ -231,7 +231,7 @@ def check_adapter_file(source, relative):
     for line, unreadable, include, _angle in read_includes(source):
         if include is None:
             # A macro operand is not checked here, but a broken literal could hide a name.
-            if unreadable[:1] in ('<', '"'):
+            if unreadable[:1] in ('<', '"') or unreadable == "(empty)":
                 violations.append(Violation(relative, line, unreadable, UNREADABLE_LITERAL_REASON))
         elif posixpath.normpath(include) in FROZEN_CRUX_HEADERS:
             violations.append(Violation(relative, line, include, ADAPTER_FROZEN_REASON))

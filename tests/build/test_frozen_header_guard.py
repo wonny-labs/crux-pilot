@@ -83,9 +83,12 @@ class FrozenHeaderWarningTest(unittest.TestCase):
         self.assertTrue(others)
         for header in others:
             with self.subTest(header=header.name):
-                _status, diagnostics = preprocess(f"#include <crux/{header.name}>\n",
-                                                  "-DCRUX_WARN_FROZEN_HEADERS")
-                self.assertNotIn(DOCS_POINTER, diagnostics)
+                status, diagnostics = preprocess(f"#include <crux/{header.name}>\n",
+                                                 "-DCRUX_WARN_FROZEN_HEADERS")
+                if status != 0:  # a composition interface that needs Zephyr's headers
+                    self.assertIn("zephyr", diagnostics.lower())
+                    continue
+                self.assertEqual("", diagnostics)
 
     def test_the_header_text_names_the_macros_and_keeps_the_warning_inside_its_include_guard(self):
         for name in FROZEN:
