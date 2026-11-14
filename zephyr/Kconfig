@@ -124,6 +124,9 @@ if CRUX_SYNC
 
 config CRUX_SYNC_MUTEX_COUNT
 	int "Sync mutex slots"
+	# The management services take one or more each, so an image that enables them starts from the 16 that the
+	# native_sim management composition uses, and a product's configuration need not name this symbol (C6).
+	default 16 if CRUX_ACCESS
 	default 8
 	range 1 64
 
@@ -515,6 +518,81 @@ config CRUX_CONFIGURATION_CORE
       Experimental. The Configuration core of CONFIG_CRUX_CONFIG_SERVICE and CONFIG_CRUX_MGMT_STATUS,
       selected by them, with no prompt. With CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE it is that
       selection's copy that is linked, and this builds nothing.
+
+# ADR-0004 phase 0, slice 3: network settings, the TLS certificate module, the file service and reboot. Each
+# needs Access, and the network settings service also needs the Configuration service. Each selects the
+# Crux symbols that it links (ADR-0004 C6).
+config CRUX_NETWORK_SETTINGS
+    bool "Crux network settings service (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_CONFIG_SERVICE
+    select CRUX_THREAD
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image
+      that leaves it off.
+
+      Builds the network settings service core, its check and the provider of its event port. The
+      apply port is the application's (ADR-0004 C3): an application that applies settings to an
+      interface implements crux_network_settings_port_apply() and crux_network_settings_port_running()
+      of components/network_settings/src/network_settings_port.h, and an image without them does not
+      link, unless CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY is set. It starts nothing, adds no crux::
+      target and no public header, and builds no serial command.
+
+config CRUX_NETWORK_SETTINGS_NO_APPLY
+    bool "Network settings apply port that applies nothing (Experimental)"
+    depends on CRUX_NETWORK_SETTINGS
+    help
+      Experimental. Builds the no-op apply port of components/network_settings: it reports that it
+      applied the settings and reports no running values, so GET shows none. For native_sim and for an
+      image whose application applies nothing. Do not set it in an image that implements the apply port
+      itself: the two would define the same symbols twice.
+
+config CRUX_TLS_CERTIFICATE
+    bool "Crux TLS certificate module (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image
+      that leaves it off.
+
+      Builds the TLS certificate module, its X.509 encoder, its PSA Crypto ports and the provider of its
+      event port. It keeps the certificate and the device key in the credential store of CONFIG_CRUX_ACCESS.
+      It registers nothing with Zephyr's TLS credentials: the application takes the material and calls
+      tls_credential_add itself (ADR-0004 C4), so the key's bytes pass through application code. It
+      starts nothing and adds no crux:: target and no public header: the header that carries the key is
+      private, on purpose.
+
+config CRUX_FILE_SERVICE
+    bool "Crux file service (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image
+      that leaves it off.
+
+      Builds the file service core and the provider of its event port. It reaches files through the Crux
+      File provider that CONFIG_CRUX_ACCESS already needs. It starts nothing and adds no crux:: target and
+      no public header: the application declares its areas and calls crux_file_service_start().
+
+config CRUX_REBOOT
+    bool "Crux reboot service (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    select CRUX_CONFIGURATION_CORE
+    select CRUX_THREAD
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image
+      that leaves it off.
+
+      Builds the reboot service core, its sleep on Crux Sync, its reset over crux_system_reset() and the
+      providers of its event port. It needs Crux System (CONFIG_CRUX_SYSTEM), and the configuration
+      refuses an image without it by name. The restart policy is the application's: crux_reboot_start()
+      refuses a configuration that states none. It starts nothing and adds no crux:: target and no
+      public header.
 
 menuconfig CRUX_SSH
     bool "Crux SSH management service on the wolfSSH provider"

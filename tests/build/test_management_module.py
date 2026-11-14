@@ -256,5 +256,92 @@ class Slice2CMakeTest(unittest.TestCase):
         self.assertIn("CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE", text)
 
 
+# Slice 3: network settings, the TLS certificate module, the file service and reboot. Each is a visible
+# Experimental symbol that needs Access. The network settings service also needs the Configuration
+# service, and its apply port is the application's (ADR-0004 C3) unless the no-op port is asked for.
+SLICE3_VISIBLE = {
+    "CRUX_NETWORK_SETTINGS": ("CRUX_CONFIG_SERVICE", {"CRUX_THREAD", "CRUX_SYNC"}),
+    "CRUX_NETWORK_SETTINGS_NO_APPLY": ("CRUX_NETWORK_SETTINGS", set()),
+    "CRUX_TLS_CERTIFICATE": ("CRUX_ACCESS", {"CRUX_SYNC"}),
+    "CRUX_FILE_SERVICE": ("CRUX_ACCESS", {"CRUX_SYNC"}),
+    "CRUX_REBOOT": ("CRUX_ACCESS", {"CRUX_CONFIGURATION_CORE", "CRUX_THREAD", "CRUX_SYNC"}),
+}
+# symbol -> component, the Host sources the module leaves out, and the sources it adds from a port directory
+SLICE3_DIRECTORIES = {
+    "CRUX_NETWORK_SETTINGS": ("network_settings", {"src/network_settings_cli.c"}, set()),
+    "CRUX_TLS_CERTIFICATE": ("tls_certificate", set(), {"ports/psa/tls_certificate_psa.c"}),
+    "CRUX_FILE_SERVICE": ("file_service", set(), set()),
+    "CRUX_REBOOT": ("reboot", set(), set()),
+}
+
+
+class Slice3KconfigTest(unittest.TestCase):
+    def test_the_symbols_exist_are_off_by_default_and_say_experimental(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE3_VISIBLE:
+            self.assertTrue(symbol in blocks, symbol)
+            self.assertIsNone(re.search(r"(?m)^\s+default\s+y\b", blocks[symbol]), symbol)
+            self.assertRegex(blocks[symbol], r"Experimental", symbol)
+            self.assertRegex(blocks[symbol], r"(?m)^\s+bool\s+\"", symbol)
+
+    def test_each_symbol_depends_on_what_it_needs_and_selects_what_it_links(self):
+        blocks = kconfig_blocks()
+        for symbol, (needs, selects) in SLICE3_VISIBLE.items():
+            self.assertRegex(blocks[symbol], rf"depends on [^\n]*\b{needs}\b", symbol)
+            for chosen in selects:
+                self.assertRegex(blocks[symbol], rf"(?m)^\s+select\s+{chosen}\b", f"{symbol} {chosen}")
+
+    def test_the_network_settings_service_says_the_apply_port_is_the_applications(self):
+        blocks = kconfig_blocks()
+        self.assertRegex(blocks["CRUX_NETWORK_SETTINGS"], r"apply port")
+        self.assertRegex(blocks["CRUX_NETWORK_SETTINGS_NO_APPLY"], r"applies nothing|no-op")
+
+    def test_no_wolf_symbol_is_named(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE3_VISIBLE:
+            self.assertNotRegex(blocks[symbol].upper(), r"WOLF", symbol)
+
+
+    def test_the_mutex_default_grows_with_the_management_services_and_not_without_them(self):
+        block = kconfig_blocks()["CRUX_SYNC_MUTEX_COUNT"]
+        defaults = re.findall(r"(?m)^\s+default\s+(\d+)(?:\s+if\s+(.+))?$", block)
+        self.assertEqual(defaults, [("16", "CRUX_ACCESS"), ("8", "")])
+
+
+class Slice3CMakeTest(unittest.TestCase):
+    def test_each_directory_is_added_once_and_only_under_its_symbol(self):
+        text = MODULE_CMAKE.read_text()
+        for symbol, (component, _skipped, _extra) in SLICE3_DIRECTORIES.items():
+            guarded = re.search(rf"if\(CONFIG_{symbol}\)(.*?)\nendif\(\)", text, re.DOTALL)
+            self.assertIsNotNone(guarded, f"no if(CONFIG_{symbol}) block")
+            path = f"components/{component}/ports/zephyr"
+            self.assertEqual(text.count(f'/../{path}"'), 1, path)
+            self.assertIn(f'/../{path}"', guarded.group(1), path)
+
+    def test_the_module_compiles_the_host_sources_plus_the_listed_providers(self):
+        for symbol, (component, skipped, extra) in SLICE3_DIRECTORIES.items():
+            expected = (host_c_files(component) - skipped) | extra
+            self.assertEqual(listed_sources(component, "ports/zephyr"), expected, symbol)
+
+    def test_the_no_op_apply_port_is_built_only_under_its_symbol(self):
+        text = (REPO / "components/network_settings/ports/zephyr/CMakeLists.txt").read_text()
+        text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+        head, _, tail = text.partition("if(CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY)")
+        self.assertTrue(tail, "no if(CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY) block")
+        self.assertNotIn("network_settings_no_apply.c", head)
+        self.assertIn("network_settings_no_apply.c", tail)
+
+    def test_reboot_is_refused_without_system(self):
+        text = MODULE_CMAKE.read_text()
+        guarded = re.search(r"if\(CONFIG_CRUX_REBOOT\)(.*?)\nendif\(\)", text, re.DOTALL).group(1)
+        self.assertIn("crux::system", guarded)
+
+    def test_no_new_directory_names_a_wolf_target_or_a_crux_alias(self):
+        for symbol, (component, _skipped, _extra) in SLICE3_DIRECTORIES.items():
+            text = (REPO / "components" / component / "ports/zephyr/CMakeLists.txt").read_text()
+            self.assertNotRegex(text.upper(), r"WOLF", symbol)
+            self.assertNotRegex(text, r"add_library\(crux::", symbol)
+
+
 if __name__ == "__main__":
     unittest.main()
