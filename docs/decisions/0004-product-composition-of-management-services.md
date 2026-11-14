@@ -1,6 +1,6 @@
 # ADR-0004: How a product composes the Crux management services (proposal)
 
-Status: **Proposed**, 14 November 2026. Nothing here is adopted, and adoption is the owner's alone. Baseline: `origin/main` at `a72032b2f29c8c4579de8de07a43b40f19bb9516`. Author: Claude Code, model `claude-sonnet-5-5`. The owner approved writing this proposal, and only the proposal, in the Crux Pilot main session on 14 November 2026 (relayed by that session as the words "추천대로 승인할게"). The scope for the product comes from the owner's decision in the Crux Controller chat on 14 November 2026 at about 16:30 UTC (also relayed): the management set plus the System service, HTTPS first on the Mbed profile, SSH and SFTP later on a manual job that publishes nothing. Excluded: Device I/O, the four frozen headers on the product surface, Reliance and eMMC, Linux and RT1170.
+Status: **Proposed**, 14 November 2026. Nothing here is adopted, and adoption is the owner's alone. Baseline: `origin/main` at `a72032b2f29c8c4579de8de07a43b40f19bb9516`. Author: Claude Code, model `claude-sonnet-5-5`. The owner approved writing this proposal, and only the proposal, in the Crux Pilot main session on 14 November 2026 (relayed by that session as the words "추천대로 승인할게", meaning "I approve as you recommended"). The scope for the product comes from the owner's decision in the Crux Controller chat on 14 November 2026 at about 16:30 UTC (also relayed): the management set plus the System service, HTTPS first on the Mbed profile, SSH and SFTP later on a manual job that publishes nothing. Excluded: Device I/O, the four frozen headers on the product surface, Reliance and eMMC, Linux and RT1170.
 
 This record is documentation only. It adds no code, check, target, header or Kconfig symbol, adopts no public interface and changes no protected path. It does not edit an accepted ADR. Every change that it puts forward would be its own reviewed change, listed under [Follow-up changes](#follow-up-changes).
 
@@ -8,7 +8,7 @@ This record is documentation only. It adds no code, check, target, header or Kco
 
 ## The recommendation in brief
 
-- **The gap is real.** At the baseline, a product that keeps to public `<crux/NAME.h>` headers and public `crux::` targets cannot compose HTTPS, the services, Access or SSH. Seven calls that a start sequence needs sit in private headers, and the Zephyr module builds none of the services' cores. The only full composition is a `native_sim` test image that compiles Crux's own source files into its application.
+- **The gap is real.** At the baseline, a product that keeps to public `<crux/NAME.h>` headers and public `crux::` targets cannot compose HTTPS, the services, Access or SSH. The start calls of six capabilities (credential store, Access first account, TLS certificate, web, web session and management, and the network apply port), and all of SSH, sit in private headers, and the Zephyr module builds none of the services' cores. The only full composition is a `native_sim` test image that compiles Crux's own source files into its application.
 - **Recommended route: A**, composition interfaces under the [six rules](../composition-interfaces.md), phased, with a native_sim consumer fixture outside the repository as the boundary test. The Crux Controller session recommends the same. **Alternative: B**, one Kconfig-selected Crux composition. B is not covered by the six rules and would need an ADR-0001 amendment first, which is the main reason against it.
 - **Publish less than the private headers hold.** The credential adapter header carries raw record read, write, key replace and erase. The Access adapter carries first-account provisioning. Publishing those headers whole would hand product code the means to mint an administrator or replace a device key. The proposal publishes a subset and keeps the rest private.
 - **The first account decides the phase order.** Provisioning is allowed on the serial channel only, and the serial console is composed in no image. An HTTPS-first image with no serial setup step has no way to get its first account, so phase 1 needs the serial setup step before any board image. See [Phasing](#phasing-and-the-licence-boundary).
@@ -25,7 +25,7 @@ This record is documentation only. It adds no code, check, target, header or Kco
 
 | Fact | Evidence | Status |
 | --- | --- | --- |
-| The module builds `cli` under `CONFIG_CRUX_CLI` and `web` under `CONFIG_CRUX_WEB`, among others. It adds no subdirectory for Access, the credential store, security events, the Configuration service, status, network settings, the TLS certificate module, the file service or reboot | `zephyr/CMakeLists.txt:82-86`, `:152-156`, and no matching `add_subdirectory` anywhere in the file | Verified |
+| The module builds `cli` under `CONFIG_CRUX_CLI` and `web` under `CONFIG_CRUX_WEB`, among others. It adds no subdirectory for Access, the credential store, security events, the Configuration service, status, network settings, the TLS certificate module, the file service or reboot | `zephyr/CMakeLists.txt:83-86`, `:152-156`, and no matching `add_subdirectory` anywhere in the file | Verified |
 | The `crux::` aliases that a Zephyr application can link are `base cli configuration file file_zephyr gpio i2c logging netif queue serial sockets spi sync system thread time web`. None of the services above is among them | `add_library(crux::… ALIAS` in `zephyr/CMakeLists.txt` and `components/*/ports/zephyr/CMakeLists.txt`, collected with the same pattern as `public_targets()` in `tests/build/test_product_template.py` | Verified |
 | The Host build creates `crux::access`, `crux::credential_store`, `crux::tls_certificate` and the other service targets, which the Zephyr module does not | `CMakeLists.txt:28` (the component list) and `:121-130` (the loop that adds each enabled component) | Verified by reading, not run |
 | SSH builds nothing in the module. `components/ssh/CMakeLists.txt` begins as private to Crux with no public header and no `crux::` target. A composition calls `crux_ssh_wolf_settings()` | `zephyr/CMakeLists.txt:158-175`, `components/ssh/CMakeLists.txt:1-2` | Verified |
@@ -37,15 +37,15 @@ Sources: the test compositions `tests/native/management_composition/composition/
 
 | Call | Declared in | A product can include it |
 | --- | --- | --- |
-| `crux_security_event_init` | `components/security_event/include/crux/security_event.h` | Yes |
+| `crux_security_event_init`, `crux_security_event_start` | `components/security_event/include/crux/security_event.h:237` (`start`) | Yes |
 | `crux_access_init`, `crux_access_account_create`, `crux_access_account_add_key` | `components/access/include/crux/access.h:99,209,280` | Yes |
-| `crux_network_settings_boot`, `crux_network_settings_start_worker` | `components/network_settings/include/crux/network_settings.h` | Yes, but they call a **private port** (below) |
+| `crux_network_settings_boot`, `crux_network_settings_start`, `crux_network_settings_start_worker` | `components/network_settings/include/crux/network_settings.h:248` (`start`) | Yes, but `boot` calls a **private port** (below) |
 | `crux_config_service_start`, `crux_mgmt_status_start`, `crux_file_service_start`, `crux_cli_init` | `components/config_service/include/crux/config_service.h:117`, `components/mgmt_status/include/crux/management_status.h:115`, `components/file_service/include/crux/file_service.h:101`, `components/cli/include/crux/cli.h:114` | Yes |
 | `crux_reboot_start`, `crux_reboot_start_worker` | `components/reboot/include/crux/reboot.h` | Yes, with a public policy callback |
 | `crux_credential_start`, `crux_credential_key_ensure` | `components/credential/adapter/crux_credential_adapter.h:95,170` | **No** |
 | `crux_access_provision_first_account` | `components/access/adapter/crux_access_adapter.h:120` | **No** |
-| `crux_tls_certificate_on_change`, `crux_tls_certificate_start`, `crux_tls_certificate_material_take` | `components/tls_certificate/adapter/crux_tls_certificate_adapter.h` (start at `:100`) | **No** |
-| `crux_web_core_init`, `crux_web_start` | `components/web/adapter/crux_web_adapter.h:116,185` | **No** |
+| `crux_tls_certificate_on_change`, `crux_tls_certificate_start`, `crux_tls_certificate_material_take`, `crux_tls_certificate_material_release`, `crux_tls_certificate_fingerprint` | `components/tls_certificate/adapter/crux_tls_certificate_adapter.h` (start at `:100`, release at `:125`, fingerprint at `:142`) | **No** |
+| `crux_web_start` (it calls `crux_web_core_init` itself: `components/web/ports/zephyr/web_http_server.c:467`) | `components/web/adapter/crux_web_adapter.h:116,185` | **No** |
 | `crux_web_session_init`, `crux_web_session_start_worker` | `components/web/session/crux_web_session.h:65,68` | **No** |
 | `crux_web_management_init`, `crux_web_management_start_worker` | `components/web/management/crux_web_management.h` | **No** |
 | `crux_network_settings_port_apply`, `crux_network_settings_port_running` | `components/network_settings/src/network_settings_port.h` | **No** (a port the product must implement) |
@@ -77,7 +77,7 @@ All five are enforced by documentation and by the order in the test composition.
 
 ### 1.6 What is verified and what is not
 
-Verified: sections 1.1 to 1.5. Not verified: that any of the routes below can be built, that a consumer outside the repository can configure a Zephyr build against the module for `native_sim` with the services (the template builds only Time: `templates/product/app/CMakeLists.txt`), the serial CLI start API of `crux_cli_console`, and where SSH keeps its host key (two records differ, see hook 2 below).
+Verified: the rows of sections 1.1 to 1.5 that say so (the rows marked Reported are not). Not verified: that any of the routes below can be built, that a consumer outside the repository can configure a Zephyr build against the module for `native_sim` with the services (the template builds only Time: `templates/product/app/CMakeLists.txt`), the serial CLI start API of `crux_cli_console`, and where SSH keeps its host key (two records differ, see hook 2 below).
 
 ## 2. Routes
 
@@ -103,18 +103,18 @@ Verified: sections 1.1 to 1.5. Not verified: that any of the routes below can be
 
 ### What route A would publish
 
-Phase 1 only. Each row is a decision for the owner (C2), and each header would pass the six rules.
+Phase 1 only. Each row is a decision for the owner (C2). **Only the first row is a composition interface** in the sense of the six rules, because only the web start binds a Crux provider to a Zephyr resource (the HTTP server, sockets and the TLS security tag). The TLS certificate and credential calls are portable: `crux_tls_certificate_adapter.h:9-12` says nothing there depends on either TLS library, and the credential roots are File contract roots. Calling them `_zephyr` would break the rule that the name says which OS the header is bound to, so they are proposed as ordinary service API.
 
 | Candidate | Publishes | Does not publish | Rule 4 reading |
 | --- | --- | --- | --- |
-| `<crux/web_zephyr.h>`, `crux::web_zephyr` | `crux_web_core_init`, `crux_web_start`, `crux_web_config_t` (the existing declarations of `components/web/adapter/crux_web_adapter.h`) | nothing else of the adapter header | Binds the listener to the Zephyr HTTP server. No new function |
-| `<crux/tls_certificate_zephyr.h>`, `crux::tls_certificate_zephyr` | `crux_tls_certificate_on_change`, `crux_tls_certificate_start`, `crux_tls_certificate_material_take` and their types | nothing else | Hands material to Zephyr's TLS credentials. No new function |
-| `<crux/credential_zephyr.h>`, `crux::credential_zephyr` | `crux_credential_start` only | raw read, write, key replace, erase, key parse | Binds the store to two File roots. **Inference:** the product may not need `crux_credential_key_ensure`, because the TLS module ensures its own key at start. Not verified for the SSH host key |
-| Web session and management lifecycle | `crux_web_session_init`, `crux_web_session_start_worker`, `crux_web_management_init`, `crux_web_management_start_worker` | session internals | **Not Zephyr-bound.** Rules 1 to 5 do not fit. Publish as ordinary service API under ADR-0001 D4 tiers, or fold into `web_zephyr`. See C2 |
+| `<crux/web_zephyr.h>`, `crux::web_zephyr` | `crux_web_start` and `crux_web_config_t` (the existing declarations of `components/web/adapter/crux_web_adapter.h`). `crux_web_core_init` is not needed: `crux_web_start` calls it | nothing else of the adapter header | Binds the listener to the Zephyr HTTP server. No new function. The INTERFACE target needs a name unlike the existing STATIC provider `crux_web_zephyr` (`components/web/ports/zephyr/CMakeLists.txt:12`), for example `crux_web_zephyr_composition` as File uses `crux_file_zephyr_composition`, and rule 2 forbids it from linking the provider |
+| TLS certificate start and material, as ordinary service API (a public header of the component, not `_zephyr`) | `crux_tls_certificate_on_change`, `crux_tls_certificate_start`, `crux_tls_certificate_material_take`, `crux_tls_certificate_material_release` and `crux_tls_certificate_fingerprint`, with their types. `material_release` is needed: install and regenerate answer BUSY while the material is taken (`adapter.h:104-107`), and `on_change` may take and release it (`:128-131`). The fingerprint is what the composition prints for the first connection | nothing else | Not a Zephyr binding: the registration with Zephyr is the product adapter's `tls_credential_add`. The adapter target links the credential adapter, and the credential boundary rule refuses any public target that reaches it (`adapter.h:6-7`), so publishing this has to deal with that rule (C2) |
+| Credential store start, as ordinary service API | `crux_credential_start`, and `crux_credential_key_ensure` if the product must call it | raw read, write, key replace, erase, key parse | Takes two File roots and binds nothing to Zephyr. The test composition calls `key_ensure` for the TLS key and the SSH host key itself (`tests/native/management_composition/composition/crux_native_management.c:201-207`), so a product probably needs it. Whether the modules ensure their own keys when they start was not verified |
+| Web session and management lifecycle | `crux_web_session_init`, `crux_web_session_start_worker`, `crux_web_management_init`, `crux_web_management_start_worker` | session internals | **Not Zephyr-bound.** Rules 1 to 5 do not fit. Publish as ordinary service API under ADR-0001 D4 tiers. See C2 |
 | Network settings apply port | `crux_network_settings_port_apply`, `crux_network_settings_port_running` as a header the **product implements** | the event functions of the same header | Not a binding of a Crux provider to the OS. It is the inverse, a Crux-defined port with a product implementation. The six rules do not cover it. See C3 |
 | Access first account | nothing | `crux_access_provision_first_account` | Stays private. Publishing it would let product code create the first administrator. The serial CLI setup, which is Crux code, calls it |
 
-SSH would add `<crux/ssh_zephyr.h>` in phase 3 only.
+SSH would add a header in phase 3 only. Whether it is a composition interface depends on what it binds, and is not decided here.
 
 ## 3. The hooks
 
@@ -123,28 +123,28 @@ A **hook** is what only the product can supply. The table says what exists today
 | Hook | Today | Route A | Route B |
 | --- | --- | --- | --- |
 | **First account** | `crux_access_provision_first_account` is private, refuses a non-serial origin, and the CLI setup loop calls it. The serial console is composed in no image ([Secure management in a product](../management-in-a-product.md), [CLI contract](../cli-contract.md)). Test images provision in code | No new symbol. The product composes the serial CLI (`crux_cli_init`, public) and a person types the password. Which serial device: **Not verified**, the console start API was not read | Same. The start function composes the console under Kconfig |
-| **Host key** (phase 3) | The provider borrows the key bytes until `stop()`. The integrated image keeps them in a static buffer that is never wiped ([Secure management in a product](../management-in-a-product.md)), while the architecture table says the credential store generates and keeps one across restarts (`docs/architecture.md`, SSH rows). The two records are about different images. **Not reconciled** | `<crux/ssh_zephyr.h>` takes a start config with a host key source. Product supplies none if the store holds it | A hook callback that returns the key. Same open decision |
+| **Host key** (phase 3) | The provider borrows the key bytes until `stop()`. The integrated image keeps them in a static buffer that is never wiped ([Secure management in a product](../management-in-a-product.md)), while the architecture table says the credential store generates and keeps one across restarts (`docs/architecture.md`, SSH rows). The test composition ensures an SSH host key record in the credential store (`crux_native_management.c:205-207`), which supports the second record. The two records are about different images. **Not reconciled** | A phase 3 header would take a start config with a host key source. The product supplies none if the store holds it | A hook callback that returns the key. Same open decision |
 | **User key** | `crux_access_account_add_key` is public (`access.h:280`). Only test code calls it. #318 asks who calls it and over which channel. #316 asks which key types | Nothing to publish. The product writes the mechanism, for example an authenticated route of its own through `CRUX_WEB_ROUTE`. The decision of #318 is still needed. Whether the route handler has the session that the call needs: **Not verified** | A `register_user_key` hook cannot remove #318 |
-| **Certificate registration** | No composition registers the certificate with the listener and no route exists. Both TLS backends read Zephyr's TLS credentials ([HTTPS composition](../https-composition.md)) | A1: the product adapter calls `crux_tls_certificate_material_take`, then `tls_credential_add` with `CRUX_WEB_TLS_SEC_TAG`. Zephyr is called in the product adapter, as the task requires. The key's PKCS #8 bytes then pass through product code. A2 (a new Crux bind function that does the registration) keeps them inside Crux but adds a function, which rule 4 does not allow without a decision | Crux registers it inside the start function. No hook except the sec tag Kconfig |
+| **Certificate registration** | No composition registers the certificate with the listener and no route exists. Both TLS backends read Zephyr's TLS credentials ([HTTPS composition](../https-composition.md)) | A1: the product adapter calls `crux_tls_certificate_material_take`, then `tls_credential_add` with `CRUX_WEB_TLS_SEC_TAG`, and `crux_tls_certificate_material_release` when it no longer holds the material. Zephyr is called in the product adapter, as the owner's scope requires. The key's PKCS #8 bytes then pass through product code. A2 (a new Crux bind function that does the registration) keeps them inside Crux but adds a function, which rule 4 does not allow without a decision | Crux registers it inside the start function. No hook except the sec tag Kconfig |
 | **Network apply** | A private port. The composition links `network_settings_no_apply.c`, so nothing is applied to an interface in any image | The product implements `crux_network_settings_port_apply` and `_running` with Zephyr `net_if` in its adapter. The declaration must become public (C3) | A callback pair in the hooks struct. It changes the public service contract |
 | **Reboot policy** | Public: `crux_reboot_config_t` with a callback or always-allow policy and wait sources, and `crux_reboot_start`. The reset goes through `crux::system`. No image composes the service, and its routes are in no image ([Reboot service](../reboot-service.md)) | Nothing new. The policy callback is plain C in the domain | Same hook, passed in the struct |
 
 ### Start sequence and threads
 
-Route A leaves the product to write this order. It is the order of the test composition, restated with what each step needs. Steps that call a private function today are marked.
+Route A leaves the product to write this order. It follows the order of the test composition (`crux_native_management.c`, `crux_native_management_services.c`) for the calls that I checked there, with the thread rule of each call's header. It is **not guaranteed complete**: I did not trace every call of the two files. Steps that call a private function today are marked.
 
 | Step | Call | Thread rule |
 | --- | --- | --- |
-| 1 | `crux_security_event_init` | before the services that raise events |
+| 1 | `crux_security_event_init` | init and start from one thread (`security_event.h:8`) |
 | 2 | Time and the File roots (`crux_file_zephyr_bind_root`, exists) | |
 | 3 | `crux_credential_start(roots)` (private today) | as the store requires |
 | 4 | `crux_access_init(policy)` | returns before any other Access operation (`access.h:6`) |
-| 5 | `crux_network_settings_boot`, which calls the apply port | before the Configuration service |
-| 6 | `crux_config_service_start`, `crux_mgmt_status_start` | |
+| 5 | `crux_network_settings_boot`, which calls the apply port | before `crux_config_service_start` and `crux_network_settings_start`, on one thread (`network_settings.h:227`). The apply port runs before any management channel starts (`src/network_settings_port.h:11`) |
+| 6 | `crux_config_service_start`, `crux_mgmt_status_start`, then `crux_security_event_start` (`crux_native_management.c:265`) | the event start from the same thread as the init |
 | 7 | First account through the serial setup | serial channel only |
-| 8 | `crux_tls_certificate_start`, then the fingerprint, then `material_take` and `tls_credential_add` (private today) | thread context, returns before any other module operation (`adapter.h:17`), and before the listener |
-| 9 | network settings worker, file service, CLI tables, `crux_web_session_init`, then `crux_web_management_init` and its worker (private today) | one thread, after the services (`crux_web_management.h:48`) |
-| 10 | `crux_web_core_init` and `crux_web_start` (private today) | after step 9 |
+| 8 | `crux_tls_certificate_start`, then `crux_tls_certificate_fingerprint`, then `material_take`, `tls_credential_add`, and `material_release` when the material is no longer held (private today) | thread context, returns before any other module operation (`adapter.h:17`), and before the listener |
+| 9 | `crux_network_settings_start` and its worker (`crux_native_management_services.c:89`), file service, CLI tables, `crux_web_session_init`, then `crux_web_management_init` and its worker (the last three private today) | one thread, after the services (`crux_web_management.h:48`) |
+| 10 | `crux_web_start`, which initialises the core itself (private today) | after step 9 |
 | 11 | SSH, phase 3 only: user keys, then the SSH start | |
 
 Which thread the product calls them from is the product's choice, with the one-thread rule above. Priorities of the services' workers come from the Kconfig of ADR-0002 P3 (`zephyr/Kconfig`, the menu "Priorities of Crux service workers"). #197 lists control jitter with and without management load as an acceptance item. No measurement was read.
@@ -154,7 +154,7 @@ Which thread the product calls them from is the product's choice, with the one-t
 | Crux provides | The product supplies |
 | --- | --- |
 | The service cores, their PSA ports and Zephyr providers, built by the module under Kconfig symbols (**does not exist yet**: phase 0) | The Zephyr devicetree, board, entropy source and `prj.conf` |
-| The composition headers of section 2, one per Zephyr-bound start | The start sequence, in its adapter code, from a reference order |
+| The composition header and the public service headers of section 2 | The start sequence, in its adapter code, from a reference order |
 | The route sources (`CRUX_WEB_*_ROUTES`), the reviewed route list and the packaging macros (`cmake/CruxWebRoutes.cmake`, `cmake/CruxWebAssets.cmake`) | Its own routes with `CRUX_WEB_ROUTE`, the frontend, and its reviewed route list |
 | The reboot, status, configuration and System service APIs | The reboot policy callback, the network apply port, the user key mechanism, the host key decision |
 | A fixture that runs the reference order on `native_sim` | Its own CI, its release rules and its licence choice |
@@ -175,7 +175,7 @@ The model is `tests/build/test_file_zephyr_boundary.py` and `tests/build/test_fi
 
 **T3, native_sim: an out-of-tree consumer composes the services.** A fixture project copied outside the repository (as `tests/build/test_external_application.py` asserts with `assertNotIn(REPO, source.parents)`), built like `scripts/test-product-template.sh` does, with `-DZEPHYR_EXTRA_MODULES=<repo>` on `native_sim`. Its CMake links only `crux::` targets of section 2 and its sources include only `<crux/...>` headers. It runs the reference order of section 3, serves HTTPS, and a test client logs in over TLS. Assertions on the build:
 
-- `compile_commands.json` has no `-I` path of the form `components/*/(src|ports|adapter|management|session)` for the fixture's own sources.
+- Every `-I` path of the fixture's own sources is on an allowlist of public include roots: the `components/*/include` directories and the `components/<c>/ports/zephyr/include` root of each named composition target (rule 1 puts the header there, as `crux::file_zephyr` already does). Any other `components/*/(src|ports|adapter|management|session)` path fails.
 - The product-mode include check finds none of the four frozen headers.
 - The ELF has no wolfSSL, wolfSSH or wolfPSA symbols, and the generated `.config` has no `CONFIG_WOLF*` set.
 
@@ -225,7 +225,7 @@ None is part of this record. Each needs its own reviewed change after the owner 
 
 1. The decision record's acceptance, or its rejection, and the `docs/decisions/README.md` row.
 2. Phase 0: Kconfig and `zephyr/CMakeLists.txt` for the services. `zephyr/` is not a protected path. **Protected, expected:** none for this step.
-3. The composition headers and targets of section 2, one capability per change, each with T1 and T2. **Protected, expected:** none, unless the placement note is added to `CONTRIBUTING.md`.
+3. The composition header and the public service headers of section 2, one capability per change, each with T1 and T2. **Protected, expected:** none, unless the placement note is added to `CONTRIBUTING.md`.
 4. The "composition consumer" mode of the guard: `cmake/CruxConsumerBoundary.cmake` (**protected**), and the placement note of rule 1 in `CONTRIBUTING.md` (**protected**).
 5. The fixture and T3 to T5: new files under `tests/` (not protected) and a Zephyr shard entry in `.github/workflows/zephyr.yml` (**protected**).
 6. A new script `scripts/test-consumer-composition.sh` (a new check script may be added within the task).
@@ -237,7 +237,7 @@ The recommendation comes first in each row.
 | # | Question | Recommendation | Reason, and the alternative |
 | --- | --- | --- | --- |
 | C1 | Which route: A or B? | **A** | The adopted rules cover it, it adds surface one capability at a time, and the product keeps its thread choices. B needs an ADR-0001 amendment and a second consumer first |
-| C2 | Which private start calls become public, and as which kind? | The subset of section 2: `web_zephyr`, `tls_certificate_zephyr`, `credential_zephyr` (start only), and the web session and management lifecycle as ordinary service API | Keeps first-account provisioning and raw credential access private. Alternative: publish whole adapter headers, which is simpler and widens the surface to credential record access |
+| C2 | Which private start calls become public, and as which kind? | The subset of section 2: `web_zephyr` as the one composition interface, and the TLS certificate calls, the credential start and the web session and management lifecycle as ordinary service API | Keeps first-account provisioning and raw credential access private. Publishing the TLS certificate calls must resolve the credential boundary rule that refuses a public target reaching the credential adapter. Alternative: publish whole adapter headers, which is simpler and widens the surface to credential record access |
 | C3 | The form of the network apply port: a header with two declarations the product implements, or a callback struct? | **Declarations** | No behaviour change, and no break of the public `crux_network_settings_boot`. The six rules do not cover a product-implemented port, so a sentence in `docs/composition-interfaces.md` would be needed |
 | C4 | Certificate registration: A1 (the product adapter calls `tls_credential_add`) or A2 (a new Crux bind function)? | **A1** for phase 1 | A1 adds no function and keeps Zephyr calls in the product adapter. A2 keeps the key inside Crux and is the safer shape if a second product appears. Security-sensitive: your decision |
 | C5 | Does phase 1 include the serial CLI first-account step before any board image? | **Yes** | Without it a real image has no first account. Alternative: HTTPS only on `native_sim` and no board image until phase 1b, which loses nothing but time |
