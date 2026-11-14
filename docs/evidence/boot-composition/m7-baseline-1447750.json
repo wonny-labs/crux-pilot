@@ -1,0 +1,124 @@
+{
+  "controller-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "ae37237a9cbfdb173e8fd341c7d9a1e612784bbe7ae3c10eb832f77358f024e4",
+      "configuration_sha256": "61eab07cb345225b7b91322d3b5642ed19f37cf724ab011a75c3d10064956eec"
+    },
+    "firmware_digest": "5fb5e61747f5200a1704201a2a064e76d4dd7552bb3716f2b71aa4c3ca980db6",
+    "zephyr_bin_size_bytes": 38208
+  },
+  "controller-missing-rtc": {
+    "build_exit": 0,
+    "zephyr_exe_sha256_path_dependent": "3a9fbcaac5b538841e552f43a378f44e9bad9c79b7b9f976eea480ad0192ce25",
+    "note": "native_sim has no zephyr.bin; zephyr.exe differs by build path, so compare the configuration hash and the scenario check",
+    "configuration_sha256": "e24110905cfe1c58a1a7e9875f0ddea242912d2dd0caf7cce3253e8f11f46b42"
+  },
+  "controller-normal": {
+    "build_exit": 0,
+    "zephyr_exe_sha256_path_dependent": "29b96b00a1fde52c7d36bc362483701c10b7b67ec6c09368cfafd939d6815df5",
+    "note": "native_sim has no zephyr.bin; zephyr.exe differs by build path, so compare the configuration hash and the scenario check",
+    "configuration_sha256": "1e3fa05a69ef2ad88d619be4d79e2c77a0ab3f0dc53924e77bd07c7be4d4a839"
+  },
+  "m3-deferred-output-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "200c6a6f00741d3d35727359ca08fe840666fc6c0f3aafd2a80ea13b57f30c5b",
+      "configuration_sha256": "da363b9bee57ec47b4a409dbcd40a8a5f55687657ef94cdc2939aae15e77db98"
+    },
+    "firmware_digest": "02d6b5ed6d5e27c5dc30f14d215a25caf8bbe96cc67d9aa5dc1081f85a3464d1",
+    "zephyr_bin_size_bytes": 117544
+  },
+  "m3-integrated-normal-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "50c10f4fb9c1e04d14b9ab8a892b216a23545056f25a8938e72b4214ffa0efad",
+      "configuration_sha256": "b412a2e0948f918576337fddcd236409f14576a696fae09a335a50aff3250cad"
+    },
+    "firmware_digest": "e4db4298a1bc487820d19d948ab83caaff73e16a61636c0e6d2b03b2cca69f37",
+    "zephyr_bin_size_bytes": 108132
+  },
+  "m3-integrated-probe-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "07d0469cfeceffb3c9924f2cf6858dbd673a3be5afec929c0f04834bb036378e",
+      "configuration_sha256": "335a78ceaada3812db0a2d83dd2dec3748e0b10f627929089ea1b6644c689496"
+    },
+    "firmware_digest": "ac08e74b07cc981422b17c7fda1fe54258529efb85b2de61bbb93140f4a6be80",
+    "zephyr_bin_size_bytes": 124464
+  },
+  "m3-mdio-candidate-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "5f952f29fb605e63c8f81be566c982f021d3d5ddf0b9711e078671924ea5d01a",
+      "configuration_sha256": "ce9eb5e708d569f97a42a916279f3841ffdf18506d8906d7d7e2efa51ff607d7"
+    },
+    "firmware_digest": "52e7fae22c14370cd203a772f43e8f13a00a950642ed1b1f9c72bccccad24cf1",
+    "zephyr_bin_size_bytes": 110488
+  },
+  "m3-mdio-trace-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "ce20bbfe700934fb63daf46c60f07835d5b671ba9c594100f244bdc1a89616a1",
+      "configuration_sha256": "76335f7a42398bd117e7458bfd734329a9aa59a80a8d7af9c0fe2dc3d1e9c7c3"
+    },
+    "firmware_digest": "ac199b9f8e3f434e048e6138d2ee1a6f384da39264a240822a7d98532915baa7",
+    "zephyr_bin_size_bytes": 111976
+  },
+  "m3-native-output-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "ddd5f865581a1d21ab402d3385e8b0205d63cd01ff99699ff3ce104387b589a1",
+      "configuration_sha256": "fda04c711dd15aeb01608a310eeecd8ac7e9906decafd3f4025ced008a59ba5b"
+    },
+    "firmware_digest": "b629cc37220f4d0310e8625c7d3da1dc6637ce5c648c28b60e8ffbc2c348fed6",
+    "zephyr_bin_size_bytes": 115664
+  },
+  "m3-network-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "f9550f094b125a951f5c6aee944edae5eadf57649418d581ce3a3d87e9ed362e",
+      "configuration_sha256": "690dd660678fdfee9393d6370ab2aeee60618ab0329c326579be0a7b3d505c0d"
+    },
+    "firmware_digest": "1fa67eb27263ee204c40d4e8a6ade8a9f913ce266561f907a0b7eb9b0f120c5c",
+    "zephyr_bin_size_bytes": 110404
+  },
+  "m3-normal-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "c0407fa41f1a4366106a57e92ebfb54c68b0a2ad4c86cc04da4e579de9b6cf4e",
+      "configuration_sha256": "ac18c4cae37f2c3b7003213c405370354f46d9c2b1b3ab45c6192f4b88eac70b"
+    },
+    "firmware_digest": "bd071ce9a08de0f43dc3fa408baff85bfae5cbc6645175c17bb831faba554a18",
+    "zephyr_bin_size_bytes": 42060
+  },
+  "m3-probe-evkb": {
+    "build_exit": 0,
+    "firmware_identity": {
+      "algorithm": "crux-firmware-identity-v1",
+      "target": "mimxrt1060_evk@B//qspi",
+      "image_sha256": "75620f445a35ccf0464420dbc117a8684dd33a42c625d3e80ad6252f61598fb6",
+      "configuration_sha256": "741066cf48cd1e3f097f98e8a06582a4cff6158697994b0b2e84e63790cd3252"
+    },
+    "firmware_digest": "9159e00147f8e958e51326ba1193898e39ff7a5600559d7a6968f9d3c03fb99a",
+    "zephyr_bin_size_bytes": 58792
+  }
+}
