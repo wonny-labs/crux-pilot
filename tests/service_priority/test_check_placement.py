@@ -27,7 +27,7 @@ class PlacementCheck(unittest.TestCase):
     def setUp(self):
         self.scratch = tempfile.TemporaryDirectory()
         self.root = Path(self.scratch.name)
-        files = [source for source, _, _ in check.WORKERS]
+        files = [source for source, _, _ in check.WORKERS] + [source for source, _ in check.NATIVE_WORKERS]
         files += [check.PLACEMENT, check.SSH_PROVIDER, check.SSH_SETTINGS, "zephyr/Kconfig"]
         files += [path.relative_to(ROOT).as_posix() for path in WIRED]
         for name in files:
@@ -54,15 +54,19 @@ class PlacementCheck(unittest.TestCase):
         self.assertEqual(check.errors(self.root), [])
 
     def test_a_missing_placement(self):
-        self.edit("components/reboot/src/reboot.c",
-                  "crux_service_priority_place(CRUX_SERVICE_THREAD_REBOOT_WORKER);", "")
-        self.assert_caught("reboot.c: worker_main must begin with")
+        self.edit("components/network_settings/src/network_settings.c",
+                  "crux_service_priority_place(CRUX_SERVICE_THREAD_NETWORK_SETTINGS_WORKER);", "")
+        self.assert_caught("network_settings.c: worker_main must begin with")
+
+    def test_a_zephyr_direct_worker_at_a_fixed_priority(self):
+        self.edit("components/reboot/ports/zephyr/reboot_zephyr.c", "CONFIG_CRUX_REBOOT_WORKER_PRIORITY, 0,", "7, 0,")
+        self.assert_caught("reboot_zephyr.c: its one k_thread_create must use CONFIG_CRUX_REBOOT_WORKER_PRIORITY")
 
     def test_a_placement_after_other_work(self):
         self.edit("components/network_settings/src/network_settings.c",
                   "    for (;;) {\n        (void)crux_semaphore_take(work_signal, CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS);",
                   "    for (;;) {\n        (void)crux_semaphore_take(work_signal, CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS);\n"
-                  "        crux_service_priority_place(CRUX_SERVICE_THREAD_REBOOT_WORKER);")
+                  "        crux_service_priority_place(CRUX_SERVICE_THREAD_WEB_SESSION_WORKER);")
         self.edit("components/network_settings/src/network_settings.c",
                   "    crux_service_priority_place(CRUX_SERVICE_THREAD_NETWORK_SETTINGS_WORKER);\n", "")
         self.assert_caught("network_settings.c: worker_main must begin with")
@@ -104,13 +108,13 @@ class PlacementCheck(unittest.TestCase):
     def test_a_new_zephyr_image_without_the_placement(self):
         extra = self.root / "samples/example/CMakeLists.txt"
         extra.parent.mkdir(parents=True)
-        extra.write_text("find_package(Zephyr REQUIRED)\ntarget_sources(app PRIVATE ${CRUX_REBOOT_SOURCES})\n")
+        extra.write_text("find_package(Zephyr REQUIRED)\ntarget_sources(app PRIVATE ${CRUX_NETWORK_SETTINGS_SOURCES})\n")
         self.assert_caught("samples/example/CMakeLists.txt: compiles a service worker for Zephyr")
 
     def test_a_host_test_needs_no_placement(self):
         extra = self.root / "tests/example/CMakeLists.txt"
         extra.parent.mkdir(parents=True)
-        extra.write_text("add_library(example STATIC ${CRUX_REBOOT_SOURCES})\n")
+        extra.write_text("add_library(example STATIC ${CRUX_NETWORK_SETTINGS_SOURCES})\n")
         self.assertEqual(check.errors(self.root), [])
 
     def test_a_native_thread_in_the_module(self):

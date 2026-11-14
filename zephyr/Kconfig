@@ -75,14 +75,6 @@ config CRUX_SECURITY_EVENT_DRAIN_PRIORITY
 	  The thread that writes security event records to the log, started by
 	  crux_security_event_start().
 
-config CRUX_REBOOT_WORKER_PRIORITY
-	int "Reboot service worker"
-	default 6
-	range 0 NUM_PREEMPT_PRIORITIES
-	help
-	  The worker that runs reboot requests and the busy check, started by
-	  crux_reboot_start_worker().
-
 config CRUX_NETWORK_SETTINGS_WORKER_PRIORITY
 	int "Network settings service worker"
 	default 6
@@ -112,6 +104,34 @@ config CRUX_WEB_MANAGEMENT_WORKER_PRIORITY
 endmenu
 
 endif # CRUX_THREAD
+
+menu "Reboot service worker"
+
+# The reboot service is Zephyr-direct (pilot of ADR-0002 P9): its worker is a k_thread of its own and
+# needs no Crux Thread, so these two are not under CRUX_THREAD. The priority keeps the P3 name and
+# default: today's number, the LOW class of the Zephyr Thread port, which is 6. A value of
+# NUM_PREEMPT_PRIORITIES, the idle priority, passes the range and fails the build in
+# components/reboot/ports/zephyr.
+
+config CRUX_REBOOT_WORKER_PRIORITY
+	int "Reboot service worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that runs reboot requests and the busy check, started by
+	  crux_reboot_start_worker(). A Zephyr preemptive priority, 0 to
+	  NUM_PREEMPT_PRIORITIES - 1.
+
+config CRUX_REBOOT_WORKER_STACK_SIZE
+	int "Reboot service worker stack bytes"
+	default 4096
+	range 1024 65536
+	help
+	  The stack of the worker, a dedicated one. The default is that of
+	  CRUX_THREAD_STACK_BYTES. The worker runs the policy callback and the wait
+	  sources, so a stack that these need more of is set here.
+
+endmenu
 
 config CRUX_SYNC
 	bool "Crux mutexes and counting semaphores"

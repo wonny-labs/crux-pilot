@@ -378,6 +378,14 @@ a C library that the host toolchain does not have. This is not a Host result: `n
 ThreadSanitizer. `Reboot.nodiscard` and the C++ header check stay Host only. See
 [the pilot record](../docs/research/reboot-native-sim-stage-a.md).
 
+**Stage B (Zephyr-direct, a Draft PR).** The same script now runs the same suites over the Zephyr-direct service
+(`components/reboot/ports/zephyr`, `k_mutex`, `k_sem`, `k_thread`, `k_msleep`). `tests/reboot/fault_bridge.c` carries the
+`crux_mutex_lock` wraps of `lock_faults` and `pending` to `z_impl_k_mutex_lock`, told by the address of the service's lock. The image
+named `sleep_provider` holds three ztest cases of the new sleep port and the worker's priority, because `sleep_provider.c`, which wrapped
+Sync's semaphore take, has no take to wrap and is built nowhere. The Host builds the same service core over the test-only kernel stub
+`tests/reboot/host_kernel`, so `Reboot.*` and `Web.reboot_*` keep running on the Host. See
+[the Stage B record](../docs/research/reboot-zephyr-direct-stage-b.md).
+
 ## Packaged web assets
 
 `scripts/test-web-assets.sh host` runs the packager's and its CMake function's tests (`tests/build/test_web_assets.py`), `Web.assets_*` on

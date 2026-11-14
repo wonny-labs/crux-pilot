@@ -17,14 +17,17 @@ from pathlib import Path
 WORKERS = (
     ("components/security_event/src/security_event_drain.c",
      "CRUX_SERVICE_THREAD_SECURITY_EVENT_DRAIN", "CRUX_SECURITY_EVENT_DRAIN_PRIORITY"),
-    ("components/reboot/src/reboot.c",
-     "CRUX_SERVICE_THREAD_REBOOT_WORKER", "CRUX_REBOOT_WORKER_PRIORITY"),
     ("components/network_settings/src/network_settings.c",
      "CRUX_SERVICE_THREAD_NETWORK_SETTINGS_WORKER", "CRUX_NETWORK_SETTINGS_WORKER_PRIORITY"),
     ("components/web/session/web_session_attempt.c",
      "CRUX_SERVICE_THREAD_WEB_SESSION_WORKER", "CRUX_WEB_SESSION_WORKER_PRIORITY"),
     ("components/web/management/web_management_save.c",
      "CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER", "CRUX_WEB_MANAGEMENT_WORKER_PRIORITY"),
+)
+# Zephyr-direct workers (the reboot pilot of ADR-0002 P9): a k_thread that takes its priority from its
+# Kconfig symbol in k_thread_create(), with no Crux Thread and no placement call. Source, Kconfig symbol.
+NATIVE_WORKERS = (
+    ("components/reboot/ports/zephyr/reboot_zephyr.c", "CRUX_REBOOT_WORKER_PRIORITY"),
 )
 # Today's priority of a LOW-class Crux Thread worker on Zephyr: 6 - CRUX_THREAD_PRIORITY_LOW.
 WORKER_DEFAULT = "6"
@@ -111,6 +114,24 @@ def worker_errors(root, kconfig, placement):
     return errors
 
 
+def native_worker_errors(root, kconfig):
+    errors = []
+    for source, symbol in NATIVE_WORKERS:
+        path = root / source
+        if not path.is_file():
+            errors.append(f"{source}: missing")
+            continue
+        text = strip_comments(path.read_text())
+        calls = re.findall(r"\bk_thread_create\s*\(([^;]*)\)\s*;", text)
+        if len(calls) != 1 or not re.search(r"\bCONFIG_" + symbol + r"\b", calls[0]):
+            errors.append(f"{source}: its one k_thread_create must use CONFIG_{symbol} as the priority")
+        default = kconfig_default(kconfig, symbol)
+        if default != WORKER_DEFAULT:
+            errors.append(f"zephyr/Kconfig: {symbol} must default to {WORKER_DEFAULT}, today's priority, "
+                          f"not {default}")
+    return errors
+
+
 def ssh_errors(root, kconfig):
     errors = []
     provider = strip_comments((root / SSH_PROVIDER).read_text())
@@ -131,6 +152,7 @@ def ssh_errors(root, kconfig):
 def creator_errors(root):
     errors = []
     workers = {source for source, _, _ in WORKERS}
+    native_workers = {source for source, _ in NATIVE_WORKERS}
     paths = sorted((root / "components").rglob("*.c")) + sorted((root / "zephyr").rglob("*.c"))
     for path in paths:
         relative = path.relative_to(root).as_posix()
@@ -140,14 +162,15 @@ def creator_errors(root):
         if re.search(r"\bcrux_thread_create\s*\(", text) and relative not in workers:
             errors.append(f"{relative}: creates a Crux Thread worker that has no per-service priority: "
                           "add it to WORKERS, zephyr/Kconfig and the placement")
-        if re.search(r"\b(?:k_thread_create|K_THREAD_DEFINE)\b", text) and relative != SSH_PROVIDER:
+        if (re.search(r"\b(?:k_thread_create|K_THREAD_DEFINE)\b", text) and relative != SSH_PROVIDER
+                and relative not in native_workers):
             errors.append(f"{relative}: creates a native thread that has no per-service priority")
     return errors
 
 
 # How a CMake file names a worker source: the file's name, or a list variable that holds it.
 WORKER_SOURCE_NAMES = tuple(Path(source).name for source, _, _ in WORKERS) + (
-    "CRUX_SECURITY_EVENT_SOURCES", "CRUX_REBOOT_SOURCES", "CRUX_NETWORK_SETTINGS_SOURCES",
+    "CRUX_SECURITY_EVENT_SOURCES", "CRUX_NETWORK_SETTINGS_SOURCES",
     "CRUX_WEB_SESSION_SOURCES", "CRUX_WEB_MANAGEMENT_SOURCES")
 PLACEMENT_TARGET = "crux_service_priority_placement"
 SKIPPED_DIRS = {"build", ".git", "twister-out"}
@@ -190,7 +213,8 @@ def errors(root):
     placement_path = root / PLACEMENT
     placement = placement_path.read_text() if placement_path.is_file() else ""
     found = [] if placement else [f"{PLACEMENT}: missing"]
-    return (found + worker_errors(root, kconfig, placement) + ssh_errors(root, kconfig) + creator_errors(root)
+    return (found + worker_errors(root, kconfig, placement)
+            + native_worker_errors(root, kconfig) + ssh_errors(root, kconfig) + creator_errors(root)
             + wiring_errors(root))
 
 
@@ -202,7 +226,8 @@ def main():
     for error in found:
         print(error, file=sys.stderr)
     if not found:
-        print(f"Per-service priorities: {len(WORKERS)} Crux Thread workers and {len(SSH_THREADS)} SSH threads placed.")
+        print(f"Per-service priorities: {len(WORKERS)} Crux Thread workers, {len(NATIVE_WORKERS)} Zephyr-direct worker and "
+              f"{len(SSH_THREADS)} SSH threads placed.")
     return 1 if found else 0
 
 

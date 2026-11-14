@@ -5,6 +5,18 @@ evidence stays tracked apart. Decision W9 and the reboot section of [the fronten
 design](plans/web-frontend-foundation-design.md#reboot), and [the owner's approval on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084)
 (W13: reboot is Advanced and optional) are the basis.
 
+> **Zephyr-direct pilot (ADR-0002 P9, a Draft PR that is not merged before the owner decides P9).** The service's lock, signal
+> and worker are Zephyr kernel objects, `k_mutex`, `k_sem` and `k_thread`, defined statically, and the sleep port is `k_msleep()`.
+> The core is `components/reboot/ports/zephyr/reboot_zephyr.c` and the service is Zephyr only. The public header and every
+> behaviour in this document are unchanged. **What became impossible:** the service can no longer fail to create its lock, its
+> signal or its worker, so `crux_reboot_start()` and `crux_reboot_start_worker()` return `NOT_READY` only for the reasons that the
+> contract names (no policy at start, no start before the worker), never because an object could not be made. The failure
+> `NO_TIMER` is reachable on a target only by a sleep that `k_wakeup()` ended early, which nothing does today, and through the
+> fake sleep of the suites. No suite asserted an object-creation failure. One suite asserted the answers of Sync's semaphore take to
+> the old sleep provider, `Reboot.sleep_provider`: the port has no take, so that suite, kept in `tests/reboot/sleep_provider.c`,
+> is built nowhere (the decision is in the pull request). See
+> [the pilot record](research/reboot-zephyr-direct-stage-b.md).
+
 Owner: `components/reboot`. Public header `<crux/reboot.h>`, usage target `crux::reboot`. The routes are in
 `components/web/management/web_management_reboot.c` and are described in [`web/api/openapi.yaml`](../web/api/openapi.yaml), which
 this change does not edit.
@@ -29,9 +41,9 @@ application refuse, records the request, gives events and saves a bounded time, 
 | Event provider over the security events, and the pending-events question | **Built** | `ManagementProviders.events`, with the real mapping and the fake of the contract |
 | Probes of other components' saves | **Built, small** | `crux_network_settings_save_pending()` and `crux_web_management_save_pending()`: [decision 15](#decisions-taken-without-an-answer) |
 | A sleep that cannot sleep ends the request as failed, and `crux_reboot_start()` cannot be ignored | **Built** | `Reboot.steps`, `Reboot.nodiscard` |
-| Reset port over `crux_system_reset()`, and the sleep port over Sync | **Built, thin**, linked by no suite | The Host `crux_system_reset()` returns not supported |
+| Reset port over `crux_system_reset()`, and the sleep port over `k_msleep()` | **Built, thin.** The reset port is linked by no suite; the sleep port is linked by the `sleep_provider` image of the `native_sim` run | The Host `crux_system_reset()` returns not supported |
 | A composition that serves the routes, links the service or states a policy | **Not here.** | |
-| `native_sim` | **Not run.** There is no composition, so there is nothing to run. | |
+| `native_sim` | **The suites run there** (`scripts/test-reboot-native.sh`, the pilot records), with fake ports and no composition. **No composition is run.** | |
 | RT1060 compile | **Not run.** | |
 | A real reset on RT1060-EVKB | **Not run.** It needs separately approved physical evidence. | |
 | The mock and the TypeScript client | **Unchanged.** They already follow this behaviour: [Specification, mock and client](#specification-mock-and-client). | |
@@ -58,7 +70,7 @@ composition links by name.
 | Port | Provider | Host suites |
 | --- | --- | --- |
 | `crux_reboot_port_reset` | `crux_reboot_system_reset`, over `crux_system_reset()` | A fake that records the call and returns a chosen status |
-| `crux_reboot_port_sleep` | `crux_reboot_sleep`, on a Sync semaphore that is never given | A virtual clock that adds the time and returns |
+| `crux_reboot_port_sleep` | `ports/zephyr/reboot_sleep_zephyr.c`, over `k_msleep()`; a sleep that `k_wakeup()` ended early is not one | A virtual clock that adds the time and returns |
 | `crux_reboot_port_events_pending` | `crux_reboot_security_events`, from the counts of `crux_security_event_get_stats()` | A fake that answers for a chosen number of polls |
 | `crux_reboot_port_event` | `crux_reboot_security_events` | A recording fake |
 
@@ -307,7 +319,7 @@ reads has its record behind it. A session that ended before the worker ran leave
 | The worker has no stop or join | `crux_reboot_start()` resets the state and is safe only before the worker starts. |
 | Wall time from the request to the reset is 1 s plus up to 15 s of sleep, and more | The bound counts the time that the service sleeps, not the time of the polls. Each probe may wait up to 20 ms for its lock, so with two wait sources 301 polls can add 301 x 2 x 20 ms, about 12 s, and a sleep may return late. On a machine that must restart within a deadline, the policy decides, not this service. |
 | A holder of `system.reboot` can fill the event ring with `system.reboot_requested` | Each accepted request is recorded, a duplicate while another is pending included, and the event is of the change class, so it is admitted into the ring's reserve. A flood of them can push other change events out, `system.reboot_failed` included, and they then show as `event.lost`. It is limited by one TLS handshake per `POST`, because the connection closes after every answer, and by the need for a valid session, the token and the permission: an unauthenticated flood never reaches the handler and records only what the core records. [Decision 5](#decisions-taken-without-an-answer). |
-| The service adds two semaphores, a mutex and a thread | The state's mutex, the worker's signal and the sleep provider's semaphore, and one worker thread at low priority. The gate resource table does not record them, as it does not record those of the network settings service. |
+| The service adds a semaphore, a mutex and a thread | The state's `k_mutex`, the worker's `k_sem` and one worker `k_thread` with its own stack (`CONFIG_CRUX_REBOOT_WORKER_STACK_SIZE`, 4096 bytes) at `CONFIG_CRUX_REBOOT_WORKER_PRIORITY`, default 6, the old low class. They are static, and none uses a Crux Sync or Thread slot. The gate resource table does not record them, as it does not record those of the network settings service. |
 | The `409` the server sends for a busy registered path | The server's own, with no body. No code here produces it. |
 
 ## Specification, mock and client
@@ -328,7 +340,7 @@ reads has its record behind it. A session that ended before the worker ran leave
 | Boot order: Access, the security events, `crux_reboot_start()`, `crux_reboot_start_worker()` | `crux/reboot.h` |
 | The wait sources: the network settings and web save probes where those services run, the application's own save, and whether each blocks the reset | [What pending saves means](#what-pending-saves-means) |
 | A provider of the reset: `crux_reboot_system_reset`. On a build that must never reset, the Host provider of `crux_system_reset()` returns not supported, so the same provider is a no-op that reports `failed`. | `components/reboot/CMakeLists.txt` |
-| A provider of the sleep: `crux_reboot_sleep`. A provider of the event port and of the pending-events question: `crux_reboot_security_events`. | The same |
+| The core and the sleep, `ports/zephyr/reboot_zephyr.c` and `reboot_sleep_zephyr.c` (`CRUX_REBOOT_SOURCES`, `CRUX_REBOOT_SLEEP_SOURCE`). A provider of the event port and of the pending-events question: `crux_reboot_security_events`. | The same |
 | `system.reboot` in the roles that may restart the device, and no other role | The product's policy |
 | `CRUX_WEB_MANAGEMENT_REBOOT_ROUTES` named to `crux_web_routes(... SOURCES ...)`, and `crux::reboot` linked. Leave both out for no reboot route. | `components/web/management/sources.cmake` |
 
@@ -349,7 +361,7 @@ exits a `native_sim` image was not checked.
 | `Reboot.reason` | 2 | 26 named vectors, and 60,000 generated texts against an oracle written apart from the rule that the service uses |
 | `Reboot.lock_faults` | 4 | The state's lock failing to come in time: the server-thread calls say busy and change nothing, also after the policy was asked, and the worker keeps its job and ends it |
 | `Reboot.nodiscard` | 1 | A call that throws away the result of `crux_reboot_start()` must not build under `-Werror=unused-result`. The test builds it and passes only if the output names `warn_unused_result`, so a build that fails for another reason does not pass. A sibling object that uses the result does build. |
-| `Reboot.sleep_provider` | 1 | The sleep provider with Sync's take wrapped: only a take that times out is a sleep, and an error, or a take that got the semaphore, is not |
+| `Reboot.sleep_provider` | 1 | **Not built since the Zephyr-direct pilot.** The sleep provider with Sync's take wrapped: only a take that times out is a sleep, and an error, or a take that got the semaphore, is not. The port is `k_msleep()` now. On `native_sim`, `scripts/test-reboot-native.sh` runs three cases of the new port and the worker instead: it sleeps the time asked, a sleep that was woken early is not one, and the worker runs at the Kconfig priority. |
 | `Reboot.pending` | 9 | The two probes, a network save and a configuration save waited for, a save accepted during the wait, a save that never ends for each kind, a save started while the policy is asked at the request, the save queued after the last poll, and probes whose lock is late |
 | `Web.reboot_routes` | 17 | Both routes for success, no session, no permission, the forgery checks, a refusal, escapes in the reason, a refusal at the second check, a failed reset, a second post while pending, bodies, other methods, a service not started, a lock that is late, the table |
 | `Web.reboot_no_service` | 2 | The route table without the source, and a request that finds nothing |
@@ -462,7 +474,7 @@ results are in the pull request.
 | The cases of `Reboot.lock_faults`, the nested refusal, the nested worker, the busy answer of the routes and the late-lock probe | Host | Written after the first mutation run, which showed that nothing caught the mutations they now catch. They were green when first run. |
 | 75 mutations | Host | 73 caught, 1 equivalent and 1 not caught, as above |
 | `scripts/check-management-api.sh`, `npm run check`, the mock and the client | | **Not run, and not needed:** `web/` is unchanged |
-| `native_sim`, RT1060 compile, `host-sanitize` with clang, a browser against the routes, any board | | **Not run** |
+| `native_sim`, RT1060 compile, `host-sanitize` with clang, a browser against the routes, any board | | **Not run** when this change was made. Since then the suites run on `native_sim` (the pilot records); the rest is still not run |
 
 
 ## Decisions taken without an answer
