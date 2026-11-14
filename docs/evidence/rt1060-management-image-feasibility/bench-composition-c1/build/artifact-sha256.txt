@@ -1,0 +1,3 @@
+8b557969dc8c34fbb015d2f361bf3e8837af7d7cbe1623b56c87a86c8fb3a420  zephyr.bin
+f6765d538a68c6132a00be08aa1508cf229c5032f647b4dc7bba6c754a1bb7fb  zephyr.elf
+601004 bytes zephyr.bin

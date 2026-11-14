@@ -1,0 +1,1 @@
+FAIL: The tree is a Git checkout: the patch is applied to a build-local COPY of the pinned Zephyr only

@@ -70,7 +70,7 @@ function(crux_native_management_compose)
         "${component}/file/ports/zephyr"
         "${component}/interrupt/src")
     target_link_libraries(app PRIVATE crux::file crux::sync crux::thread crux::time crux::logging
-        crux::system crux::netif crux_interrupt)
+        crux::system crux::netif crux_interrupt crux_service_priority_placement)
     target_compile_definitions(app PRIVATE
         CRUX_SECURITY_EVENT_RING=32 CRUX_SECURITY_EVENT_RESERVE=8
         CRUX_SECURITY_EVENT_DRAIN_BURST=4 CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS=100

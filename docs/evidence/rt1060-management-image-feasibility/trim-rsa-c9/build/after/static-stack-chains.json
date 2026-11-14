@@ -1,0 +1,1335 @@
+{
+ "DoHandShakeMsgType": {
+  "bytes": 5136,
+  "chain": [
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert",
+   "ParseCertRelative",
+   "ConfirmSignature",
+   "wc_ed25519_verify_msg",
+   "wc_ed25519_verify_msg_ex",
+   "ed25519_verify_msg_final_with_sha",
+   "ge_double_scalarmult_vartime",
+   "ge_double_scalarmult_vartime_c.isra.0",
+   "ge_p3_dbl",
+   "ge_p2_dbl"
+  ],
+  "frames": [
+   232,
+   112,
+   136,
+   1264,
+   32,
+   128,
+   64,
+   32,
+   48,
+   400,
+   8,
+   2344,
+   136,
+   72
+  ]
+ },
+ "DoKexDhInit.constprop.0": {
+  "bytes": 3456,
+  "chain": [
+   "DoKexDhInit.constprop.0",
+   "SendKexDhReply",
+   "wc_ecc_sign_hash",
+   "wc_ecc_sign_hash_ex",
+   "sp_ecc_sign_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   48,
+   1272,
+   56,
+   40,
+   768,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "DoKexDhReply.constprop.0": {
+  "bytes": 3776,
+  "chain": [
+   "DoKexDhReply.constprop.0",
+   "wc_SignatureVerify",
+   "wc_SignatureVerifyHash",
+   "wc_ecc_verify_hash",
+   "wc_ecc_verify_hash_ex",
+   "sp_ecc_verify_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   464,
+   160,
+   48,
+   56,
+   664,
+   1112,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "DoProcessReplyEx": {
+  "bytes": 5272,
+  "chain": [
+   "DoProcessReplyEx",
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert",
+   "ParseCertRelative",
+   "ConfirmSignature",
+   "wc_ed25519_verify_msg",
+   "wc_ed25519_verify_msg_ex",
+   "ed25519_verify_msg_final_with_sha",
+   "ge_double_scalarmult_vartime",
+   "ge_double_scalarmult_vartime_c.isra.0",
+   "ge_p3_dbl"
+  ],
+  "frames": [
+   136,
+   232,
+   112,
+   136,
+   1264,
+   32,
+   128,
+   64,
+   32,
+   48,
+   400,
+   8,
+   2344,
+   136
+  ]
+ },
+ "DoReceive": {
+  "bytes": 5648,
+  "chain": [
+   "DoReceive",
+   "GetInputData",
+   "ReceiveData",
+   "wolfSSL_negotiate",
+   "wolfSSL_accept_TLSv13",
+   "wolfSSL_accept",
+   "ProcessReply",
+   "DoProcessReplyEx",
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert",
+   "ParseCertRelative"
+  ],
+  "frames": [
+   264,
+   16,
+   24,
+   8,
+   56,
+   8,
+   0,
+   136,
+   232,
+   112,
+   136,
+   1264,
+   32,
+   128
+  ]
+ },
+ "DoTls13ClientHello": {
+  "bytes": 2336,
+  "chain": [
+   "DoTls13ClientHello",
+   "DoClientHello",
+   "HandleTlsResumption",
+   "DeriveTlsKeys",
+   "wc_PRF_TLS",
+   "wc_PRF",
+   "wc_HmacSetKey",
+   "wc_HmacSetKey_ex",
+   "wc_Sha512_224Final",
+   "Sha512_Family_Final",
+   "Sha512Final",
+   "_Transform_Sha512.isra.0",
+   "ForceZero"
+  ],
+  "frames": [
+   240,
+   104,
+   56,
+   360,
+   192,
+   872,
+   16,
+   24,
+   0,
+   24,
+   16,
+   424,
+   8
+  ]
+ },
+ "DoTls13Finished": {
+  "bytes": 1848,
+  "chain": [
+   "DoTls13Finished",
+   "DeriveFinishedSecret",
+   "Tls13DeriveKey",
+   "wc_Tls13_HKDF_Expand_Label_ex",
+   "wc_HKDF_Expand_ex",
+   "wc_HmacSetKey",
+   "wc_HmacSetKey_ex",
+   "wc_Sha512_224Final",
+   "Sha512_Family_Final",
+   "Sha512Final",
+   "_Transform_Sha512.isra.0",
+   "ForceZero"
+  ],
+  "frames": [
+   104,
+   32,
+   136,
+   176,
+   888,
+   16,
+   24,
+   0,
+   24,
+   16,
+   424,
+   8
+  ]
+ },
+ "DoTls13HandShakeMsgType": {
+  "bytes": 4904,
+  "chain": [
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert",
+   "ParseCertRelative",
+   "ConfirmSignature",
+   "wc_ed25519_verify_msg",
+   "wc_ed25519_verify_msg_ex",
+   "ed25519_verify_msg_final_with_sha",
+   "ge_double_scalarmult_vartime",
+   "ge_double_scalarmult_vartime_c.isra.0",
+   "ge_p3_dbl",
+   "ge_p2_dbl",
+   "fe_sq"
+  ],
+  "frames": [
+   112,
+   136,
+   1264,
+   32,
+   128,
+   64,
+   32,
+   48,
+   400,
+   8,
+   2344,
+   136,
+   72,
+   128
+  ]
+ },
+ "DoUserAuthRequest": "not found",
+ "DoUserAuthRequestPublicKey": {
+  "bytes": 4384,
+  "chain": [
+   "DoUserAuthRequestPublicKey",
+   "wc_SignatureVerifyHash",
+   "wc_ecc_verify_hash",
+   "wc_ecc_verify_hash_ex",
+   "sp_ecc_verify_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   1232,
+   48,
+   56,
+   664,
+   1112,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "ProcessReply": {
+  "bytes": 5272,
+  "chain": [
+   "ProcessReply",
+   "DoProcessReplyEx",
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert",
+   "ParseCertRelative",
+   "ConfirmSignature",
+   "wc_ed25519_verify_msg",
+   "wc_ed25519_verify_msg_ex",
+   "ed25519_verify_msg_final_with_sha",
+   "ge_double_scalarmult_vartime",
+   "ge_double_scalarmult_vartime_c.isra.0"
+  ],
+  "frames": [
+   0,
+   136,
+   232,
+   112,
+   136,
+   1264,
+   32,
+   128,
+   64,
+   32,
+   48,
+   400,
+   8,
+   2344
+  ]
+ },
+ "SendKexDhReply": {
+  "bytes": 3408,
+  "chain": [
+   "SendKexDhReply",
+   "wc_ecc_sign_hash",
+   "wc_ecc_sign_hash_ex",
+   "sp_ecc_sign_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   1272,
+   56,
+   40,
+   768,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "SendTls13Certificate": {
+  "bytes": 3528,
+  "chain": [
+   "SendTls13Certificate",
+   "IsSelfSignedCert",
+   "ParseCertRelative",
+   "ConfirmSignature",
+   "wc_ed25519_verify_msg",
+   "wc_ed25519_verify_msg_ex",
+   "ed25519_verify_msg_final_with_sha",
+   "ge_double_scalarmult_vartime",
+   "ge_double_scalarmult_vartime_c.isra.0",
+   "ge_p3_dbl",
+   "ge_p2_dbl",
+   "fe_sq"
+  ],
+  "frames": [
+   128,
+   40,
+   128,
+   64,
+   32,
+   48,
+   400,
+   8,
+   2344,
+   136,
+   72,
+   128
+  ]
+ },
+ "SendTls13CertificateVerify": {
+  "bytes": 2268,
+  "chain": [
+   "SendTls13CertificateVerify",
+   "EccSign",
+   "wc_ecc_sign_hash",
+   "wc_ecc_sign_hash_ex",
+   "sp_ecc_sign_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   128,
+   4,
+   56,
+   40,
+   768,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "SendTls13Finished": {
+  "bytes": 2080,
+  "chain": [
+   "SendTls13Finished",
+   "DeriveMasterSecret",
+   "DeriveKeyMsg.constprop.0",
+   "wc_Tls13_HKDF_Expand_Label_ex",
+   "wc_HKDF_Expand_ex",
+   "wc_HmacSetKey",
+   "wc_HmacSetKey_ex",
+   "wc_Sha512_224Final",
+   "Sha512_Family_Final",
+   "Sha512Final",
+   "_Transform_Sha512.isra.0",
+   "ForceZero"
+  ],
+  "frames": [
+   56,
+   96,
+   352,
+   176,
+   888,
+   16,
+   24,
+   0,
+   24,
+   16,
+   424,
+   8
+  ]
+ },
+ "SendTls13ServerHello": {
+  "bytes": 1248,
+  "chain": [
+   "SendTls13ServerHello",
+   "wc_RNG_GenerateBlock",
+   "PollAndReSeed",
+   "wc_RNG_HealthTest_ex_internal.isra.0",
+   "Hash_DRBG_Generate",
+   "wc_Sha256Update",
+   "Transform_Sha256.isra.0"
+  ],
+  "frames": [
+   32,
+   32,
+   320,
+   40,
+   464,
+   32,
+   328
+  ]
+ },
+ "TLSX_KeyShare_Choose": {
+  "bytes": 56,
+  "chain": [
+   "TLSX_KeyShare_Choose",
+   "TLSX_SupportedGroups_Find"
+  ],
+  "frames": [
+   40,
+   16
+  ]
+ },
+ "TLSX_KeyShare_Establish": {
+  "bytes": 1688,
+  "chain": [
+   "TLSX_KeyShare_Establish",
+   "TLSX_KeyShare_Setup",
+   "TLSX_KeyShare_GenKey",
+   "EccMakeKey",
+   "wc_ecc_make_key_ex",
+   "_ecc_make_key_ex",
+   "sp_ecc_make_key_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   32,
+   40,
+   24,
+   16,
+   16,
+   16,
+   272,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "TLSX_KeyShare_GenKey": {
+  "bytes": 1616,
+  "chain": [
+   "TLSX_KeyShare_GenKey",
+   "EccMakeKey",
+   "wc_ecc_make_key_ex",
+   "_ecc_make_key_ex",
+   "sp_ecc_make_key_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   24,
+   16,
+   16,
+   16,
+   272,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "TLSX_KeyShare_Process": {
+  "bytes": 1736,
+  "chain": [
+   "TLSX_KeyShare_Process",
+   "EccSharedSecret",
+   "wc_ecc_shared_secret",
+   "wc_ecc_shared_secret_ex",
+   "wc_ecc_shared_secret_gen_sync",
+   "sp_ecc_secret_gen_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   88,
+   24,
+   16,
+   24,
+   32,
+   280,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "crux_access_login_password": {
+  "bytes": 3104,
+  "chain": [
+   "crux_access_login_password",
+   "crux_access_change_upgrade",
+   "verifier_make",
+   "crux_access_port_derive",
+   "psa_key_derivation_output_bytes",
+   "wolfpsa_kdf_compute_output",
+   "wc_PRF_TLS",
+   "wc_PRF",
+   "wc_HmacSetKey",
+   "wc_HmacSetKey_ex",
+   "wc_Sha512_224Final",
+   "Sha512_Family_Final",
+   "Sha512Final",
+   "_Transform_Sha512.isra.0"
+  ],
+  "frames": [
+   648,
+   560,
+   32,
+   40,
+   32,
+   216,
+   192,
+   872,
+   16,
+   24,
+   0,
+   24,
+   16,
+   424
+  ]
+ },
+ "crux_access_provision_first_account": {
+  "bytes": 2472,
+  "chain": [
+   "crux_access_provision_first_account",
+   "verifier_make",
+   "crux_access_port_derive",
+   "psa_key_derivation_output_bytes",
+   "wolfpsa_kdf_compute_output",
+   "wc_PRF_TLS",
+   "wc_PRF",
+   "wc_HmacSetKey",
+   "wc_HmacSetKey_ex",
+   "wc_Sha512_224Final",
+   "Sha512_Family_Final",
+   "Sha512Final",
+   "_Transform_Sha512.isra.0",
+   "ForceZero"
+  ],
+  "frames": [
+   576,
+   32,
+   40,
+   32,
+   216,
+   192,
+   872,
+   16,
+   24,
+   0,
+   24,
+   16,
+   424,
+   8
+  ]
+ },
+ "crux_credential_key_ensure": {
+  "bytes": 3056,
+  "chain": [
+   "crux_credential_key_ensure",
+   "key_generate",
+   "crux_credential_port_generate_key",
+   "psa_export_public_key",
+   "psa_asymmetric_export_public_key_ecc",
+   "wc_ecc_make_pub_ex",
+   "ecc_make_pub_ex.isra.0",
+   "sp_ecc_mulmod_base_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   40,
+   352,
+   72,
+   128,
+   376,
+   504,
+   40,
+   272,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "crux_credential_start": {
+  "bytes": 1040,
+  "chain": [
+   "crux_credential_start",
+   "slot_repair",
+   "slot_commit",
+   "slot_classify",
+   "crux_credential_port_open",
+   "device_key_import.constprop.0",
+   "psa_hash_compute",
+   "psa_hash_finish",
+   "wc_Sha512_224Final",
+   "Sha512_Family_Final",
+   "Sha512Final",
+   "_Transform_Sha512.isra.0",
+   "ForceZero"
+  ],
+  "frames": [
+   80,
+   32,
+   80,
+   104,
+   56,
+   160,
+   32,
+   24,
+   0,
+   24,
+   16,
+   424,
+   8
+  ]
+ },
+ "crux_native_management_start": {
+  "bytes": 3128,
+  "chain": [
+   "crux_native_management_start",
+   "crux_native_management_start_profile",
+   "crux_credential_key_ensure",
+   "key_generate",
+   "crux_credential_port_generate_key",
+   "psa_export_public_key",
+   "psa_asymmetric_export_public_key_ecc",
+   "wc_ecc_make_pub_ex",
+   "ecc_make_pub_ex.isra.0",
+   "sp_ecc_mulmod_base_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0"
+  ],
+  "frames": [
+   0,
+   72,
+   40,
+   352,
+   72,
+   128,
+   376,
+   504,
+   40,
+   272,
+   1144,
+   48,
+   40,
+   8
+  ]
+ },
+ "crux_ssh_cli_exec": {
+  "bytes": 2176,
+  "chain": [
+   "crux_ssh_cli_exec",
+   "crux_cli_exec",
+   "dispatch",
+   "say_usage",
+   "crux_cli_call_say",
+   "crux_cli_send_text",
+   "crux_cli_send",
+   "crux_access_session_user",
+   "session_name_query",
+   "crux_access_session_report",
+   "crux_access_expired_emit",
+   "crux_access_emit_session",
+   "event_send",
+   "crux_access_port_event"
+  ],
+  "frames": [
+   832,
+   72,
+   40,
+   16,
+   8,
+   16,
+   64,
+   0,
+   448,
+   24,
+   32,
+   176,
+   8,
+   40
+  ]
+ },
+ "crux_ssh_cli_shell": {
+  "bytes": 2224,
+  "chain": [
+   "crux_ssh_cli_shell",
+   "crux_cli_run",
+   "crux_cli_session_loop",
+   "crux_cli_read_line",
+   "read_input",
+   "crux_cli_send_text",
+   "crux_cli_send",
+   "crux_access_session_user",
+   "session_name_query",
+   "crux_access_session_report",
+   "crux_access_expired_emit",
+   "crux_access_emit_session",
+   "event_send",
+   "crux_access_port_event"
+  ],
+  "frames": [
+   808,
+   24,
+   72,
+   24,
+   88,
+   16,
+   64,
+   0,
+   448,
+   24,
+   32,
+   176,
+   8,
+   40
+  ]
+ },
+ "crux_ssh_sftp_entry": "not found",
+ "crux_thread_entry": "not found",
+ "crux_tls_certificate_start": {
+  "bytes": 3128,
+  "chain": [
+   "crux_tls_certificate_start",
+   "crux_credential_key_ensure",
+   "key_generate",
+   "crux_credential_port_generate_key",
+   "psa_export_public_key",
+   "psa_asymmetric_export_public_key_ecc",
+   "wc_ecc_make_pub_ex",
+   "ecc_make_pub_ex.isra.0",
+   "sp_ecc_mulmod_base_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   72,
+   40,
+   352,
+   72,
+   128,
+   376,
+   504,
+   40,
+   272,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "crux_web_session_authenticate": {
+  "bytes": 1264,
+  "chain": [
+   "crux_web_session_authenticate",
+   "crux_access_touch",
+   "crux_access_session_report",
+   "crux_access_expired_emit",
+   "crux_access_emit_session",
+   "event_send",
+   "crux_access_port_event",
+   "crux_security_event_emit",
+   "crux_semaphore_give",
+   "crux_semaphore_impl_give",
+   "z_impl_k_sem_give",
+   "z_handle_obj_poll_events",
+   "signal_poll_event.isra.0",
+   "z_work_submit_to_queue"
+  ],
+  "frames": [
+   144,
+   440,
+   24,
+   32,
+   176,
+   8,
+   40,
+   152,
+   16,
+   8,
+   16,
+   16,
+   24,
+   16
+  ]
+ },
+ "curve25519_smul_blind": {
+  "bytes": 1352,
+  "chain": [
+   "curve25519_smul_blind",
+   "wc_RNG_GenerateBlock",
+   "PollAndReSeed",
+   "wc_RNG_HealthTest_ex_internal.isra.0",
+   "Hash_DRBG_Generate",
+   "wc_Sha256Update",
+   "Transform_Sha256.isra.0"
+  ],
+  "frames": [
+   136,
+   32,
+   320,
+   40,
+   464,
+   32,
+   328
+  ]
+ },
+ "http_server_thread": {
+  "bytes": 2144,
+  "chain": [
+   "http_server_thread",
+   "handle_http1_request",
+   "handle_http1_static_fs_resource",
+   "http_server_find_file",
+   "fs_stat",
+   "fs_get_mnt_point",
+   "k_mutex_lock.constprop.0.isra.0",
+   "z_impl_k_mutex_lock",
+   "z_pend_curr",
+   "add_to_waitq_locked",
+   "unready_thread",
+   "z_reset_time_slice",
+   "z_add_timeout",
+   "sys_clock_set_timeout"
+  ],
+  "frames": [
+   80,
+   256,
+   1400,
+   144,
+   32,
+   48,
+   0,
+   32,
+   24,
+   16,
+   16,
+   16,
+   40,
+   24
+  ]
+ },
+ "main": {
+  "bytes": 3320,
+  "chain": [
+   "main",
+   "crux_mgmt_rt1060_ssh_start",
+   "crux_ssh_host_key_load",
+   "crux_credential_key_ensure",
+   "key_generate",
+   "crux_credential_port_generate_key",
+   "psa_export_public_key",
+   "psa_asymmetric_export_public_key_ecc",
+   "wc_ecc_make_pub_ex",
+   "ecc_make_pub_ex.isra.0",
+   "sp_ecc_mulmod_base_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9"
+  ],
+  "frames": [
+   32,
+   80,
+   152,
+   40,
+   352,
+   72,
+   128,
+   376,
+   504,
+   40,
+   272,
+   1144,
+   48,
+   40
+  ]
+ },
+ "sp_ecc_sign_256": {
+  "bytes": 2040,
+  "chain": [
+   "sp_ecc_sign_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   768,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "wc_curve25519_shared_secret_ex": {
+  "bytes": 1448,
+  "chain": [
+   "wc_curve25519_shared_secret_ex",
+   "curve25519_smul_blind",
+   "wc_RNG_GenerateBlock",
+   "PollAndReSeed",
+   "wc_RNG_HealthTest_ex_internal.isra.0",
+   "Hash_DRBG_Generate",
+   "wc_Sha256Update",
+   "Transform_Sha256.isra.0"
+  ],
+  "frames": [
+   96,
+   136,
+   32,
+   320,
+   40,
+   464,
+   32,
+   328
+  ]
+ },
+ "wc_ecc_sign_hash": {
+  "bytes": 2136,
+  "chain": [
+   "wc_ecc_sign_hash",
+   "wc_ecc_sign_hash_ex",
+   "sp_ecc_sign_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   56,
+   40,
+   768,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "wc_ecc_sign_hash_ex": {
+  "bytes": 2080,
+  "chain": [
+   "wc_ecc_sign_hash_ex",
+   "sp_ecc_sign_256",
+   "sp_256_ecc_mulmod_9.isra.0",
+   "sp_256_proj_point_add_9",
+   "sp_256_proj_point_dbl_9",
+   "sp_256_mont_mul_9.constprop.0",
+   "sp_256_mul_9"
+  ],
+  "frames": [
+   40,
+   768,
+   1144,
+   48,
+   40,
+   8,
+   32
+  ]
+ },
+ "wc_ed25519_sign_msg_ex": {
+  "bytes": 1208,
+  "chain": [
+   "wc_ed25519_sign_msg_ex",
+   "ge_scalarmult_base",
+   "ge_p3_dbl",
+   "ge_p2_dbl",
+   "fe_sq"
+  ],
+  "frames": [
+   384,
+   488,
+   136,
+   72,
+   128
+  ]
+ },
+ "web_session_work_once": {
+  "bytes": 3864,
+  "chain": [
+   "web_session_work_once",
+   "crux_access_login_password",
+   "crux_access_change_upgrade",
+   "verifier_make",
+   "crux_access_port_derive",
+   "psa_key_derivation_output_bytes",
+   "wolfpsa_kdf_compute_output",
+   "wc_PRF_TLS",
+   "wc_PRF",
+   "wc_HmacSetKey",
+   "wc_HmacSetKey_ex",
+   "wc_Sha512_224Final",
+   "Sha512_Family_Final",
+   "Sha512Final"
+  ],
+  "frames": [
+   760,
+   648,
+   560,
+   32,
+   40,
+   32,
+   216,
+   192,
+   872,
+   16,
+   24,
+   0,
+   24,
+   16
+  ]
+ },
+ "wolfSSH_SFTP_accept": {
+  "bytes": 5760,
+  "chain": [
+   "wolfSSH_SFTP_accept",
+   "wolfSSH_SFTP_buffer_read",
+   "wolfSSH_stream_read",
+   "DoReceive",
+   "GetInputData",
+   "ReceiveData",
+   "wolfSSL_negotiate",
+   "wolfSSL_accept_TLSv13",
+   "wolfSSL_accept",
+   "ProcessReply",
+   "DoProcessReplyEx",
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts"
+  ],
+  "frames": [
+   40,
+   32,
+   40,
+   264,
+   16,
+   24,
+   8,
+   56,
+   8,
+   0,
+   136,
+   232,
+   112,
+   136
+  ]
+ },
+ "wolfSSH_accept": {
+  "bytes": 5664,
+  "chain": [
+   "wolfSSH_accept",
+   "DoReceive",
+   "GetInputData",
+   "ReceiveData",
+   "wolfSSL_negotiate",
+   "wolfSSL_accept_TLSv13",
+   "wolfSSL_accept",
+   "ProcessReply",
+   "DoProcessReplyEx",
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert"
+  ],
+  "frames": [
+   16,
+   264,
+   16,
+   24,
+   8,
+   56,
+   8,
+   0,
+   136,
+   232,
+   112,
+   136,
+   1264,
+   32
+  ]
+ },
+ "wolfSSH_stream_read": {
+  "bytes": 5688,
+  "chain": [
+   "wolfSSH_stream_read",
+   "DoReceive",
+   "GetInputData",
+   "ReceiveData",
+   "wolfSSL_negotiate",
+   "wolfSSL_accept_TLSv13",
+   "wolfSSL_accept",
+   "ProcessReply",
+   "DoProcessReplyEx",
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert"
+  ],
+  "frames": [
+   40,
+   264,
+   16,
+   24,
+   8,
+   56,
+   8,
+   0,
+   136,
+   232,
+   112,
+   136,
+   1264,
+   32
+  ]
+ },
+ "wolfSSH_worker": {
+  "bytes": 5672,
+  "chain": [
+   "wolfSSH_worker",
+   "DoReceive",
+   "GetInputData",
+   "ReceiveData",
+   "wolfSSL_negotiate",
+   "wolfSSL_accept_TLSv13",
+   "wolfSSL_accept",
+   "ProcessReply",
+   "DoProcessReplyEx",
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert"
+  ],
+  "frames": [
+   24,
+   264,
+   16,
+   24,
+   8,
+   56,
+   8,
+   0,
+   136,
+   232,
+   112,
+   136,
+   1264,
+   32
+  ]
+ },
+ "wolfSSL_accept": {
+  "bytes": 5280,
+  "chain": [
+   "wolfSSL_accept",
+   "ProcessReply",
+   "DoProcessReplyEx",
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert",
+   "ParseCertRelative",
+   "ConfirmSignature",
+   "wc_ed25519_verify_msg",
+   "wc_ed25519_verify_msg_ex",
+   "ed25519_verify_msg_final_with_sha",
+   "ge_double_scalarmult_vartime"
+  ],
+  "frames": [
+   8,
+   0,
+   136,
+   232,
+   112,
+   136,
+   1264,
+   32,
+   128,
+   64,
+   32,
+   48,
+   400,
+   8
+  ]
+ },
+ "wolfSSL_accept_TLSv13": {
+  "bytes": 5336,
+  "chain": [
+   "wolfSSL_accept_TLSv13",
+   "wolfSSL_accept",
+   "ProcessReply",
+   "DoProcessReplyEx",
+   "DoHandShakeMsgType",
+   "DoTls13HandShakeMsgType",
+   "ProcessPeerCerts",
+   "AddCA",
+   "ParseCert",
+   "ParseCertRelative",
+   "ConfirmSignature",
+   "wc_ed25519_verify_msg",
+   "wc_ed25519_verify_msg_ex",
+   "ed25519_verify_msg_final_with_sha"
+  ],
+  "frames": [
+   56,
+   8,
+   0,
+   136,
+   232,
+   112,
+   136,
+   1264,
+   32,
+   128,
+   64,
+   32,
+   48,
+   400
+  ]
+ },
+ "z_thread_entry": {
+  "bytes": 152,
+  "chain": [
+   "z_thread_entry",
+   "z_impl_k_thread_abort",
+   "z_thread_abort",
+   "ready_thread",
+   "z_reset_time_slice",
+   "z_add_timeout",
+   "sys_clock_set_timeout",
+   "elapsed",
+   "sys_clock_elapsed"
+  ],
+  "frames": [
+   8,
+   0,
+   32,
+   16,
+   16,
+   40,
+   24,
+   0,
+   16
+  ]
+ }
+}

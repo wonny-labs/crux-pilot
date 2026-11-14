@@ -58,6 +58,59 @@ config CRUX_THREAD_STACK_BYTES
 	default 4096
 	range 1024 65536
 
+menu "Priorities of Crux service workers"
+
+comment "Each is a Zephyr preemptive priority, 0 to NUM_PREEMPT_PRIORITIES - 1"
+
+# ADR-0002 P3. Each default is today's number: the worker is a LOW-class Crux Thread, which the
+# Zephyr port maps to 6. Another value moves that one worker, and the classes keep 4, 5 and 6. A
+# value of NUM_PREEMPT_PRIORITIES, the idle priority, passes the range and fails the build in
+# components/service_priority. See docs/thread-sync.md#priority-map-of-crux-threads.
+
+config CRUX_SECURITY_EVENT_DRAIN_PRIORITY
+	int "Security event drain"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The thread that writes security event records to the log, started by
+	  crux_security_event_start().
+
+config CRUX_REBOOT_WORKER_PRIORITY
+	int "Reboot service worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that runs reboot requests and the busy check, started by
+	  crux_reboot_start_worker().
+
+config CRUX_NETWORK_SETTINGS_WORKER_PRIORITY
+	int "Network settings service worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that saves and applies network settings, started by
+	  crux_network_settings_start_worker().
+
+config CRUX_WEB_SESSION_WORKER_PRIORITY
+	int "Web session login worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that runs web login attempts, started by
+	  crux_web_session_start_worker(). At the default it preempts the HTTP
+	  server thread, which runs at the lowest application priority: see
+	  docs/web-session.md.
+
+config CRUX_WEB_MANAGEMENT_WORKER_PRIORITY
+	int "Web management save worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that saves configuration for the web management routes,
+	  started by crux_web_management_start_worker().
+
+endmenu
+
 endif # CRUX_THREAD
 
 config CRUX_SYNC
@@ -202,6 +255,30 @@ config CRUX_FILE_FATFS_RT1060
     help
       Link the File provider into an RT1060-EVKB image. Off by default. It mounts and
       formats nothing by itself; the project composition owns mount order and recovery.
+      Physical-board evidence is narrow: runs of earlier revisions (2 and 3 November 2026) on
+      one RT1060-EVKB and one microSD card (docs/evidence/microsd-physical,
+      microsd-power-cut and microsd-card-states-stack), with plain crux_file appends and
+      reads. The replace-and-rename power-cut loop (microsd-replace-cut) called Zephyr
+      fs_rename directly, and the card-states-stack probe ran create, rename, stat, list and
+      remove through Zephyr fs_* directly (sample sd_probe.c), not crux_file. It qualifies neither the board, the card nor the
+      Settings File backend. The roots, stat, size, rename and listing operations that
+      crux_file gained later (#224) have no physical run.
+
+config CRUX_FILE_FATFS_RT1060_RAM_DISK
+    bool "Crux File FatFs provider on a RAM disk of the RT1060-EVKB"
+    depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
+    depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION_B
+    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
+    depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    help
+      Link the File provider into an RT1060-EVKB image whose only disk is a RAM disk, so that no
+      card can be reached by it and nothing persists across a reset. Off by default. It needs the
+      SD card driver to be absent: a build that has both is refused here and by the provider's
+      CMake. It mounts and formats nothing by itself; the composition owns the mount, and may
+      format a RAM disk because it is memory. Used by the bench image of the integrated
+      management composition (tests/zephyr/management_rt1060_compile, which declares it).
       No physical-board result exists for this selection.
 
 config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
@@ -222,6 +299,7 @@ config CRUX_FILE_RELIANCE_EDGE
     depends on CRUX_PILOT_MODULE && CRUX_FS_RELIANCE_EDGE
     depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
     depends on !CRUX_FILE_FATFS_RT1060 && !CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+    depends on !CRUX_FILE_FATFS_RT1060_RAM_DISK
     help
       Link the File provider over the Reliance Edge file system of the Zephyr VFS. It
       works on any board that has the file system, and names are stored as they are, with no
@@ -230,8 +308,9 @@ config CRUX_FILE_RELIANCE_EDGE
       distributed. No physical-board result exists for this selection.
 
 # The USDHC HAL invalidates a read target by whole D-cache lines when a transfer completes, so the
-# RT1060 selections and Reliance Edge take line-aligned targets only. file_native.c and the
-# adapter refuse a smaller SDHC value.
+# RT1060 selections and Reliance Edge take line-aligned targets only. With an SD host and a data
+# cache, file_native.c refuses a value below the cache line size. With an SD host, the Reliance Edge
+# adapter refuses a REDCONF_BUFFER_ALIGNMENT below this value.
 configdefault SDHC_BUFFER_ALIGNMENT
     default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK || \
                   CRUX_FILE_RELIANCE_EDGE
@@ -284,6 +363,18 @@ config CRUX_WEB_PORT
     int "Port of the web service, or 0 for an ephemeral one"
     default 443
     range 0 65535
+
+config CRUX_WEB_BIND_ADDRESS
+    string "The one IPv4 address the web service listens on, or empty for every address"
+    default ""
+    depends on !CRUX_WEB_PLAIN_HTTP_FOR_TESTS
+    help
+      Dotted IPv4 text of a local address, which must already be on an interface when the service
+      starts. Empty keeps the Zephyr server's default: every address, and IPv6 as well when it is
+      enabled. The RT1060-EVKB bench image sets the bench address (D10 of
+      docs/rt1060-management-image-feasibility.md). A text that is not an IPv4 address makes the
+      Zephyr server fall back to every address, so a composition that sets this checks the text
+      itself, as the bench image's guards do.
 
 config CRUX_WEB_BACKLOG
     int "Connections the listening socket queues"
@@ -373,6 +464,17 @@ config CRUX_SSH_PORT
       Like the four symbols below it, this is read by the composition's own start code, which fills
       crux_ssh_config_t. The module's CMake does not apply it.
 
+config CRUX_SSH_BIND_ADDRESS
+    string "The one IPv4 address the SSH service listens on, or empty for every address"
+    default ""
+    help
+      Dotted IPv4 text of a local address, which must already be on an interface when the service
+      starts. Empty means every IPv4 address. Read by the composition's own start code, which
+      passes it as crux_ssh_config_t.bind_address, NULL for an empty setting: the provider itself
+      refuses an empty text, and any other text that is not an IPv4 address, so that a mistyped
+      address never widens the listener. The RT1060-EVKB bench image sets the bench address (D10 of
+      docs/rt1060-management-image-feasibility.md).
+
 config CRUX_SSH_MAX_CONNECTIONS
     int "Connections at once, authenticated or not"
     default 4
@@ -407,6 +509,34 @@ config CRUX_SSH_LISTENER_STACK_BYTES
     int "Stack of the listener thread"
     default 4096
     range 2048 32768
+
+config CRUX_SSH_WORKER_PRIORITY
+    int "Zephyr priority of every connection's worker thread, or -1 for the lowest application one"
+    default -1
+    range -1 NUM_PREEMPT_PRIORITIES
+    help
+      ADR-0002 P3. -1, the default, keeps today's K_LOWEST_APPLICATION_THREAD_PRIO, which is
+      NUM_PREEMPT_PRIORITIES - 1 and so follows that setting. Otherwise a preemptive priority, 0 to
+      NUM_PREEMPT_PRIORITIES - 1: the provider refuses the idle priority at compilation. The workers
+      share this priority and a time slice. Read by crux_ssh_wolf_settings(). See
+      docs/thread-sync.md#priority-map-of-crux-threads.
+
+config CRUX_SSH_LISTENER_PRIORITY
+    int "Zephyr priority of the listener thread, or -1 for the lowest application one"
+    default -1
+    range -1 NUM_PREEMPT_PRIORITIES
+    help
+      As CRUX_SSH_WORKER_PRIORITY, for the thread that accepts connections and starts their workers.
+
+config CRUX_SSH_STACK_REPORT
+    bool "Name the SSH threads and keep the lowest unused stack of the workers that ended"
+    depends on THREAD_NAME && THREAD_STACK_INFO && INIT_STACKS
+    help
+      A measurement aid for an image that reads stack use on a target: the listener and each worker
+      get a name ("ssh_listener", "ssh_worker"), and a worker that ends records how much of its
+      stack it never touched, so that crux_ssh_wolf_worker_stack_ended() still has the figure after
+      the thread is gone and its slot is used again. Costs a few dozen bytes and one stack scan when
+      a worker ends. Off by default, and every other image is unchanged.
 
 config CRUX_SSH_WINDOW_BYTES
     int "Channel window, which decides the heap of a logged-in session"

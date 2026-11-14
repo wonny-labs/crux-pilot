@@ -1,0 +1,26 @@
+
+Elf file type is EXEC (Executable file)
+Entry point 0x6001aba9
+There are 8 program headers, starting at offset 52
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  ARM_EXIDX      0x07de70 0x6007dd30 0x6007dd30 0x00008 0x00008 R   0x4
+  LOAD           0x000140 0x60000000 0x60000000 0x919f4 0x919f4 RWE 0x10
+  LOAD           0x000000 0x800000f4 0x600919f4 0x00000 0x0000c RW  0x1
+  LOAD           0x091b40 0x80000100 0x60091a00 0x01194 0x01194 RW  0x20
+  LOAD           0x092cd4 0x60092b94 0x60092b94 0x000c0 0x000c0 RW  0x4
+  LOAD           0x000000 0x80000000 0x80000000 0x00000 0xcb8ac RW  0x40
+  TLS            0x07e86c 0x6007e72c 0x6007e72c 0x00000 0x0002c R   0x4
+  GNU_STACK      0x000000 0x00000000 0x00000000 0x00000 0x00000 RW  0x10
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     .ARM.exidx 
+   01     rom_start text .ARM.exidx initlevel device_area sw_isr_table _static_thread_data_area entropy_driver_api_area gpio_driver_api_area wdt_driver_api_area clock_control_driver_api_area mdio_driver_api_area sdhc_driver_api_area uart_driver_api_area ethphy_driver_api_area net_l3_register_area net_socket_register_area http_service_desc_area log_const_area log_backend_area rodata 
+   02     nocache_load 
+   03     datas device_states log_mpsc_pbuf_area log_msg_ptr_area k_mem_slab_area k_heap_area k_mutex_area k_sem_area net_buf_pool_area net_if_area net_if_dev_area net_l2_area 
+   04     http_resource_desc_crux_web_service_area http_content_type_area http_header_name_area .last_section 
+   05     nocache nocache_load bss noinit 
+   06     tbss 
+   07     

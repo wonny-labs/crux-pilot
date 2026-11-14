@@ -8,5 +8,6 @@ if(NOT CONFIG_CRUX_FILE_FATFS_RT1060)
   message(FATAL_ERROR "The RT1060 File provider is not selected: it requires the Rev B QSPI board")
 endif()
 target_sources(app PRIVATE main.c sd_storage.c sd_file_check.c)
-target_link_libraries(app PRIVATE crux::file)
-target_include_directories(app PRIVATE ${CRUX_ROOT}/components/file/ports/zephyr)
+# The root binding is a composition interface: this sample is a platform composition, so it links the
+# public composition target instead of adding the port's directory.
+target_link_libraries(app PRIVATE crux::file crux::file_zephyr)

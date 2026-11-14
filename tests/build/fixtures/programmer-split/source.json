@@ -1,0 +1,49 @@
+{
+  "note": "Real J-Link Commander V9.86a transcripts and driver operation logs of the RT1060-EVKB stage 1 runs, copied unchanged from docs/evidence. No capture of a 562,232 B load or read-back exists: the bench image size in the tests is the recorded build size, and its load and verify times are unmeasured.",
+  "files": {
+    "run3-program-03-program-m5.log": {
+      "source": "docs/evidence/networking-physical-stage1-run3/01-third-run/program/03-program-m5.log",
+      "sha256": "651a841e65bd3859a80c44f456c80c742e83042145dcbec59d2d105fdbfe7600"
+    },
+    "run3-restore-02-load-normal.log": {
+      "source": "docs/evidence/networking-physical-stage1-run3/01-third-run/restore/02-load-normal.log",
+      "sha256": "620e718ee3e3b3289612b1552fc71162f7bc7581bb27b513e3a8e6bc7c9b6d1f"
+    },
+    "run3-restore-03-verify-normal.log": {
+      "source": "docs/evidence/networking-physical-stage1-run3/01-third-run/restore/03-verify-normal.log",
+      "sha256": "63bd42b0a717d865d56221fba86aa43b1de5705ce7a7d56599d55b149195a6fc"
+    },
+    "run3-restore-04-start-normal.log": {
+      "source": "docs/evidence/networking-physical-stage1-run3/01-third-run/restore/04-start-normal.log",
+      "sha256": "55d70abaecc446e2ec625d29250c6ebddbcda7b0569368fe982f400a391ea625"
+    },
+    "fixed-driver-restore-02-load-normal-skipped.log": {
+      "source": "docs/evidence/networking-physical-stage1/05-restore-fixed-driver/restore/02-load-normal.log",
+      "sha256": "e36672d60e33f80bcb82d80d389a39e218c7d5da59b77cf1b74ab9133734e9ea"
+    },
+    "run2-program-operations.json": {
+      "source": "docs/evidence/networking-physical-stage1-run2/01-second-run/program/operations.json",
+      "sha256": "cbe5935218e0c046579393aa6cffbb17637d30fed1bfd3abc69b2b36626b116d"
+    },
+    "run2-restore-operations.json": {
+      "source": "docs/evidence/networking-physical-stage1-run2/01-second-run/restore/operations.json",
+      "sha256": "53cac854b308cd2c293d376fd3717b55cc49490efad713287491bb81902c6c3d"
+    },
+    "run3-program-operations.json": {
+      "source": "docs/evidence/networking-physical-stage1-run3/01-third-run/program/operations.json",
+      "sha256": "26ac9308671679580cdb1a71675fdbf47aecc038ca666ebf1273c4245d8ddc5e"
+    },
+    "run3-restore-operations.json": {
+      "source": "docs/evidence/networking-physical-stage1-run3/01-third-run/restore/operations.json",
+      "sha256": "9be2451ed98246933e6064e99fd3ea8183b2fdabef041608a971a7d6c21f4a33"
+    },
+    "main-run-program-operations.json": {
+      "source": "docs/evidence/networking-physical-stage1/06-main-run-program-capture-restore/program/operations.json",
+      "sha256": "c3107c89edca29912092d596f9c63b0c49583727b5e80405ea470d6ae728274d"
+    },
+    "main-run-restore-operations.json": {
+      "source": "docs/evidence/networking-physical-stage1/06-main-run-program-capture-restore/restore/operations.json",
+      "sha256": "fe8b822900c84078dec4d220966acb48abcaabf5753206758db05cda97a4d389"
+    }
+  }
+}

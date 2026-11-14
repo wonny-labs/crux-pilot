@@ -24,6 +24,7 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 | Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
 | Out-of-tree consumer, all software levels | Python `unittest`; its Zephyr levels are opt-in | Linux host and Zephyr `native_sim` |
 | Device-control tool | Python `unittest` with fake transports | Linux and macOS hosts; Windows not run |
+| Power-cut wrapper `scripts/power_cut.py` | Python `unittest` with fake commands, run by the Host workflow (`python3 -m unittest discover -s tests/power_cut -v`); no hub, probe or board | Linux host |
 
 ## Host: `time/` and `controller/`
 
@@ -69,6 +70,15 @@ actual dependency HEAD/dirty-state checks, and invalidation of stale manifests e
 build, clean command or native test run fails. Run
 `python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
 No additional test framework is required.
+
+`tests/build/test_compat_table.py` holds the checks of `scripts/gen-compat-table.py`, the provisional
+compatibility table generator, see [the compatibility table](../docs/compatibility-table.md). The cases
+that parse a manifest need PyYAML and skip without it.
+
+`tests/build/test_release_bundle.py` holds the checks of the provisional release bundle checker,
+`scripts/check-release-bundle.py`, and of its schema. They write small bundles by hand and need no
+west workspace or Zephyr build. See [the release bundle checker](../docs/release-bundle-checker.md) for
+what the checker covers and what it does not.
 
 ## Physical UART: `target/`
 
@@ -215,8 +225,14 @@ not been exercised.
 
 ## Product template
 
-`tests/build/test_product_template.py` checks `samples/product_template`: its C file and CMake
-use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
+`tests/build/test_product_template.py` checks `templates/product`: its C file and CMake
+use only public Crux names, and its manifest pins nothing Crux pins. The template splits plain C
+in `domain/` from the shell in `app/src/main.c`. The tests run `check_domain_includes.py` on the
+shipped domain and on mutated copies (each frozen Crux header, each Zephyr header class, composition
+interfaces, dot components, a byte order mark, an empty directory), build the domain on the Host with
+a fake port and `-Wpedantic`, and check the shared-state example by reading the shell. They need
+only Python and a C compiler, so the host CI job runs them. The same file tests `check_domain_includes.py --product`,
+which applies the frozen-header rule to every source file of a product repository and keeps the domain rules in `domain/`. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
 runs the frozen-manifest flow, the build record's input capture and the guide's routes: a vendor
@@ -228,6 +244,16 @@ manifest, then cross-builds the application in that workspace. It does not opera
 Zephyr CI job runs it. See the
 [Product Composition Guide](../docs/product-composition.md).
 
+## Frozen header warning
+
+`tests/build/test_frozen_header_guard.py` checks the opt-in `#warning` of `<crux/thread.h>`,
+`<crux/sync.h>`, `<crux/queue.h>` and `<crux/serial.h>`. With a C compiler it shows that the
+headers are silent by default, even under `-Werror`, that `CRUX_WARN_FROZEN_HEADERS` makes each one
+warn once and name itself and `docs/choosing-an-api.md`, and that `CRUX_INTERNAL_BUILD` silences it.
+On Linux it configures Crux as a subdirectory and reads `compile_commands.json`: Crux's own sources
+carry `-DCRUX_INTERNAL_BUILD` and the consumer's source does not, no usage requirement exports it, and a
+global opt-in warns only in the consumer's file. Host CI runs it with `tests/build`.
+
 ## Portable execution capability
 
 Run `scripts/test-portable-execution.sh --host-only` for separately configured C/C++
@@ -237,7 +263,17 @@ component; portable C/C++ translation units cannot see the opposite public heade
 private headers. Final ELF symbol and compile-command checks reject the unselected
 provider. Sync-only ownership is exercised from a native OS-created worker.
 The full `scripts/test-portable-execution.sh` also runs Zephyr `native_sim` and EVKB
-cross-builds for the combined and two standalone component configurations. Common conformance and Host failure/poll regressions run in the standard
+cross-builds for the combined and two standalone component configurations. It includes
+`tests/sync/zephyr`, which checks on `native_sim` that a mutex holder keeps and then returns
+from an inherited priority, also when a waiter times out during another Sync call, that
+wake-ups are not deferred, that a thread switch after the native unlock cannot corrupt a
+slot, that a woken thread's destroy returns busy until the give or unlock that woke it
+has returned, and that every configured mutex slot works, at the default and the largest
+pool. It also runs `tests/service_priority/zephyr`, which reads back on `native_sim` the
+per-service priorities of Crux's service workers, at their defaults and moved, and checks
+that the class mapping stays 4/5/6. Its static half, `tests/service_priority/check_placement.py`,
+runs in the Host CTest set as `ServicePriority.*` (see
+[Priority map of Crux threads](../docs/thread-sync.md#priority-map-of-crux-threads)). Common conformance and Host failure/poll regressions run in the standard
 Host debug/sanitizer checks. Private admission tests prove lifecycle races without
 adding production test hooks. See the [current Thread/Sync contract](../docs/thread-sync.md) for semantics and
 provider limits, and the [historical validation record](../docs/history/execution-validation.md)
@@ -330,6 +366,17 @@ configuration saves. `scripts/test-reboot.sh` runs them under both presets with 
 `Web.reboot_*` ones. `Web.reboot_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
 `Web.reboot_no_service` shows that a composition without the service has no reboot route. Nothing here resets a device or operates a
 board. See [reboot service](../docs/reboot-service.md).
+
+### Reboot suites on `native_sim` (pilot, Stage A)
+
+`tests/reboot/zephyr` builds the Host sources of `Reboot.service`, `steps`, `concurrency`, `reason`, `lock_faults`, `pending` and `sleep_provider`, and of `Web.reboot_routes`, `Web.reboot_no_service` and `Web.reboot_openapi`,
+unchanged for `native_sim/native/64`, over the Crux Thread and Sync Zephyr providers, with ASan and UBSan.
+`scripts/test-reboot-native.sh [--plain]` builds six images and runs them. Zephyr has no `fork()`, so the script starts the image once for
+each case, which is what the Host's forked child does, and it fails if a suite lists a different number of cases from the Host source.
+`tests/reboot/zephyr/compat/pthread.h` supplies the few pthread calls of the suites over Zephyr threads, because Zephyr's POSIX layer needs
+a C library that the host toolchain does not have. This is not a Host result: `native_sim` runs one Zephyr thread at a time and has no
+ThreadSanitizer. `Reboot.nodiscard` and the C++ header check stay Host only. See
+[the pilot record](../docs/research/reboot-native-sim-stage-a.md).
 
 ## Packaged web assets
 
@@ -779,6 +826,8 @@ a project cannot reach the adapter header, and a service that links the adapter 
 No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
 [Access contract](../docs/access-contract.md).
 
+The first account of the RT1060-EVKB bench image (row C4, [document](../docs/rt1060-bench-first-account.md)) has its own Host suite, `tests/bench_first_account`, as `BenchFirstAccount.provision` in CTest, on the same fake ports. Its password file rules, the scan for the password in build outputs and the CMake level are Python tests in `tests/build/test_bench_first_account_file.py` and `test_bench_first_account_build.py`, and every password in them is made at run time. Nothing there runs on a board.
+
 ## Portable command line
 
 Command line (Issue #181): the root Host suite runs `tests/cli` as `Cli.*` in CTest, with a scripted transport, a recording event port, a scripted Serial, and either a scripted access control or the real `crux_access` on its fake ports. These fakes are a test composition: they exist only when Crux builds its own tests.
@@ -812,7 +861,10 @@ authority lock and monotonic clock. Its realtime provider is Time's controlled `
 `crux_security_event_fake` is a recording fake of the public contract for the Host tests of a consumer, and one suite runs on both
 it and the core. These exist only when Crux builds its own tests. `scripts/test-security-event.sh` also runs them under the
 sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/check-security-event-boundary.py`, which builds
-`tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
+`tests/security_event_consumer` in both directions. None of these suites runs on Zephyr or a target. The security events
+run on `native_sim` in the Ztest `tests/native/management_composition` and in the image `tests/native/management_services`, which
+`driver.py` drives, both through `scripts/test-native-composition.sh mbed|wolf`: see
+[Management composition on `native_sim`](#management-composition-on-native_sim). Nothing here ran on a target. See the
 [Security event contract](../docs/security-event-contract.md).
 
 ## TLS certificate
@@ -825,7 +877,11 @@ under the sanitizer preset and runs clang-tidy. Where CMake finds OpenSSL's head
 holds the parser to OpenSSL's decoder on 300,000 seeded mutations. `TlsCertificate.boundary_*` configure a separate
 project to show that a consumer reaching the adapter is refused. `scripts/test-tls-certificate.sh psa` builds `tests/tls_certificate/psa`
 on TF-PSA-Crypto and checks a real key's certificate, request and PKCS #8 key with OpenSSL, including a TLS 1.3
-handshake; CI does not run it. Nothing here registers the material with Zephyr or runs on `native_sim` or a target. See
+handshake; CI does not run it. None of these suites registers the material with Zephyr, runs on `native_sim` or runs on a
+target. The module itself runs on `native_sim` in the image `tests/native/management_services`, which `driver.py` drives through
+`scripts/test-native-composition.sh mbed|wolf`: a certificate generated at first boot and loaded at the second with the same
+fingerprint, while the listener there still serves the declared test certificate. See
+[Management composition on `native_sim`](#management-composition-on-native_sim). Nothing here ran on a target. See
 the [TLS certificate design](../docs/tls-certificate.md).
 
 ## Web frontend

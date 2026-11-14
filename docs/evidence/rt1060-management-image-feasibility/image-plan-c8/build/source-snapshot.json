@@ -1,0 +1,16 @@
+{
+  "dirty": false,
+  "git_branch": null,
+  "git_commit": "9882ebdfe2f30e0dc3b5b4373a2e1bafff291239",
+  "git_status_counts": {
+    "deleted": 0,
+    "modified_or_staged": 0,
+    "renamed_or_copied": 0,
+    "untracked": 0
+  },
+  "recoverable_from_git": true,
+  "snapshot_algorithm": "sha256-path-mode-content-v1",
+  "snapshot_file_count": 4146,
+  "snapshot_sha256": "7ac9269169bcef7b4302dbd48bb08f1ebee19a5608d5e57e832c99f8900b5d28",
+  "west_manifest_sha256": "cd4a6a5b24679a1a7a64195c6bb4acee3ab3cf8d3a2b234d3747c38a1c27912a"
+}

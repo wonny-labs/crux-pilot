@@ -1,0 +1,2 @@
+run 1 (first build, password file under the first path): 115765451291ced885f7a25ae8e90c4873ba005bc2c7c05bd9b043d32b323f45  bench-manifest.json
+run 2 (second build, the one kept in build/):               115765451291ced885f7a25ae8e90c4873ba005bc2c7c05bd9b043d32b323f45  bench-manifest.json

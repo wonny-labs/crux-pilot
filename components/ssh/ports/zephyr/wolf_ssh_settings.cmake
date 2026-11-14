@@ -84,6 +84,16 @@ function(crux_ssh_wolf_settings)
                 CRUX_SSH_WOLF_WORKER_STACK_BYTES=${CONFIG_CRUX_SSH_WORKER_STACK_BYTES}
                 CRUX_SSH_WOLF_LISTENER_STACK_BYTES=${CONFIG_CRUX_SSH_LISTENER_STACK_BYTES}
                 CRUX_SSH_WOLF_WINDOW_BYTES=${CONFIG_CRUX_SSH_WINDOW_BYTES})
+            # The priorities (ADR-0002 P3). -1, their default, sets nothing, so the provider keeps the
+            # lowest application priority, as before.
+            if(CONFIG_CRUX_SSH_LISTENER_PRIORITY GREATER_EQUAL 0)
+                target_compile_definitions(crux_ssh_wolf_provider PRIVATE
+                    CRUX_SSH_WOLF_LISTENER_PRIORITY=${CONFIG_CRUX_SSH_LISTENER_PRIORITY})
+            endif()
+            if(CONFIG_CRUX_SSH_WORKER_PRIORITY GREATER_EQUAL 0)
+                target_compile_definitions(crux_ssh_wolf_provider PRIVATE
+                    CRUX_SSH_WOLF_WORKER_PRIORITY=${CONFIG_CRUX_SSH_WORKER_PRIORITY})
+            endif()
         endif()
         target_include_directories(crux_ssh_wolf_provider PRIVATE
             "${CRUX_SSH_DIR}/src" "${CRUX_SSH_DIR}/adapter"

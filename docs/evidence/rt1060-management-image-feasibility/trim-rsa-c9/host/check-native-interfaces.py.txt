@@ -1,0 +1,1 @@
+Native interface policy passed (186 portable source files).

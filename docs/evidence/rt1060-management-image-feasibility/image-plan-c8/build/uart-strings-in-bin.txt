@@ -1,0 +1,17 @@
+CRUX-ENTROPY first-read=failed source=unknown compatible=unknown bytes=32 status=-1 device-ready=0
+CRUX-ENTROPY first-read=%s source=%s compatible=%s bytes=%u status=%d device-ready=%d
+nxp,kinetis-trng
+random@400cc000
+BENCH refusing to start: this image is not approved to run
+BENCH refusing to start: the first random read failed, no key or listener made
+BENCH first account failed
+BENCH ready
+SSH-HOST-KEY unavailable
+SSH-HOST-KEY %s
+BENCH first account failed: result=%d
+BENCH first account created: user=%s role=%s
+BENCH file-medium ram-disk %u B in SDRAM, %s, mounted=%d: nothing persists across a reset (accounts, keys, certificate and events are lost)
+BENCH-CERT unavailable
+BENCH-REPORT v=1 begin
+BENCH-REPORT v=1 end
+BENCH-CERT v=1 sha256=

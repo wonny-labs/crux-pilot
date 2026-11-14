@@ -1,0 +1,17 @@
+*** Booting Zephyr OS build v4.4.2 ***
+Running TESTSUITE wolf_entropy
+===================================================================
+START - test_without_an_entropy_driver_wolfcrypt_falls_back_to_sys_rand_get
+ PASS - test_without_an_entropy_driver_wolfcrypt_falls_back_to_sys_rand_get in 0.000 seconds
+===================================================================
+TESTSUITE wolf_entropy succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [wolf_entropy]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_without_an_entropy_driver_wolfcrypt_falls_back_to_sys_rand_get] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

@@ -38,7 +38,7 @@ provider only. Private ports in `components/tls_certificate/src/tls_certificate_
 | Hash, signature and random source | **Faked** in the Host suites: real SHA-256, but the "signature" is not ECDSA. **Real** PSA ports on TF-PSA-Crypto in `tests/tls_certificate/psa`. | Host |
 | Self-signed certificate, request and PKCS #8 key from a real P-256 key | **Checked**: TF-PSA-Crypto's own key parser takes the key and verifies both signatures with it; OpenSSL 3.0.13 parses all three, verifies the certificate and the request, and completes a TLS 1.3 handshake with them | Host |
 | Event provider onto `web.*` records | **Built** | Host, on the recording fake of the event contract |
-| Registration with Zephyr's TLS credentials, on either profile | **Not built.** The adapter is the interface a composition uses; the declared test certificate of #263 stays in the `native_sim` images. | None |
+| Registration with Zephyr's TLS credentials, on either profile | **Not built in the `native_sim` images**, which keep the declared test certificate of #263. The adapter is the interface a composition uses. The RT1060 bench image builds it (`crux_mgmt_rt1060_tls_credentials`, compile-only): it still refuses to start in `main()` and has not run on a board ([feasibility report](rt1060-management-image-feasibility.md)). | None |
 | wolfPSA signing, wolfSSL parsing the key and the certificate | **Not run by #190.** Run in [the services image](native-composition-242.md) on wolfPSA: the certificate is generated at first boot, loaded at the second with the same fingerprint, and OpenSSL verified it. A run, not a qualification. | `native_sim` |
 | Browsers accepting the self-signed profile | **Not run** | None |
 | RT1060-EVKB | **Not compiled** | None |

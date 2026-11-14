@@ -1,0 +1,9 @@
+{
+  "nonce": 671604249,
+  "note": "Reduced run: not an M5 series boot; link event, recovery and final idle phases were not run",
+  "qualifying": false,
+  "satisfies_m5_series": false,
+  "status": "REDUCED_BOOT_PROTOCOL_COMPLETE_NON_QUALIFYING",
+  "through_phase": 6
+}
+exit 0

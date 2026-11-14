@@ -1,0 +1,2 @@
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [22] rodata            PROGBITS        6007e818 07e958 013418 00   A  0   0  8

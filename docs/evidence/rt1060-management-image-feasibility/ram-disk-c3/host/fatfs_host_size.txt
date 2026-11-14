@@ -1,0 +1,23 @@
+disk 1024 sectors = 524288 B; area 262144 B, file 65536 B, 16 entries, slot 16384 B
+  blank disk mount: fails (as the NO_FORMAT rule needs)
+  after mkfs                                                   free  505344 B of  505344 B data (987 clusters of 512 B), fat type 1
+  after the three directories                                  free  503808 B of  505344 B data (987 clusters of 512 B), fat type 1
+  pattern A: area as 4 files of the largest size, then both slots free  208896 B of  505344 B data (987 clusters of 512 B), fat type 1
+  pattern B: 16 entries of 63-character names at the worst slack, then both slots free  205824 B of  505344 B data (987 clusters of 512 B), fat type 1
+  filled to refusal after 8 files of 64 KiB, result 7 (7 = DENIED, 9 = INT_ERR? see ff.h)
+disk 2048 sectors = 1048576 B; area 262144 B, file 65536 B, 16 entries, slot 16384 B
+  blank disk mount: fails (as the NO_FORMAT rule needs)
+  after mkfs                                                   free 1028096 B of 1028096 B data (2008 clusters of 512 B), fat type 1
+  after the three directories                                  free 1026560 B of 1028096 B data (2008 clusters of 512 B), fat type 1
+  pattern A: area as 4 files of the largest size, then both slots free  731648 B of 1028096 B data (2008 clusters of 512 B), fat type 1
+  pattern B: 16 entries of 63-character names at the worst slack, then both slots free  728576 B of 1028096 B data (2008 clusters of 512 B), fat type 1
+  filled to refusal after 16 files of 64 KiB, result 7 (7 = DENIED, 9 = INT_ERR? see ff.h)
+disk 8192 sectors = 4194304 B; area 3145728 B, file 1048576 B, 16 entries, slot 16384 B
+  blank disk mount: fails (as the NO_FORMAT rule needs)
+  after mkfs                                                   free 4173824 B of 4173824 B data (2038 clusters of 2048 B), fat type 1
+  after the three directories                                  free 4167680 B of 4173824 B data (2038 clusters of 2048 B), fat type 1
+  pattern A: area as 4 files of the largest size, then both slots free  989184 B of 4173824 B data (2038 clusters of 2048 B), fat type 1
+  pattern B: 16 entries of 63-character names at the worst slack, then both slots free  987136 B of 4173824 B data (2038 clusters of 2048 B), fat type 1
+  filled to refusal after 64 files of 64 KiB, result 7 (7 = DENIED, 9 = INT_ERR? see ff.h)
+f4ead3bf4a6dab3a07d7b5f5315795c073db568d
+Apple clang version 17.0.0 (clang-1700.0.13.5)

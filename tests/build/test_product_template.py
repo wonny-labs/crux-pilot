@@ -1,4 +1,5 @@
 """Check the product template: what it declares, then real west on throwaway repositories."""
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from test_crux_pins import git
 
@@ -17,9 +19,10 @@ except ImportError:
     yaml = None
 
 REPO = Path(__file__).resolve().parents[2]
-TEMPLATE = REPO / "samples/product_template"
+TEMPLATE = REPO / "templates/product"
 MANIFEST = TEMPLATE / "west.yml"
 GUIDE = REPO / "docs/product-composition.md"
+RELEASE = TEMPLATE / "RELEASE.md"
 WEST = shutil.which("west")
 GIT = shutil.which("git")
 PUBLIC_BASE = "https://github.com/"
@@ -88,7 +91,7 @@ class TemplateFilesTest(unittest.TestCase):
         self.source = (TEMPLATE / "app/src/main.c").read_text()
 
     def test_every_file_a_team_copies_exists(self):
-        for name in ("west.yml", ".gitignore", "README.md"):
+        for name in ("west.yml", ".gitignore", "README.md", "RELEASE.md"):
             with self.subTest(name=name):
                 self.assertTrue((TEMPLATE / name).is_file())
 
@@ -112,7 +115,12 @@ class TemplateFilesTest(unittest.TestCase):
                 self.assertRegex(kconfig, rf"(?m)^config {option}$")
 
     def test_source_includes_only_public_crux_headers(self):
-        self.assertNotRegex(self.source, r'#\s*include\s*"', "no private or local headers")
+        # The shell may name a header of the product's own domain, and no other quoted header.
+        for header in re.findall(r'#\s*include\s*"([^"]+)"', self.source):
+            with self.subTest(header=header):
+                resolved = (TEMPLATE / "app/src" / header).resolve()
+                self.assertTrue(resolved.is_file())
+                self.assertTrue(resolved.is_relative_to((TEMPLATE / "domain").resolve()))
         headers = re.findall(r"#\s*include\s*<(crux/[^>]+)>", self.source)
         self.assertTrue(headers)
         for header in headers:
@@ -131,13 +139,39 @@ class TemplateFilesTest(unittest.TestCase):
         self.assertRegex((TEMPLATE / ".gitignore").read_text(), r"(?m)^/?build/$")
 
 
+class TemplateLocationTest(unittest.TestCase):
+    """The template moved from samples/product_template to templates/product on 9 November 2026."""
+
+    def test_the_template_files_are_under_templates_product(self):
+        for name in (".gitignore", "README.md", "RELEASE.md", "west.yml",
+                     "app/CMakeLists.txt", "app/prj.conf", "app/src/main.c",
+                     "domain/product_domain.h", "domain/product_domain.c",
+                     "domain/product_port.h", "check_domain_includes.py"):
+            with self.subTest(name=name):
+                self.assertTrue((REPO / "templates/product" / name).is_file())
+
+    def test_the_old_location_is_gone_and_leaves_no_stub(self):
+        self.assertFalse((REPO / "samples/product_template").exists())
+
+    def test_the_readme_records_the_move(self):
+        head = "\n".join((TEMPLATE / "README.md").read_text().splitlines()[:8])
+        self.assertIn("samples/product_template", head)
+        self.assertIn("9 November 2026", head)
+        self.assertNotIn("samples/product_template", RELEASE.read_text())
+
+    def test_the_copy_command_names_the_new_location(self):
+        text = (TEMPLATE / "README.md").read_text()
+        self.assertIn("cp -R crux-pilot/templates/product acme-workspace/product-x", text)
+        self.assertNotIn("cp -R crux-pilot/samples/", text)
+
+
 class TemplateScriptTest(unittest.TestCase):
     def test_the_script_builds_the_template_application_and_runs_these_tests(self):
         script = (REPO / "scripts/test-product-template.sh")
         self.assertTrue(os.access(script, os.X_OK))
         text = script.read_text()
         self.assertIn("west build -p always", text)
-        self.assertIn("samples/product_template/app", text)
+        self.assertIn("templates/product/app", text)
         self.assertIn("test_product_template.py", text)
         self.assertNotRegex(text, r"\bwest (flash|debug|attach)\b")
 
@@ -145,6 +179,525 @@ class TemplateScriptTest(unittest.TestCase):
         text = (REPO / "scripts/test-product-template.sh").read_text()
         self.assertIn('(cd "$workspace" && west crux-pins)', text)
         self.assertLess(text.index("west crux-pins"), text.index("west build -p always"))
+
+
+FROZEN_CRUX_HEADERS = ("crux/thread.h", "crux/sync.h", "crux/queue.h", "crux/serial.h")
+ZEPHYR_HEADERS = ("zephyr/kernel.h", "zephyr/sys/printk.h", "zephyr/device.h", "zephyr/net/socket.h")
+
+
+def load_domain_check():
+    spec = importlib.util.spec_from_file_location(
+        "check_domain_includes", TEMPLATE / "check_domain_includes.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class TemplateDomainSplitTest(unittest.TestCase):
+    """The template has a plain C domain and a shell that calls it through one product-owned port."""
+
+    def setUp(self):
+        self.domain = TEMPLATE / "domain"
+        self.shell = (TEMPLATE / "app/src/main.c").read_text()
+        self.cmake = (TEMPLATE / "app/CMakeLists.txt").read_text()
+
+    def test_the_domain_has_one_port_header_and_no_zephyr_or_frozen_include(self):
+        self.assertEqual(["product_domain.c", "product_domain.h", "product_port.h"],
+                         sorted(path.name for path in self.domain.iterdir()))
+        for path in self.domain.iterdir():
+            with self.subTest(path=path.name):
+                text = path.read_text()
+                self.assertNotRegex(text, r"zephyr|\bk_[a-z]+_\w+|CONFIG_", "plain C only")
+                self.assertNotRegex(text, r"crux/(thread|sync|queue|serial)\.h")
+
+    def test_the_domain_declares_what_it_needs_in_the_port_and_the_shell_provides_it(self):
+        port = (self.domain / "product_port.h").read_text()
+        names = re.findall(r"\b(product_port_\w+)\s*\(", port)
+        self.assertTrue(names)
+        for name in names:
+            with self.subTest(name=name):
+                self.assertRegex(self.shell, rf"(?m)^\w[\w \*]*\b{name}\(")
+                self.assertRegex((self.domain / "product_domain.c").read_text(), rf"\b{name}\(")
+        domain_header = (self.domain / "product_domain.h").read_text()
+        self.assertNotRegex(domain_header, r"product_port_\w+\(", "the header does not define the port")
+
+    def test_the_build_compiles_the_domain_sources_without_adding_include_paths(self):
+        self.assertIn("../domain/product_domain.c", self.cmake)
+        self.assertNotRegex(self.cmake, r"target_include_directories|zephyr_include_directories")
+
+    def test_the_shell_calls_the_domain_and_takes_no_frozen_header(self):
+        self.assertIn("product_domain_step(", self.shell)
+        for header in FROZEN_CRUX_HEADERS:
+            with self.subTest(header=header):
+                self.assertNotIn(f"<{header}>", self.shell)
+
+    @unittest.skipUnless(shutil.which("cc"), "needs a host C compiler")
+    def test_the_domain_builds_and_behaves_on_the_host_with_a_fake_port(self):
+        fake = r'''
+#include <stdio.h>
+#include "product_domain.h"
+#include "product_port.h"
+static const int32_t script[] = {300000, 300000, 340000, 340000, 340000, 340000, 340000, 340000};
+static unsigned next;
+int product_port_read_temperature(int32_t *millikelvin)
+{
+    if (next >= sizeof script / sizeof script[0]) {
+        return -1;
+    }
+    *millikelvin = script[next++];
+    return 0;
+}
+int main(void)
+{
+    struct product_domain d;
+    product_domain_init(&d, 320000);
+    for (int i = 0; i < 8; i++) {
+        int rc = product_domain_step(&d);
+        printf("%d %d %d\n", rc, (int)product_domain_filtered(&d), product_domain_alarm(&d) ? 1 : 0);
+    }
+    product_domain_set_limit(&d, 500000);
+    next = 0;
+    product_domain_step(&d);
+    printf("limit %d\n", product_domain_alarm(&d) ? 1 : 0);
+    return 0;
+}
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "fake.c"
+            source.write_text(fake)
+            binary = Path(tmp) / "fake"
+            subprocess.run(["cc", "-std=c17", "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-I", str(self.domain),
+                            str(source), str(self.domain / "product_domain.c"), "-o", str(binary)],
+                           check=True)
+            lines = subprocess.run([str(binary)], check=True, capture_output=True,
+                                   text=True).stdout.splitlines()
+        steps = [line.split() for line in lines[:8]]
+        self.assertEqual(["0", "300000", "0"], steps[0])
+        self.assertEqual("0", steps[1][0])
+        self.assertEqual("0", steps[2][2], "one hot sample is filtered below the limit")
+        self.assertEqual("1", steps[-1][2], "a sustained hot input raises the alarm")
+        self.assertEqual("limit 0", lines[8], "a new limit applies to the state at once")
+
+
+class DomainIncludeCheckTest(unittest.TestCase):
+    """The check rejects the four frozen Crux headers and every Zephyr header in the domain."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.check = load_domain_check()
+
+    def domain_copy(self, tmp):
+        root = Path(tmp) / "domain"
+        shutil.copytree(TEMPLATE / "domain", root)
+        return root
+
+    def run_cli(self, *args):
+        return subprocess.run([sys.executable, str(TEMPLATE / "check_domain_includes.py"), *args],
+                              capture_output=True, text=True)
+
+    def violations_of(self, text, name="product_domain.c", prepend=True):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.domain_copy(tmp)
+            path = root / name
+            original = path.read_text(encoding="utf-8")
+            path.write_text(text + original if prepend else original + text, encoding="utf-8")
+            return self.check.check(root)
+
+    def test_the_template_as_shipped_passes(self):
+        self.assertEqual([], self.check.check(TEMPLATE / "domain"))
+
+    def test_the_command_passes_on_the_template_as_shipped(self):
+        result = self.run_cli()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("passed", result.stdout)
+
+    def test_each_frozen_crux_header_fails(self):
+        for header in FROZEN_CRUX_HEADERS:
+            with self.subTest(header=header):
+                found = self.violations_of(f"#include <{header}>\n")
+                self.assertEqual([header], [v.include for v in found])
+                self.assertIn("frozen", found[0].reason)
+
+    def test_each_zephyr_header_fails(self):
+        for header in ZEPHYR_HEADERS:
+            with self.subTest(header=header):
+                found = self.violations_of(f"#include <{header}>\n")
+                self.assertEqual([header], [v.include for v in found])
+                self.assertIn("Zephyr", found[0].reason)
+
+    def test_the_quoted_form_fails_too(self):
+        for header in (FROZEN_CRUX_HEADERS[0], ZEPHYR_HEADERS[0]):
+            with self.subTest(header=header):
+                found = self.violations_of(f'#include "{header}"\n')
+                self.assertEqual([header], [v.include for v in found])
+
+    def test_a_header_file_and_a_file_of_any_suffix_are_checked(self):
+        found = self.violations_of("#include <crux/queue.h>\n", "product_domain.h")
+        self.assertEqual(["product_domain.h"], [Path(v.path).name for v in found])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.domain_copy(tmp)
+            (root / "helper.inc").write_text("#include <zephyr/kernel.h>\n")
+            self.assertEqual(["helper.inc"], [Path(v.path).name for v in self.check.check(root)])
+
+    def test_directive_spellings_that_a_compiler_accepts_fail(self):
+        spellings = (
+            "  #  include <crux/thread.h>\n",
+            "%:include <crux/thread.h>\n",
+            "??=include <crux/thread.h>\n",
+            "#include_next <crux/thread.h>\n",
+            "#import <crux/thread.h>\n",
+            "#include <crux/\\\nthread.h>\n",
+            "#include <crux/thread.h> // trailing comment\n",
+            "/* note */ #include <crux/thread.h>\n",
+            "#include <crux/thread.h>\r\n",
+            "\ufeff#include <crux/thread.h>\n",  # a byte order mark at offset 0
+        )
+        for text in spellings:
+            with self.subTest(text=text):
+                found = self.violations_of(text)
+                self.assertEqual(["crux/thread.h"], [v.include for v in found])
+
+    def test_a_header_named_only_in_a_comment_or_string_passes(self):
+        text = '/* never #include <crux/thread.h> or <zephyr/kernel.h> here */\n// <crux/sync.h>\n'
+        self.assertEqual([], self.violations_of(text))
+        self.assertEqual([], self.violations_of('static const char *note = "#include <crux/queue.h>";\n'))
+
+    def test_the_other_public_crux_headers_and_iso_c_stay_allowed(self):
+        text = "#include <crux/time.h>\n#include <crux/status.h>\n#include <stdint.h>\n#include <stdbool.h>\n"
+        self.assertEqual([], self.violations_of(text))
+
+    def test_a_crux_composition_interface_fails(self):
+        for header in ("crux/file_zephyr.h", "crux/queue_linux.h", "crux/anything_zephyr.h"):
+            with self.subTest(header=header):
+                found = self.violations_of(f"#include <{header}>\n")
+                self.assertEqual([header], [v.include for v in found])
+                self.assertIn("composition", found[0].reason)
+
+    def test_a_header_name_cannot_hide_behind_dot_components(self):
+        for header in ("crux/./thread.h", "./zephyr/kernel.h", "crux/../crux/thread.h",
+                       "crux/../zephyr/kernel.h", "zephyr//kernel.h", "crux/./file_zephyr.h"):
+            for form in ("<{}>", '"{}"'):
+                text = "#include " + form.format(header) + "\n"
+                with self.subTest(text=text):
+                    self.assertTrue(self.violations_of(text), text)
+
+    def test_a_macro_operand_or_a_missing_header_fails(self):
+        for text in ("#define H <crux/thread.h>\n#include H\n", '#include "missing.h"\n'):
+            with self.subTest(text=text):
+                self.assertTrue(self.violations_of(text), text)
+
+    def test_a_quoted_include_of_a_real_file_outside_the_domain_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.domain_copy(tmp)
+            (Path(tmp) / "outside.h").write_text("#define OUTSIDE 1\n")
+            (root / "product_domain.h").write_text(
+                (root / "product_domain.h").read_text() + '#include "../outside.h"\n')
+            found = self.check.check(root)
+        self.assertEqual(["../outside.h"], [v.include for v in found])
+        self.assertIn("inside the domain", found[0].reason)
+
+    def test_a_quoted_include_of_another_domain_file_passes(self):
+        self.assertEqual([], self.violations_of('#include "product_port.h"\n'))
+
+    def test_the_command_names_the_file_line_and_header_and_exits_nonzero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.domain_copy(tmp)
+            path = root / "product_domain.c"
+            path.write_text(path.read_text() + "#include <zephyr/kernel.h>\n")
+            line = len(path.read_text().splitlines())
+            result = self.run_cli(str(root))
+        self.assertEqual(1, result.returncode)
+        self.assertIn(f"product_domain.c:{line}: zephyr/kernel.h", result.stdout)
+
+    def test_an_empty_domain_directory_is_an_error_not_a_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "domain"
+            root.mkdir()
+            result = self.run_cli(str(root))
+            with self.assertRaises(ValueError):
+                self.check.check(root)
+            (root / "empty-subdirectory").mkdir()
+            self.assertEqual(2, self.run_cli(str(root)).returncode)
+        self.assertEqual(2, result.returncode)
+        self.assertNotIn("passed", result.stdout)
+
+    def test_a_missing_domain_directory_is_an_error_not_a_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_cli(str(Path(tmp) / "nowhere"))
+        self.assertEqual(2, result.returncode)
+        self.assertNotIn("passed", result.stdout)
+
+
+class ProductIncludeCheckTest(unittest.TestCase):
+    """--product ROOT runs the check over a whole product repository (domain and adapters)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.check = load_domain_check()
+
+    def product_copy(self, tmp):
+        root = Path(tmp) / "product-x"
+        shutil.copytree(TEMPLATE, root, ignore=shutil.ignore_patterns("build", ".git"))
+        return root
+
+    def run_cli(self, *args):
+        return subprocess.run([sys.executable, str(TEMPLATE / "check_domain_includes.py"), *args],
+                              capture_output=True, text=True)
+
+    def product(self, root, *extra):
+        return self.run_cli("--product", str(root), *extra)
+
+    def write(self, root, relative, text):
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_the_template_as_shipped_passes(self):
+        result = self.run_cli("--product", str(TEMPLATE))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("product include check passed", result.stdout)
+
+    def test_each_frozen_header_fails_in_an_adapter_file_of_any_source_suffix(self):
+        for header in FROZEN_CRUX_HEADERS:
+            for relative in ("app/src/adapter.c", "app/src/deep/er/adapter.h", "adapters/net.cpp",
+                             "adapters/net.hpp", "adapters/net.cc", "adapters/start.S", "app/src/x.inc"):
+                with self.subTest(header=header, relative=relative), tempfile.TemporaryDirectory() as tmp:
+                    root = self.product_copy(tmp)
+                    self.write(root, relative, f"#include <{header}>\n")
+                    result = self.product(root)
+                    self.assertEqual(1, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(f"{relative}:1: {header}: frozen Crux header", result.stdout)
+
+    def test_the_quoted_form_and_every_directive_spelling_fail_in_an_adapter(self):
+        spellings = (
+            '#include "crux/thread.h"\n',
+            "  #  include <crux/thread.h>\n",
+            "%:include <crux/thread.h>\n",
+            "??=include <crux/thread.h>\n",
+            "#include_next <crux/thread.h>\n",
+            "#import <crux/thread.h>\n",
+            "#include <crux/\\\nthread.h>\n",
+            "#include <crux/./thread.h>\n",
+            "#include <crux//thread.h>\n",
+            "#include <crux/../crux/thread.h>\n",
+            "#include <crux/thread.h>\r\n",
+            "﻿#include <crux/thread.h>\n",
+            "/* note */ #include <crux/thread.h>\n",
+        )
+        for text in spellings:
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
+                root = self.product_copy(tmp)
+                self.write(root, "app/src/adapter.c", text)
+                found = self.check.check_product(root)
+                self.assertEqual(["app/src/adapter.c"], [v.path for v in found])
+                self.assertIn("frozen", found[0].reason)
+
+    def test_an_adapter_may_include_zephyr_composition_and_unfrozen_crux_headers(self):
+        text = ("#include <zephyr/kernel.h>\n#include <zephyr.h>\n#include <zephyr/net/socket.h>\n"
+                "#include <crux/file_zephyr.h>\n#include <crux/queue_linux.h>\n#include <crux/time.h>\n"
+                "#include <crux/status.h>\n#include <stdint.h>\n#include \"../domain/product_domain.h\"\n"
+                "#include \"local_helper.h\"\n#include <./anything.h>\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/adapter.c", text)
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_the_domain_keeps_its_stricter_rules_in_product_mode(self):
+        cases = {
+            "zephyr/kernel.h": "Zephyr",
+            "crux/file_zephyr.h": "composition",
+            "crux/sync.h": "frozen",
+        }
+        for header, word in cases.items():
+            with self.subTest(header=header), tempfile.TemporaryDirectory() as tmp:
+                root = self.product_copy(tmp)
+                path = root / "domain/product_domain.c"
+                path.write_text(f"#include <{header}>\n" + path.read_text())
+                found = self.check.check_product(root)
+                self.assertEqual([("domain/product_domain.c", header)], [(v.path, v.include) for v in found])
+                self.assertIn(word, found[0].reason)
+
+    def test_the_domain_still_rejects_a_macro_operand_and_a_quoted_file_outside_it(self):
+        for text in ("#define H <stdint.h>\n#include H\n", '#include "../app/src/main.c"\n'):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
+                root = self.product_copy(tmp)
+                path = root / "domain/product_domain.c"
+                path.write_text(text + path.read_text())
+                self.assertEqual(["domain/product_domain.c"], [v.path for v in self.check.check_product(root)])
+
+    def test_a_comment_across_lines_cannot_hide_a_frozen_include_in_an_adapter(self):
+        for text in ("#include /*\n*/ <crux/thread.h>\n", "#include\\\n"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
+                root = self.product_copy(tmp)
+                self.write(root, "app/src/adapter.c", text)
+                found = self.check.check_product(root)
+                self.assertEqual(["app/src/adapter.c"], [v.path for v in found])
+
+    def test_an_adapter_macro_operand_is_not_a_violation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/adapter.c", "#define H <stdint.h>\n#include H\n")
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_a_header_named_only_in_a_comment_or_string_passes_in_an_adapter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/adapter.c",
+                       '/* no #include <crux/thread.h> */\n// <crux/sync.h>\nstatic const char *n = "#include <crux/queue.h>";\n')
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_build_output_git_and_non_source_files_are_not_scanned(self):
+        text = "#include <crux/thread.h>\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            for relative in ("build/app/generated.c", ".git/hooks/x.c", ".west/y.c",
+                             "README.md", "west.yml", "notes.txt", "app/src/data.bin"):
+                self.write(root, relative, text)
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_a_symlinked_directory_is_not_followed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            outside = Path(tmp) / "outside"
+            self.write(outside.parent, "outside/x.c", "#include <crux/thread.h>\n")
+            try:
+                (root / "linked").symlink_to(outside, target_is_directory=True)
+            except OSError:
+                self.skipTest("symlinks are not available")
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_exclude_skips_a_legacy_path_and_nothing_else(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "legacy/old.c", "#include <crux/thread.h>\n")
+            self.write(root, "legacy-other/old.c", "#include <crux/thread.h>\n")
+            self.assertEqual(1, self.product(root).returncode)
+            found = self.check.check_product(root, excludes=("legacy",))
+            self.assertEqual(["legacy-other/old.c"], [v.path for v in found])
+            result = self.product(root, "--exclude", "legacy", "--exclude", "legacy-other")
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertIn("excluded", result.stdout)
+
+    def test_exclude_may_name_one_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/old.c", "#include <crux/thread.h>\n")
+            self.assertEqual([], self.check.check_product(root, excludes=("app/src/old.c",)))
+
+    def test_exclude_cannot_name_a_missing_path_or_leave_the_root_or_cover_the_domain(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            for bad in ("nowhere", "../x", "/etc", ".", "", "domain", "domain/product_domain.c"):
+                with self.subTest(bad=bad):
+                    self.assertEqual(2, self.product(root, "--exclude", bad).returncode)
+
+    def test_the_domain_option_picks_other_directories_and_a_missing_one_is_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "core/logic.c", "#include <zephyr/kernel.h>\n")
+            self.assertEqual([], self.check.check_product(root))
+            found = self.check.check_product(root, domain_dirs=("domain", "core"))
+            self.assertEqual(["core/logic.c"], [v.path for v in found])
+            self.assertEqual(1, self.product(root, "--domain", "domain", "--domain", "core").returncode)
+            self.assertEqual(2, self.product(root, "--domain", "nowhere").returncode)
+            self.assertEqual(2, self.product(root, "--domain", "../x").returncode)
+
+    def test_a_product_without_a_domain_directory_is_checked_for_frozen_headers_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "product-y"
+            self.write(root, "app/src/main.c", "#include <zephyr/kernel.h>\n")
+            self.assertEqual(0, self.product(root).returncode)
+            self.write(root, "app/src/more.c", "#include <crux/serial.h>\n")
+            self.assertEqual(1, self.product(root).returncode)
+
+    def test_a_domain_that_is_the_product_root_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.assertEqual(2, self.product(root, "--domain", ".").returncode)
+
+    def test_the_command_names_file_line_and_header_and_counts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/adapter.c", "int x;\n#include <crux/queue.h>\n#include <crux/serial.h>\n")
+            result = self.product(root)
+        self.assertEqual(1, result.returncode)
+        self.assertIn("app/src/adapter.c:2: crux/queue.h: frozen Crux header", result.stdout)
+        self.assertIn("app/src/adapter.c:3: crux/serial.h: frozen Crux header", result.stdout)
+        self.assertIn("2 product include violation(s)", result.stdout)
+
+    def test_a_root_with_no_source_or_a_missing_root_is_an_error_not_a_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "empty"
+            root.mkdir()
+            self.write(root, "README.md", "text\n")
+            with self.assertRaises(ValueError):
+                self.check.check_product(root)
+            for args in ((str(root),), (str(Path(tmp) / "nowhere"),)):
+                result = self.run_cli("--product", *args)
+                self.assertEqual(2, result.returncode)
+                self.assertNotIn("passed", result.stdout)
+
+    def test_a_product_root_and_a_positional_domain_directory_cannot_be_combined(self):
+        result = self.run_cli("--product", str(TEMPLATE), str(TEMPLATE / "domain"))
+        self.assertEqual(2, result.returncode)
+        self.assertNotIn("passed", result.stdout)
+
+    def test_the_domain_mode_command_is_unchanged(self):
+        result = self.run_cli()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("domain include check passed", result.stdout)
+
+    def test_the_readme_tells_a_product_repository_how_to_run_it(self):
+        text = (TEMPLATE / "README.md").read_text()
+        self.assertIn("python3 check_domain_includes.py --product .", text)
+        for word in ("--exclude", "--domain", "adapter"):
+            self.assertIn(word, text)
+
+
+class SharedStatePatternTest(unittest.TestCase):
+    """The shell shows the pattern of docs/choosing-an-api.md: one owner, snapshot reads, message writes."""
+
+    def setUp(self):
+        self.shell = (TEMPLATE / "app/src/main.c").read_text()
+
+    def function(self, name):
+        match = re.search(rf"(?ms)^[\w \*]*\b{name}\([^)]*\)\s*\{{(.*?)^\}}", self.shell)
+        self.assertIsNotNone(match, f"the shell defines {name}")
+        return match.group(1)
+
+    def test_one_owner_thread_runs_the_domain_and_nothing_else_does(self):
+        self.assertIn("K_THREAD_DEFINE(", self.shell)
+        pattern = r"\bproduct_domain_(init|step|set_limit)\("
+        owner = self.function("product_owner_entry")
+        self.assertTrue(re.search(pattern, owner))
+        self.assertEqual(len(re.findall(pattern, self.shell)), len(re.findall(pattern, owner)),
+                         "only the owner thread calls the domain")
+
+    def test_a_status_read_is_a_snapshot_read_with_an_atomic_and_takes_no_lock(self):
+        body = self.function("product_status_read")
+        self.assertIn("atomic_load", body)
+        self.assertNotRegex(body, r"k_mutex|k_sem|k_msgq|irq_lock|product_domain_")
+
+    def test_the_owner_publishes_the_snapshot_with_an_atomic_store(self):
+        self.assertIn("atomic_store", self.function("product_owner_entry"))
+
+    def test_a_command_is_a_message_to_the_owner_queue_that_never_blocks(self):
+        body = self.function("product_command_set_limit")
+        self.assertIn("k_msgq_put", body)
+        self.assertIn("K_NO_WAIT", body)
+        self.assertNotRegex(body, r"product_domain_")
+        self.assertIn("K_MSGQ_DEFINE(", self.shell)
+
+    def test_the_snapshot_read_is_lock_free_on_every_target_and_a_full_queue_is_documented(self):
+        self.assertIn("BUILD_ASSERT(ATOMIC_INT_LOCK_FREE == 2", self.shell)
+        self.assertIn("-ENOMSG", self.shell)
+        self.assertIn("-ENOMSG", (TEMPLATE / "README.md").read_text())
+
+    def test_the_owner_applies_messages_between_steps(self):
+        body = self.function("product_owner_entry")
+        self.assertIn("k_msgq_get", body)
+        self.assertLess(body.index("k_msgq_get"), body.index("product_domain_step"))
 
 
 class GuideTest(unittest.TestCase):
@@ -245,6 +798,31 @@ class GuideTest(unittest.TestCase):
         self.assertGreaterEqual(text.count("schema"), 3)
         self.assertNotRegex(text, r"convention with no tool|A tool to assemble|No bundle, signing")
 
+    def test_guide_points_at_the_provisional_schema_and_checker_in_this_repository(self):
+        text = GUIDE.read_text()
+        for path in ("release-bundle-checker.md", "schemas/release-manifest.schema.json",
+                     "scripts/check-release-bundle.py"):
+            with self.subTest(path=path):
+                linked = re.findall(r"\]\(([^)#]*" + re.escape(path) + r")[^)]*\)", text)
+                self.assertTrue(linked, path + " is named without a link")
+                for target in linked:
+                    self.assertTrue((GUIDE.parent / target).resolve().is_file(), target)
+        section = guide_section("### Release bundle").lower()
+        for words in ("provisional", "not frozen", "no product release", "assembler", "hashes only"):
+            with self.subTest(words=words):
+                self.assertIn(words, section)
+        self.assertIn("provisional schema and checker", text[:1200].lower())
+
+    def test_guide_no_longer_calls_the_bundle_a_convention_without_a_checker(self):
+        text = GUIDE.read_text()
+        for stale in ("is a convention", "adopted neither", "No adopted bundle schema or checker",
+                      "exist in a product repository", "comes at the first product release"):
+            with self.subTest(stale=stale):
+                self.assertNotIn(stale, text)
+
+    def test_guide_gives_no_number_of_years_of_support(self):
+        self.assertNotRegex(GUIDE.read_text(), r"(?i)\b(\d+|one|two|three|five|ten)[- ]years?\b")
+
     def test_release_flow_checks_the_pins_before_it_burns_a_tag(self):
         text = GUIDE.read_text()
         tag = text.index("git -C product-x tag -a")
@@ -263,6 +841,268 @@ class GuideTest(unittest.TestCase):
     def test_release_build_requires_the_verified_zephyr(self):
         self.assertIn("west build -b <board> -d product-x/build/app product-x/app -- "
                       "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON\n", GUIDE.read_text())
+
+    def test_release_flow_settles_the_west_configuration_before_the_capture(self):
+        block = guide_commands("--capture-inputs")
+        self.assertLess(block.index("west crux-pins"), block.index("--capture-inputs"))
+        bullet = next((line for line in guide_section("## Release").splitlines()
+                       if line.startswith("- **West configuration.**")), "")
+        for words in (".west/config", "`zephyr.base`", "extension", "before the capture",
+                      "west config zephyr.base zephyr"):
+            with self.subTest(words=words):
+                self.assertIn(words, bullet)
+
+
+def release_text():
+    return RELEASE.read_text()
+
+
+def release_section(heading):
+    """Return one `## ` section of the release template, without its heading line."""
+    lines = []
+    inside = False
+    fenced = False
+    for line in release_text().splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        if not fenced and line.startswith("## "):
+            if inside:
+                break
+            inside = line == f"## {heading}"
+        elif inside:
+            lines.append(line)
+    if not inside:
+        raise AssertionError(f"RELEASE.md has no section {heading!r}")
+    return "\n".join(lines)
+
+
+def table_header(text):
+    """Return the cell names of the first Markdown table in a text."""
+    for line in text.splitlines():
+        if line.startswith("|"):
+            return [cell.strip() for cell in line.strip().strip("|").split("|")]
+    raise AssertionError("no table")
+
+
+SECTIONS = (
+    "Release identity",
+    "Dependency inventory",
+    "Modified upstreams",
+    "Support period",
+    "Release steps",
+    "Bundle contents",
+    "Release revision",
+    "Checks run",
+    "Vulnerability check",
+)
+# Names that a neutral sample must not carry: an employer, a commercial product or edition,
+# a vendor SDK, or a private or consumer repository.
+FORBIDDEN_NAMES = (
+    "codesys", "wolfssl", "wolfssh", "nxp", "mcuxpresso", "datalight", "reliance",
+    "crux-controller", "crux-codesys", "bitbucket", "employer",
+)
+ALLOWED_URL_PREFIXES = ("https://github.com/wonny-labs/crux-pilot/", "https://git.example/")
+
+
+class ReleaseTemplateTest(unittest.TestCase):
+    """The release record that a product copies, fills in and keeps with a release."""
+
+    def setUp(self):
+        self.text = release_text()
+
+    def test_the_template_exists_and_the_readme_lists_and_links_it(self):
+        readme = (TEMPLATE / "README.md").read_text()
+        self.assertTrue(RELEASE.is_file())
+        self.assertIn("](RELEASE.md)", readme)
+        self.assertRegex(readme, r"(?m)^\| `RELEASE.md` \|")
+
+    def test_it_has_each_required_section(self):
+        headings = re.findall(r"(?m)^## (.+)$", self.text)
+        for section in SECTIONS:
+            with self.subTest(section=section):
+                self.assertTrue(any(heading.startswith(section) for heading in headings), headings)
+        self.assertRegex(self.text, r"(?m)^# Release record")
+
+    def test_it_never_links_a_relative_path_that_a_copy_would_break(self):
+        self.assertNotRegex(self.text, r"\]\((?!https://|#)")
+
+    def test_the_inventory_asks_for_revision_licence_and_an_optional_end_of_support(self):
+        section = release_section("Dependency inventory")
+        header = table_header(section)
+        for column in ("Project", "Pinned revision", "Licence"):
+            with self.subTest(column=column):
+                self.assertIn(column, header)
+        self.assertTrue(any(re.match(r"End of support \(optional\)", cell) for cell in header), header)
+        self.assertIn("every", section.lower())
+        self.assertIn("west.frozen.yml", section)
+
+    def test_the_inventory_leaves_the_end_of_support_to_the_upstream_and_the_product(self):
+        section = release_section("Dependency inventory")
+        self.assertNotRegex(section, r"(?i)\b(years?|months?)\b")
+        self.assertNotRegex(section, r"\b\d{4}-\d{2}-\d{2}\b", "no example date")
+
+    def test_modified_upstreams_name_the_guides_routes_and_ask_why(self):
+        section = release_section("Modified upstreams")
+        guide = GUIDE.read_text().lower()
+        routes = ("vendor branch", "commercial edition", "soft fork", "west patch",
+                  "binary-only", "outside the checkout")
+        for route in routes:
+            with self.subTest(route=route):
+                self.assertIn(route, section.lower())
+                self.assertIn(route, guide, "the template must use the guide's own route names")
+        header = table_header(section)
+        for column in ("Project", "Route", "Why"):
+            with self.subTest(column=column):
+                self.assertTrue(any(cell.startswith(column) for cell in header), header)
+        self.assertIn("provisional", section.lower())
+        self.assertRegex(section, r"(?i)nothing (is )?modified")
+        self.assertRegex(section, r"(?i)short-term development check")
+
+    def test_the_support_period_is_a_field_the_product_sets_with_no_figure(self):
+        section = release_section("Support period")
+        self.assertRegex(section, r"(?m)^- Support period: `<[^>]+>`$")
+        self.assertRegex(section, r"(?i)the product sets")
+        self.assertRegex(section, r"(?i)crux (does not|sets no)")
+        self.assertNotRegex(section, r"\d", "no digit may sit in the support-period section")
+
+    def test_no_support_period_figure_appears_anywhere(self):
+        self.assertNotRegex(self.text, r"(?i)\b(years?|yrs?)\b")
+        self.assertNotRegex(self.text, r"(?i)\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)[- ]+(years?|months?|yrs?)\b")
+        self.assertNotRegex(self.text, r"(?i)\b\d+\s*(y|yr|yrs|mo|months?|years?)\b")
+        for line in self.text.splitlines():
+            if re.search(r"(?i)support period", line):
+                with self.subTest(line=line):
+                    self.assertNotRegex(line, r"\d")
+
+    def test_no_owner_field_is_filled_in(self):
+        fields = re.findall(r"(?im)^[-*|]\s*(?:owner|support owner|decided by|responsible)[^:\n]*:\s*(.*)$", self.text)
+        self.assertTrue(fields, "the support section needs a decided-by field")
+        for value in fields:
+            with self.subTest(value=value):
+                self.assertRegex(value.strip(), r"^`<[^>]+>`$")
+
+    def test_release_steps_link_the_guide_at_a_pinned_revision_placeholder(self):
+        urls = re.findall(r"https://\S*product-composition\.md\S*?(?=[`)\s]|$)", self.text)
+        self.assertTrue(urls)
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertTrue(url.startswith("https://github.com/wonny-labs/crux-pilot/blob/<crux-revision>/"), url)
+        self.assertNotRegex(self.text, r"/(blob|tree)/(main|master|HEAD)\b")
+        self.assertIn("## Release", GUIDE.read_text().splitlines())
+        self.assertIn("product-composition.md#release`", self.text)
+        section = release_section("Release steps")
+        self.assertRegex(section, r"(?i)moving branch")
+        self.assertRegex(section, r"(?m)^1\. ")
+
+    def test_release_steps_use_commands_the_guide_gives(self):
+        section = release_section("Release steps")
+        guide = GUIDE.read_text()
+        for command in ("west crux-pins", "west manifest --freeze --active-only",
+                        "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON", "record-build-provenance.py"):
+            with self.subTest(command=command):
+                self.assertIn(command, section)
+                self.assertIn(command, guide)
+
+    def test_release_steps_keep_the_guides_order_around_the_build(self):
+        steps = release_section("Release steps")
+        order = ["west crux-pins", "west manifest --freeze --active-only", "--capture-inputs",
+                 "west spdx --init", "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON", "using the captured inputs",
+                 "`west spdx`", "check-release-bundle", "checks below"]
+        positions = []
+        for marker in order:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, steps)
+            positions.append(steps.find(marker))
+        self.assertEqual(sorted(positions), positions)
+        self.assertRegex(steps, r"(?i)mirror rewrites off")
+
+    def test_release_steps_settle_the_west_configuration_before_the_capture(self):
+        steps = release_section("Release steps")
+        order = ["`west crux-pins` again", "`zephyr.base`", "west config zephyr.base zephyr", "--capture-inputs"]
+        positions = []
+        for marker in order:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, steps)
+            positions.append(steps.find(marker))
+        self.assertEqual(sorted(positions), positions)
+        self.assertIn(".west/config", steps)
+
+    def test_the_bundle_may_hold_hashes_only_and_a_public_repository_must(self):
+        section = release_section("Bundle contents")
+        lowered = section.lower()
+        self.assertIn("hashes only", lowered)
+        for artefact in ("`.elf`", "`.map`", "image"):
+            with self.subTest(artefact=artefact):
+                self.assertIn(artefact, lowered)
+        self.assertRegex(lowered, r"public product repository")
+        self.assertRegex(lowered, r"never[^.\n]*release asset")
+        self.assertIn("sha-256", lowered)
+
+    def test_the_bundle_table_says_what_goes_outward_and_what_stays_internal(self):
+        section = release_section("Bundle contents")
+        header = table_header(section)
+        self.assertIn("Item", header)
+        self.assertIn("Audience", header)
+        self.assertTrue(any(cell.startswith("In this bundle") for cell in header), header)
+        self.assertRegex(section, r"\| Outward")
+        self.assertRegex(section, r"\| Internal")
+        for item in ("Firmware image", "licences/", "release-manifest.json", "Build record",
+                     "Lock file", "Pin report", "Full SBOM", "Debug files"):
+            with self.subTest(item=item):
+                self.assertIn(item, section)
+
+    def test_the_schema_and_checker_are_named_by_existing_paths_and_called_provisional(self):
+        paths = set(re.findall(r"\b((?:docs|scripts)/[A-Za-z0-9_./-]*[A-Za-z0-9_])", self.text))
+        self.assertGreaterEqual(paths, {"docs/schemas/release-manifest.schema.json",
+                                        "scripts/check-release-bundle.py"})
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertTrue((REPO / path).exists(), f"{path} does not exist in the repository")
+        paragraphs = [p for p in self.text.split("\n\n") if "release-manifest.schema.json" in p]
+        self.assertTrue(paragraphs)
+        for paragraph in paragraphs:
+            with self.subTest(paragraph=paragraph[:40]):
+                self.assertIn("provisional", paragraph.lower())
+                self.assertIn("not frozen", paragraph.lower())
+
+    def test_the_release_revision_section_records_each_identity(self):
+        section = release_section("Release revision")
+        for field in ("Release tag", "Product commit", "Crux revision", "Zephyr revision",
+                      "Image SHA-256", "Firmware identity"):
+            with self.subTest(field=field):
+                self.assertRegex(section, rf"(?m)^- {field}: `<[^>]+>`")
+        self.assertRegex(section, r"(?i)cannot name its own commit")
+
+    def test_the_checks_section_records_command_result_who_and_what_was_skipped(self):
+        section = release_section("Checks run")
+        header = table_header(section)
+        for column in ("Check", "Command", "Result", "Run by"):
+            with self.subTest(column=column):
+                self.assertIn(column, header)
+        self.assertRegex(section, r"(?i)skipped")
+        self.assertRegex(section, r"(?i)not run|did not run")
+
+    def test_the_vulnerability_check_is_a_marked_placeholder_with_no_procedure(self):
+        section = release_section("Vulnerability check")
+        self.assertRegex(section, r"(?i)not defined yet")
+        self.assertRegex(section, r"(?i)placeholder")
+        self.assertIn("SBOM", section)
+        self.assertNotIn("```", section)
+        self.assertNotRegex(section, r"(?m)^\s*(\d+\.|- \[ \])", "no steps: none is defined")
+        self.assertNotRegex(section, r"(?i)\b(grype|trivy|osv|cve-|nvd|dependency-check)\b")
+
+    def test_the_template_names_no_employer_commercial_product_or_private_repository(self):
+        lowered = self.text.lower()
+        for name in FORBIDDEN_NAMES:
+            with self.subTest(name=name):
+                self.assertNotIn(name, lowered)
+        for url in re.findall(r"https?://[^\s`)>]+", self.text):
+            with self.subTest(url=url):
+                self.assertTrue(url.startswith(ALLOWED_URL_PREFIXES), url)
+        self.assertNotRegex(self.text, r"git@|ssh://")
+
+    def test_the_template_leaves_the_manifest_alone(self):
+        self.assertNotIn("RELEASE.md", MANIFEST.read_text())
 
 
 @unittest.skipUnless(yaml, "PyYAML is required to parse the manifests; west installs it")
@@ -565,6 +1405,59 @@ class TemplateWorkspaceTest(unittest.TestCase):
         self.assertFalse(captured["source"]["dirty"], captured["source"]["git_status_counts"])
         commits = {entry["name"]: entry["git_commit"] for entry in captured["west_projects"]}
         self.assertEqual(self.zephyr, commits["zephyr"])
+
+    @staticmethod
+    def recorder():
+        spec = importlib.util.spec_from_file_location(
+            "record_build_provenance", REPO / "scripts/record-build-provenance.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def inputs(self, fresh):
+        """Return the inputs that the build record captures, as its own code computes them."""
+        with mock.patch.dict(os.environ, self.env, clear=True):
+            return self.recorder().workspace_inputs(fresh / "product-x", fresh)
+
+    def accepts(self, captured, fresh):
+        """Run the check that the build record makes between the capture and the record."""
+        with mock.patch.dict(os.environ, self.env, clear=True):
+            self.recorder().require_matching_inputs(captured, self.inputs(fresh))
+
+    def test_west_writes_zephyr_base_at_the_first_extension_command_and_not_before(self):
+        fresh = self.released(self.workspace())
+        config = fresh / ".west/config"
+        self.assertNotIn("[zephyr]", config.read_text())
+        self.west("list", cwd=fresh, check=True)
+        self.assertNotIn("[zephyr]", config.read_text(), "a built-in command must not write it")
+        self.west("crux-pins", cwd=fresh, check=True)
+        self.assertIn("[zephyr]\nbase = zephyr\n", config.read_text())
+
+    def test_a_capture_before_the_first_extension_command_is_refused_at_record_time(self):
+        fresh = self.released(self.workspace())
+        captured = self.inputs(fresh)
+        self.west("crux-pins", cwd=fresh, check=True)
+        with self.assertRaisesRegex(ValueError, "inputs changed during verification"):
+            self.accepts(captured, fresh)
+        changed = self.inputs(fresh)
+        self.assertEqual(["west_workspace_config_sha256"], [key for key in captured if captured[key] != changed[key]])
+
+    def test_a_capture_after_crux_pins_is_accepted_after_a_later_extension_command(self):
+        fresh = self.released(self.workspace())
+        self.west("crux-pins", cwd=fresh, check=True)
+        captured = self.inputs(fresh)
+        self.west("crux-pins", cwd=fresh, check=True)
+        self.accepts(captured, fresh)
+
+    def test_west_config_writes_the_file_that_the_extension_command_writes(self):
+        by_command = self.released(self.workspace())
+        self.west("crux-pins", cwd=by_command, check=True)
+        by_config = self.released(self.workspace())
+        self.west("config", "zephyr.base", "zephyr", cwd=by_config, check=True)
+        captured = self.inputs(by_config)
+        self.west("crux-pins", cwd=by_config, check=True)
+        self.accepts(captured, by_config)
+        self.assertEqual((by_command / ".west/config").read_bytes(), (by_config / ".west/config").read_bytes())
 
     def internal(self, entries, crux_import="      import: true\n", header=""):
         """Return the template manifest with an internal remote and more project entries."""

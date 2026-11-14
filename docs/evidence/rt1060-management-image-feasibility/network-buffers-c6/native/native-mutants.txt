@@ -1,0 +1,9 @@
+Native mutants of report/bench_report_core.c's network lines (each on a copy of the committed tree, built and run on native_sim, then checked by commands/check-native-run.py)
+control (the unmutated run of native/run-no-rt.txt):
+PASS
+
+mutant 1: emit_net() does not count the lines it printed
+FAIL: the checker's own parse fails: report seq=1: end says lines=9, but 13 BENCH-STACK, BENCH-HEAP, BENCH-POOL and BENCH-NET lines arrived (a line was lost or garbled)
+
+mutant 2: a failed network read is treated as a good one (the third report prints pool rows of an empty snapshot)
+FAIL: the checker's own parse fails: report seq=3: the BENCH-POOL rows and the BENCH-NET line come together, and one of them is missing

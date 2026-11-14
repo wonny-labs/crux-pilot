@@ -1,0 +1,2 @@
+35390efc835d546d69279bf120edd72db4a71ab9b3f0d44eb4ede724a9ce27f3  /build/merged/zephyr/zephyr.elf
+c91bb70c5e709c468f50defaa16e1652a7e3943e653e6c2ec39668fb7554b614  /build/merged/zephyr/zephyr.bin

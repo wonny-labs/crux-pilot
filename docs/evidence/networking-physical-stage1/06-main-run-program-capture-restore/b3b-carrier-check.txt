@@ -1,0 +1,9 @@
+B3b carrier check, 2026-11-08, transcript of the console output (the check ran as a bounded shell loop; not produced by a repository tool)
+09:13:58  inet 192.168.77.1 netmask 0xffffff00 broadcast 192.168.77.255; status: active;  interface: en13
+   route to: 192.168.77.2
+destination: 192.168.77.0
+       mask: 255.255.255.0
+  interface: en13
+      flags: <UP,DONE,CLONING,STATIC>
+ recvpipe  sendpipe  ssthresh  rtt,msec    rttvar  hopcount      mtu     expire
+       0         0         0         0         0         0      1500        -1

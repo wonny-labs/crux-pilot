@@ -1,0 +1,130 @@
+control ok: the SSH composition refuses the test host key outside a declared native_sim test image, a test random generator, the Mbed profile and a missing CONFIG_CRUX_SSH, in CMake and in C
+already prepared: /build/ssh-integrated-ssh-norsa/zephyr-wolf
+   text	   data	    bss	    dec	    hex	filename
+ 762321	  22194	1432432	2216947	 21d3f3	/build/ssh-integrated-ssh-norsa/build/zephyr/zephyr.elf
+built: /build/ssh-integrated-ssh-norsa/build/zephyr/zephyr.exe
+control ok: CONFIG_MBEDTLS=y stops the image at configuration, for its reason
+control ok: an image that does not select CONFIG_CRUX_SSH stops at configuration
+--- case_boot
+ok:   every case of the services image ran with SSH present: 17 cases
+ok:   services case cli_line_rejected_event, with the SSH listener and threads present
+ok:   services case cli_network_recover, with the SSH listener and threads present
+ok:   services case cli_permitted, with the SSH listener and threads present
+ok:   services case cli_unauthenticated, with the SSH listener and threads present
+ok:   services case cli_unpermitted, with the SSH listener and threads present
+ok:   services case config_update_event, with the SSH listener and threads present
+ok:   services case file_permitted, with the SSH listener and threads present
+ok:   services case file_unauthenticated, with the SSH listener and threads present
+ok:   services case file_unpermitted, with the SSH listener and threads present
+ok:   services case network_boot, with the SSH listener and threads present
+ok:   services case network_permitted, with the SSH listener and threads present
+ok:   services case network_unauthenticated, with the SSH listener and threads present
+ok:   services case network_unpermitted, with the SSH listener and threads present
+ok:   services case status_event_counts, with the SSH listener and threads present
+ok:   services case tls_certificate_permitted, with the SSH listener and threads present
+ok:   services case tls_certificate_unauthenticated, with the SSH listener and threads present
+ok:   services case tls_certificate_unpermitted, with the SSH listener and threads present
+ok:   the image reports no failed case
+ok:   the image prints the host key's fingerprint, and never the key
+ok:   ssh-keyscan and ssh-keygen report the fingerprint that the image printed
+--- case_ssh_cli
+ok:   ssh, Ed25519 key, admin: help exits 0 and lists commands (0.2 s)
+ok:   ssh admin: account list shows the accounts of the image's own cases: ['admin', 'administrator', 'enabled', 'keys=1', 'viewer1', 'viewer', 'enabled', 'keys=1', 'guest1', 'guest', 'enabled', 'keys=0']
+ok:   ssh viewer: account list is hidden by the role, exit 127
+ok:   ssh: an unknown command exits 127
+ok:   ssh: network recover is serial only, so hidden over SSH, exit 127
+ok:   ssh: logout ends the session with status 0
+ok:   ssh: a key that no account holds is refused
+ok:   ssh: an ECDSA key that no account holds is refused
+ok:   ssh: an RSA key is refused
+ok:   ssh: an interactive shell runs help and logout
+ok:   ssh: password login of the first account works too (0.3 s)
+ok:   ssh: a wrong password is refused
+--- case_sftp
+ok:   sftp, Ed25519 key, admin: the area is the root, upload ok (0.5 s)
+ok:   sftp: both uploads are listed
+ok:   sftp: 3,000 and 60,000 bytes come back identical, SHA-256 b9bba1ac980e (0.5 s)
+ok:   sftp reads the file that the file service API wrote: one file area behind both
+ok:   sftp viewer: a write is refused, the role has file.read only
+ok:   sftp viewer: a read works
+ok:   sftp: a key that no account holds is refused
+ok:   sftp: removing a file that was never written fails
+ok:   sftp: remove works for the administrator
+--- case_https
+ok:   curl: the two-request HTTPS login of the first account works
+ok:   curl: GET /api/v1/session/me names the user
+ok:   curl: GET /api/v1/status returns 20 items
+ok:   curl: a configuration update over HTTPS reads back
+ok:   curl: the same update without its CSRF token is refused, 403
+ok:   curl: no cookie, 401
+ok:   curl: the packaged one-page folder is served
+ok:   curl: a wrong password does not log in
+ok:   curl: the SSH logins that raise the events ran
+ok:   curl: status counts the security events that SSH logins raised: 75 then 78
+ok:   curl: logout
+ok:   curl: an ended session is 401
+--- case_ports
+data: listening_ports = [2222, 18242]
+ok:   the process listens on exactly the two declared ports: [2222, 18242]
+data: sockets_idle = 2
+--- case_sessions_across_channels
+ok:   3 SSH shells of one account stay open
+ok:   a web login of the same account works with the shells open
+ok:   the account's oldest session, an SSH shell, ended when the web login made a fourth (0.0 s after it)
+ok:   and the two newer SSH shells stayed open
+ok:   and the web session is the live one
+--- case_slots_with_both_busy
+ok:   four SSH shells hold every slot, two accounts, two each
+data: sockets_four_ssh_sessions = 6
+data: threads_four_ssh_sessions = 17
+ok:   a fifth SSH client is refused with 'too many connections', not left to wait
+ok:   HTTPS login and call of guest1 work with four SSH shells open
+ok:   HTTPS login and call of viewer1 work with four SSH shells open
+ok:   HTTPS login and call of admin work with four SSH shells open
+data: https_three_logins_with_ssh_full_s = 1.21
+data: sockets_four_ssh_and_three_https_sessions = 6
+ok:   an eighth session is refused: all seven network slots are held, by both channels
+data: eighth_session_web_answer = [503, '{"code":"busy"}']
+ok:   and the answer is 503 busy, which is what a user of the web sees
+ok:   one SSH shell leaves, and its slot is the web's: the same login works
+ok:   SSH logs in again once the slots are free
+--- case_silent_clients
+data: https_login_and_call_with_four_silent_ssh_clients_s = 0.5
+ok:   HTTPS works while four silent clients hold every SSH slot
+ok:   and a real SSH user is refused meanwhile: the recorded slot lockout, decision 20
+ok:   SSH works again once the silent clients leave
+data: ssh_command_with_three_silent_https_clients_s = 0.24
+ok:   an SSH command works while three silent clients sit on the HTTPS port (0.2 s)
+data: https_request_with_three_silent_tls_clients_s = 5.41
+ok:   an HTTPS request is still answered meanwhile, after the handshake limit
+--- case_load_on_every_listener
+ok:   load: an HTTPS session for the run
+data: idle_https_status_s = {'n': 5, 'min': 0.16, 'median': 0.18, 'max': 0.183}
+data: idle_ssh_command_s = {'n': 3, 'min': 0.173, 'median': 0.197, 'max': 0.206}
+data: idle_sftp_put_get_rm_48kB_s = {'n': 2, 'min': 0.498, 'median': 0.535, 'max': 0.535}
+ok:   load: every https operation succeeded while the other two ran: 12 of 12
+data: loaded_https_s = {'n': 12, 'min': 0.13, 'median': 0.14, 'max': 0.185}
+ok:   load: every ssh operation succeeded while the other two ran: 8 of 8
+data: loaded_ssh_s = {'n': 8, 'min': 0.16, 'median': 0.19, 'max': 0.223}
+ok:   load: every sftp operation succeeded while the other two ran: 4 of 4
+data: loaded_sftp_s = {'n': 4, 'min': 0.451, 'median': 0.472, 'max': 0.476}
+data: peak_sockets_under_load = 5
+data: peak_threads_under_load = 15
+ok:   the same two ports listen after the load
+ok:   sockets return to the idle count after the load: 2, then 2
+ok:   the image is still running after the load
+--- case_resource_use
+ok:   ssh: a login with the ecdh-sha2-nistp256 key exchange works too
+ok:   the image reported its heap and the stacks of the SSH threads
+data: heap_peak_bytes = 98024
+data: heap_now_bytes_after_load = 616
+data: ssh_worker_stack_used_bytes = 5160
+data: ssh_listener_stack_used_bytes = 0
+data: sockets_at_rest_after_load = 2
+data: threads_at_rest_after_load = 13
+--- case_restart
+ok:   a restart on the same disk keeps the host key: SHA256:0SbKSNT5L+VjuUYl9ZY5AKGVKAzLUGW1t0csBXIC9Z8
+ok:   and the stored public key still logs in after the restart
+ok:   and HTTPS login works after the restart
+integrated image: 0 failures, 86 checks, results in /build/ssh-integrated-ssh-norsa/integrated-results.json
+SSH integrated image (all): native_sim only. No board was operated.

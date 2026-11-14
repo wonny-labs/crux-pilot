@@ -1,0 +1,7 @@
+B6 offline checks of the second run, 2026-11-08, transcript of the results (host, frozen checkout b44b66a60bfc, venv Python; not produced by a repository tool)
+
+1. Boot capture of B4 (boot-1): the board's UART rows (uart-rx.bin.raw): *** Booting Zephyr, M5_BOOT source=b44b66a60bfc, ARM token=594231449 at=1809, READY seq=1 at=1811, LINK seq=0 at=1816 link=1, LINK seq=1 at=3827 link=2 address=1 ipv4=3232255234, IDLE checkpoint=0 at=3001/4002/5012 (contexts=0, pools 16/16/32/32), DONE seq=1 at=5047, READY seq=2 at=5050. The runner aborted at DONE of phase 1 (result.jsonl: ABORT_INCONCLUSIVE, Resource settling/idle sampling deadline failed).
+
+2. Normal-image boot capture of the final restore (01-second-run/restore/normal-capture/lines.json) through the accepted integrated-normal oracles
+   (capture_m3_integrated.initial_checkpoint_rows(rows, 'ec94fbec22cd', 0, False), m3_integrated_oracle.default_state, m3_integrated_oracle.idle_resources):
+   403 rows: initial_checkpoint_rows rows=78, default_state PASS, idle_resources PASS

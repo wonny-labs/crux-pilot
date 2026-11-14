@@ -1,0 +1,9 @@
+4229-
+4230:		/* node '/soc/random@400cc000' defined in zephyr-wolf/dts/arm/nxp/imxrt/nxp_rt10xx.dtsi:863 */
+4231:		trng: random@400cc000 {
+4232-			compatible = "nxp,kinetis-trng"; /* in zephyr-wolf/dts/arm/nxp/imxrt/nxp_rt10xx.dtsi:864 */
+4233-			reg = < 0x400cc000 0x4000 >;     /* in zephyr-wolf/dts/arm/nxp/imxrt/nxp_rt10xx.dtsi:865 */
+4234-			status = "okay";                 /* in zephyr-wolf/dts/arm/nxp/imxrt/nxp_rt10xx.dtsi:866 */
+4235-			interrupts = < 0x35 0x0 >;       /* in zephyr-wolf/dts/arm/nxp/imxrt/nxp_rt10xx.dtsi:867 */
+4236-		};
+4237-

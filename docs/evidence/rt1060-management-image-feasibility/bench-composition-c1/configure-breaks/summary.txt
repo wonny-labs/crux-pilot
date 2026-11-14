@@ -1,0 +1,22 @@
+== brk_dhcp: cmake exit 1
+warning: CRUX_MANAGEMENT_BENCH_IMAGE (defined at /ws/crux-
+warning: CRUX_BENCH_TEST_HOST_KEY (defined at /ws/crux-
+warning: CRUX_BENCH_NO_TIME_SOURCE (defined at /ws/crux-
+CMake Error at bench_guard.cmake:71 (message):
+  The Kconfig declaration CONFIG_CRUX_MANAGEMENT_BENCH_IMAGE is not set
+== brk_rtc: cmake exit 1
+warning: CRUX_BENCH_NO_TIME_SOURCE (defined at /ws/crux-
+CMake Error at bench_guard.cmake:110 (message):
+  The bench image has no time source (D7): CONFIG_RTC is refused
+== brk_bind: cmake exit 1
+CMake Error at bench_guard.cmake:96 (message):
+  The HTTPS listener must listen on the bench address only:
+== brk_sshbind: cmake exit 1
+CMake Error at bench_guard.cmake:100 (message):
+  The SSH listener must listen on the bench address only:
+== brk_ramdisk: cmake exit 1
+CMake Error at bench_guard.cmake:129 (message):
+  The test form ram_disk (D2) is reserved and nothing implements it:
+== brk_unpatched: cmake exit 1
+warning: MBEDTLS (defined at modules/mbedtls/Kconfig:26, modules/mbedtls/Kconfig:26) was assigned
+CMake Error at zephyr/CMakeLists.txt:152 (message):

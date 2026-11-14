@@ -1,0 +1,4 @@
+76c76
+<     ZEPHYR_BASE="$workspace/zephyr" cmake -S "$source_dir" -B "$build" -G Ninja -DBOARD=native_sim/native/64 \
+---
+>     ZEPHYR_BASE="$workspace/zephyr" cmake -S "$source_dir" -B "$build" -G Ninja -DBOARD=native_sim/native/64 -DCONFIG_WOLFSSL_RSA=n \

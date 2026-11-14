@@ -1,0 +1,19 @@
+{
+  "origin": "docs/evidence/networking-physical-stage1-run3/01-third-run/restore/normal-capture",
+  "what": "a real passive UART capture of the accepted normal image around its one reset and go (stage 1 run 3, restore); copied unchanged, never edited; it holds 2072 bytes of the previous run before the fresh boot banner",
+  "files": {
+    "real-restore-uart-rx.bin.raw": {
+      "from": "uart-rx.bin.raw",
+      "sha256": "c1691bf091d9d1fc77d6c3294ca2a3c2f70adaea529fb984527e0e50f5f25bb2"
+    },
+    "real-restore-receive.jsonl": {
+      "from": "receive.jsonl",
+      "sha256": "db038f6d18ab1324b6fe02b77606b1ab16ab9409c5c44c14b0abf8f3298ed52f"
+    },
+    "real-restore-lines.json": {
+      "from": "lines.json",
+      "sha256": "924fb3294764e499712ab9cc247c44176a86ca673f626682b1d5dd12d060becc"
+    }
+  },
+  "banner_raw_offset": 2072
+}

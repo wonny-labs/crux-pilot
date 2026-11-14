@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Crux release manifest",
+  "description": "PROVISIONAL: a first shape, not frozen before a product's first real release. What a product's release bundle records about one build, as hashes and identities only. Fields that only one product needs go in the optional extensions object. scripts/check-release-bundle.py applies the subset of keywords used here: type, required, properties, additionalProperties, pattern, minimum, const, enum and items.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "identity_algorithm",
+    "product_version",
+    "release_tag",
+    "toolchain_version",
+    "build_image",
+    "target",
+    "bundle_hashes",
+    "image_sha256",
+    "firmware_identity"
+  ],
+  "properties": {
+    "schema_version": {
+      "description": "The version of this schema. A change that an older checker would misread raises it.",
+      "type": "integer",
+      "const": 1
+    },
+    "identity_algorithm": {
+      "description": "The name of the algorithm that gave firmware_identity, ending in -v and a number. crux-firmware-identity-v1 is the Zephyr and Kconfig algorithm of scripts/record-build-provenance.py. A product that does not build with Zephyr names its own. The checker does not recompute the identity.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]*-v[0-9]+$"
+    },
+    "product_version": {
+      "description": "A SemVer 2.0 version. Pre-release and build metadata, such as +7, are allowed and not required.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+    },
+    "release_tag": {
+      "description": "The tag of the product repository that this bundle was built from.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "toolchain_version": {
+      "description": "The SDK or toolchain release that built the image, such as a Zephyr SDK version.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "build_image": {
+      "description": "The container or runner image, or the build host, that built the image, as a name, tag or digest, never a path.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@-]*(/[A-Za-z0-9][A-Za-z0-9._:@-]*)*$"
+    },
+    "target": {
+      "description": "The build target the product names, such as a Zephyr board target. There is no default.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_@/.-]+$"
+    },
+    "bundle_hashes": {
+      "description": "The SHA-256 of every bundle item except the manifest itself, by path inside the bundle.",
+      "type": "object",
+      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "image_sha256": {
+      "description": "The SHA-256 of the firmware image. The image is not in the bundle.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "firmware_identity": {
+      "description": "The SHA-256 of the canonical JSON of the identity record that identity_algorithm defines.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "vendor_deliveries": {
+      "description": "Per vendor project, its delivery tag and the hash of its hash list.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["project", "delivery_tag", "hash_list_sha256"],
+        "properties": {
+          "project": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+          "delivery_tag": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+          "hash_list_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "replaced_modules": {
+      "description": "Each module that the product replaced under a new name.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["original", "replacement"],
+        "properties": {
+          "original": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+          "replacement": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"}
+        }
+      }
+    },
+    "extensions": {
+      "description": "Fields that one product needs and the platform does not, such as a security counter. The platform checker does not look inside, except for paths and private strings, like any other part of the manifest.",
+      "type": "object"
+    }
+  }
+}

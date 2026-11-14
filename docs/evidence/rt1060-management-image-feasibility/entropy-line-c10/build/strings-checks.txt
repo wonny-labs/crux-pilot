@@ -1,0 +1,3 @@
+public test password in zephyr.elf: 0
+public test password in zephyr.bin: 0
+CRUX-ENTROPY format string in zephyr.bin: 2

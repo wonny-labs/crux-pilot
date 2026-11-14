@@ -24,5 +24,5 @@ target_include_directories(crux_web_session_compile PRIVATE ${CRUX_WEB_SESSION_D
   ${CRUX_ROOT}/components/thread/include ${CRUX_ROOT}/components/time/include)
 target_compile_definitions(crux_web_session_compile PRIVATE
   CRUX_WEB_BODY_BUFFER=${CONFIG_CRUX_WEB_BODY_BUFFER}u)
-target_link_libraries(crux_web_session_compile PRIVATE zephyr_interface)
+target_link_libraries(crux_web_session_compile PRIVATE zephyr_interface crux_service_priority_placement)
 target_compile_options(crux_web_session_compile PRIVATE -Wall -Wextra -Werror)

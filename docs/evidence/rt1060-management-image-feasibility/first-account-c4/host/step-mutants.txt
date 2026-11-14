@@ -1,0 +1,15 @@
+== mutants of the step, run on the Host suite
+control: the real step passes
+11
+killed   the newline is not removed
+killed   no lower length limit
+SURVIVED a null user is accepted
+SURVIVED no upper length limit
+killed   no character rule
+killed   a space is allowed
+killed   the web origin
+killed   one byte too many
+killed   one byte too few
+killed   the user is ignored
+killed   the role is ignored
+container exit 0

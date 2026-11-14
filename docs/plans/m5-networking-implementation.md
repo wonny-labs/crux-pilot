@@ -1,5 +1,7 @@
 # Portable networking implementation plan
 
+Status: historical record. Implementation plan for Issue #28 (sockets and network interface) in the M5 milestone of Issues #25–#30, not the Time Pilot M5; merged in PR #38 and kept as a record. Issue #28 itself is still open. The approved design is in [the networking proposal](m5-networking-proposal.md).
+
 > Execute inline with superpowers:executing-plans and TDD; independent whole-branch review before Draft PR.
 
 Goal: qualify the approved IPv4 TCP client/connected UDP standard profile and

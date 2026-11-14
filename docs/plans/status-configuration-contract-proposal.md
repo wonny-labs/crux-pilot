@@ -241,6 +241,8 @@ is that caller, under one service mutex.
 
 `crux_mutex_lock` already defines zero as a poll, and the native wait runs with the Sync metadata lock released. This way a control thread never waits on the service lock or on storage. It can still wait, briefly and with no stated bound, on the global Sync metadata lock: `crux_mutex_unlock` takes that with no timeout (`components/sync/src/sync.c`), and every Sync call in the image contends for it. A poll also returns `BUSY` if another reader holds the service lock or a thread holds the metadata lock, so a web read can get `503` with `Retry-After` when no save is running.
 
+> Note, 13 November 2026: after #391 there is no global Sync metadata lock, so `crux_mutex_unlock` takes none, and the `BUSY` comment on `CRUX_CONFIG_SERVICE_ERR_BUSY` and the paragraph above no longer describe Sync. The poll still returns `BUSY` while another reader holds the service lock. See [Sync slot metadata](../thread-sync.md#sync-slot-metadata). The proposal is unchanged and reads as written at its baseline.
+
 A `TIMEOUT` from a save's wait gives `ERR_BUSY`. Any other lock failure, such as `IO` or a relock by a validator, gives `ERR_NOT_READY` and changes nothing.
 
 Once a parameter is in a started table, every thread uses the service for it, and direct `crux_config_read`, `_update`, `_load` and `_save` on it are not allowed. The Settings provider is caller-serialised too, so after start no thread calls `crux_config_save` or `crux_config_load` on any parameter: a parameter that the application keeps private goes in the table under a permission no role holds, and `save_local` covers it.

@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "<ws>/crux-pilot-2/tests/target/capture_m3.py", line 86, in commander
+    return _commander(probe, commands, output)
+  File "<ws>/crux-pilot-2/tests/target/capture_m3.py", line 73, in _commander
+    require(code == 0, 'Probe exited unsuccessfully; state uncertain')
+  File "<ws>/crux-pilot-2/tests/target/m3_health_oracle.py", line 7, in require
+    raise ValueError(message)
+ValueError: Probe exited unsuccessfully; state uncertain
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 352, in <module>
+    sys.exit(main())
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 339, in main
+    result = dict(status='IDENTIFIED', matching=driver.identify(candidates))
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 154, in identify
+    text = self.run('candidate-' + name, self.verify_command(path, True), images=[path])
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 139, in run
+    text = self.probe_command(commands, output)
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 281, in probe
+    return capture_m3.commander(runner.PROBE, commands, output)
+  File "<ws>/crux-pilot-2/tests/target/capture_m3.py", line 90, in commander
+    raise HardwareStop('Probe command or its evidence failed; stop hardware changes') from error
+capture_m3.HardwareStop: Probe command or its evidence failed; stop hardware changes
+exit 1

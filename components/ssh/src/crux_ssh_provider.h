@@ -69,6 +69,10 @@ typedef struct {
     crux_ssh_key_type_t host_key_type;
     const uint8_t *host_key; /**< Private key in the form Issue #192 documents. Required. */
     size_t host_key_length;
+    /** Dotted IPv4 text of the one local address to listen on, or NULL for every IPv4 address.
+     * The address must already be on an interface, and a text that is not an IPv4 address makes
+     * start() fail, so that a mistyped address never widens the listener. */
+    const char *bind_address;
 } crux_ssh_config_t;
 
 /**

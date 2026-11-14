@@ -1,0 +1,1 @@
+head under test with the stub: ce2fbaad676490de2372b8e2f923b50d9bb649f1 (entropy_boot.c replaced by entropy_boot.stub.c, nothing else changed)

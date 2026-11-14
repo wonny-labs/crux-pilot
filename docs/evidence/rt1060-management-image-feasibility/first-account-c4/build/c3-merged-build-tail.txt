@@ -1,0 +1,12 @@
+[547/549] Building C object zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+[548/549] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[549/549] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      591696 B         8 MB      7.05%
+             RAM:     1361068 B        32 MB      4.06%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /build/merged/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi

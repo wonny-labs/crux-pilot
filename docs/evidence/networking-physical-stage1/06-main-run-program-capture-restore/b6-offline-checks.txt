@@ -1,0 +1,8 @@
+B6 offline checks, 2026-11-08, transcript of the results (run on the host with the frozen checkout 3ef758d710d4, venv Python)
+
+1. python3 tests/target/capture_m5_network.py uart-replay <run>/boot-1  -> exit 0 (the raw M5 boot replays; last record: READY seq=2 ticket=4230674951 token=527584622 at=5079)
+
+2. Normal-image boot captures through the accepted integrated-normal oracles
+   (capture_m3_integrated.initial_checkpoint_rows(rows, 'ec94fbec22cd', 0, False), m3_integrated_oracle.default_state, m3_integrated_oracle.idle_resources):
+   - 05-restore-fixed-driver/restore/normal-capture/lines.json   397 rows: initial_checkpoint_rows rows=78, default_state PASS, idle_resources PASS
+   - 06-main-run-program-capture-restore/restore/normal-capture/lines.json   397 rows: initial_checkpoint_rows rows=78, default_state PASS, idle_resources PASS

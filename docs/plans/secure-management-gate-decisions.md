@@ -173,6 +173,8 @@ The proposals do not change these designs, apart from the user key table of the 
 
 A service calls `crux_access_check` before taking its own lock. Account operations check permission under the change lock, as the access proposal says. Validators and status sources call no service. `crux_security_event_read` checks permission before the ring lock. Sync's unlock and give take a global metadata lock with no timeout, in every path here.
 
+> Note, 13 November 2026: after #391 Sync has no global metadata lock, so Sync's unlock and give no longer take one in any path above. See [Sync slot metadata](../thread-sync.md#sync-slot-metadata). The decision above is unchanged. Read the lock wording as written at the baseline.
+
 **Shared resources.** These are defaults that the integrated image must fit. Issue #197 measures them, and none is a promise.
 
 | Resource | Default | Claimed |

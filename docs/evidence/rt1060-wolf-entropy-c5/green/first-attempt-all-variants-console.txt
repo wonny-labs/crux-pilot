@@ -1,0 +1,84 @@
+23:05:19
+built: /build/wolf-entropy/runtime/zephyr/zephyr.exe
+===================================================================
+START - test_consumers_fail_when_a_read_fails_after_a_successful_start
+ PASS - test_consumers_fail_when_a_read_fails_after_a_successful_start in 0.000 seconds
+===================================================================
+START - test_consumers_produce_nothing_when_every_read_fails
+ PASS - test_consumers_produce_nothing_when_every_read_fails in 0.000 seconds
+===================================================================
+START - test_consumers_work_with_a_healthy_device
+ PASS - test_consumers_work_with_a_healthy_device in 0.000 seconds
+===================================================================
+TESTSUITE wolf_entropy succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [wolf_entropy]: pass = 5, fail = 0, skip = 0, total = 5 duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_boot_check_healthy_prints_the_ok_line] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_boot_check_refuses_when_the_first_read_fails] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_consumers_fail_when_a_read_fails_after_a_successful_start] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_consumers_produce_nothing_when_every_read_fails] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_consumers_work_with_a_healthy_device] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+run ok: runtime (2 CRUX-ENTROPY lines)
+built: /build/wolf-entropy/init-fails/zephyr/zephyr.exe
+*** Booting Zephyr OS build v4.4.2 ***
+Running TESTSUITE wolf_entropy
+===================================================================
+START - test_boot_check_refuses_when_the_device_is_not_ready
+CRUX-ENTROPY first-read=failed source=crux-test-entropy compatible=crux,test-entropy bytes=32 status=-148 device-ready=0
+ PASS - test_boot_check_refuses_when_the_device_is_not_ready in 0.000 seconds
+===================================================================
+START - test_consumers_produce_nothing_when_the_device_is_not_ready
+ PASS - test_consumers_produce_nothing_when_the_device_is_not_ready in 0.000 seconds
+===================================================================
+TESTSUITE wolf_entropy succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [wolf_entropy]: pass = 2, fail = 0, skip = 0, total = 2 duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_boot_check_refuses_when_the_device_is_not_ready] duration = 0.000 seconds
+ - PASS - [wolf_entropy.test_consumers_produce_nothing_when_the_device_is_not_ready] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+run ok: init-fails (1 CRUX-ENTROPY lines)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found BOARD.dts: /ws/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Found devicetree overlay: /ws/crux-pilot/tests/psa_entropy/wolf/overlays/no-chosen-entropy.overlay
+-- Generated zephyr.dts: /build/wolf-entropy/fallback/zephyr/zephyr.dts
+-- Generated pickled edt: /build/wolf-entropy/fallback/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /build/wolf-entropy/fallback/zephyr/include/generated/zephyr/devicetree_generated.h
+
+warning: ENTROPY_HAS_DRIVER (defined at drivers/entropy/Kconfig:59) has direct dependencies ENTROPY_GENERATOR with value n, but is currently being y-selected by the following symbols:
+ - CRUX_TEST_ENTROPY (defined at /ws/crux-pilot/tests/psa_entropy/wolf/Kconfig:5), with value y, direct dependencies DT_HAS_CRUX_TEST_ENTROPY_ENABLED (value: y), and select condition DT_HAS_CRUX_TEST_ENTROPY_ENABLED (value: y)
+
+warning: ENTROPY_NEEDS_PRNG (defined at drivers/entropy/Kconfig:65) has direct dependencies ENTROPY_GENERATOR with value n, but is currently being y-selected by the following symbols:
+ - CRUX_TEST_ENTROPY (defined at /ws/crux-pilot/tests/psa_entropy/wolf/Kconfig:5), with value y, direct dependencies DT_HAS_CRUX_TEST_ENTROPY_ENABLED (value: y), and select condition DT_HAS_CRUX_TEST_ENTROPY_ENABLED (value: y)
+Parsing /ws/crux-pilot/tests/psa_entropy/wolf/Kconfig
+Loaded configuration '/ws/zephyr/boards/native/native_sim/native_sim_64_defconfig'
+Merged configuration '/ws/crux-pilot/tests/psa_entropy/wolf/prj.conf'
+Merged configuration '/ws/crux-pilot/tests/psa_crypto/zephyr/wolfpsa.conf'
+Merged configuration '/ws/crux-pilot/tests/psa_entropy/wolf/control-fallback.conf'
+
+error: Aborting due to Kconfig warnings
+
+CMake Error at /ws/zephyr/cmake/modules/kconfig.cmake:423 (message):
+  command failed with return code: 1
+Call Stack (most recent call first):
+  /ws/zephyr/cmake/modules/zephyr_default.cmake:129 (include)
+  /ws/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake:66 (include)
+  /ws/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake:92 (include_boilerplate)
+  CMakeLists.txt:30 (find_package)
+
+
+-- Configuring incomplete, errors occurred!
+FAIL: fallback: the configuration failed
+exit=1 23:11:38

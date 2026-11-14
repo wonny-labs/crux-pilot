@@ -1,0 +1,130 @@
+{
+  "elf_sections_match_bin": true,
+  "gap_fill": 255,
+  "bin_address": 1610612736,
+  "bin_bytes": 107872,
+  "elf_load_segments": [
+    {
+      "offset": 312,
+      "address": 1610612736,
+      "vma": 1610612736,
+      "bytes": 106928
+    },
+    {
+      "offset": 107240,
+      "address": 1610719664,
+      "vma": 2147483648,
+      "bytes": 940
+    },
+    {
+      "offset": 108180,
+      "address": 1610720604,
+      "vma": 1610720604,
+      "bytes": 4
+    }
+  ],
+  "worker_stack": {
+    "address": 2147509696,
+    "bytes": 4160
+  },
+  "network_stack": {
+    "address": 2147505536,
+    "bytes": 4160
+  },
+  "main_stack": {
+    "address": 2147522816,
+    "bytes": 4160
+  },
+  "logger_stack": {
+    "address": 2147513856,
+    "bytes": 2112
+  },
+  "target": "mimxrt1060_evk@B//qspi",
+  "profile": "integrated-normal",
+  "source": {
+    "dirty": false,
+    "git_branch": null,
+    "git_commit": "ec94fbec22cd11a3760245b3388dd4a03634ca52",
+    "git_status_counts": {
+      "deleted": 0,
+      "modified_or_staged": 0,
+      "renamed_or_copied": 0,
+      "untracked": 0
+    },
+    "recoverable_from_git": true,
+    "snapshot_algorithm": "sha256-path-mode-content-v1",
+    "snapshot_file_count": 227,
+    "snapshot_sha256": "059c55b025d9803b10b6a17cd8c47ff26af4688a3d9b3657febd514dedac0d4b",
+    "west_manifest_sha256": "f64f4213af5cc2009a521c1081a7ab1b874717c2d8cc218639594519ae43a588"
+  },
+  "west_projects": [
+    {
+      "dirty": false,
+      "git_commit": "684c9e8f32e4373a21098559f748f06915f950c9",
+      "name": "zephyr",
+      "path": "zephyr",
+      "revision": "684c9e8f32e4373a21098559f748f06915f950c9"
+    },
+    {
+      "dirty": false,
+      "git_commit": "512cc7e895e8491696b61f7ba8066b4a182569b8",
+      "name": "cmsis",
+      "path": "modules/hal/cmsis",
+      "revision": "512cc7e895e8491696b61f7ba8066b4a182569b8"
+    },
+    {
+      "dirty": false,
+      "git_commit": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74",
+      "name": "cmsis_6",
+      "path": "modules/hal/cmsis_6",
+      "revision": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74"
+    },
+    {
+      "dirty": false,
+      "git_commit": "2c2f28ac333e995d7279777409817c4b4f92c1ec",
+      "name": "hal_nxp",
+      "path": "modules/hal/nxp",
+      "revision": "2c2f28ac333e995d7279777409817c4b4f92c1ec"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "<artifacts>/normal-ec94fbe/build/zephyr/zephyr.bin",
+      "size_bytes": 107872,
+      "sha256": "ad729684749181f0c26853828550187a2c3e60dbb28cf3ee2194a7984141e02f"
+    },
+    {
+      "path": "<artifacts>/normal-ec94fbe/build/zephyr/zephyr.elf",
+      "size_bytes": 3699904,
+      "sha256": "80d942110401de6dd7407d401d5d5d9ae21cdc22379859f407127afd10f7e176"
+    },
+    {
+      "path": "<artifacts>/normal-ec94fbe/build/zephyr/.config",
+      "size_bytes": 51060,
+      "sha256": "c505bab731ee102c53017493c1ea33f78464f78bc9e18ade177b87753593337f"
+    },
+    {
+      "path": "<artifacts>/normal-ec94fbe/build/zephyr/zephyr.map",
+      "size_bytes": 619153,
+      "sha256": "9a8a5e2ee9e72874038a1d1e725c3c28c67379c220de8325e280aea95839ebdf"
+    },
+    {
+      "path": "<artifacts>/normal-ec94fbe/build/zephyr/zephyr.dts",
+      "size_bytes": 370322,
+      "sha256": "4d3260d7d764808eed26ea779a1127c3be8e2e217b80379d648368cda45afabb"
+    },
+    {
+      "path": "<artifacts>/normal-ec94fbe/build/compile_commands.json",
+      "size_bytes": 716361,
+      "sha256": "1d418959397fbe40a4d85d04ac1caa6880a4b338f5f6e15b6bc25ba9ff51ffea"
+    },
+    {
+      "path": "<artifacts>/normal-ec94fbe/inputs.json",
+      "size_bytes": 1566,
+      "sha256": "f2ef3d202bd06ed15c385324a7a7979496479c45839d26938aa8771017407f86"
+    }
+  ],
+  "binary": "<artifacts>/normal-ec94fbe/build/zephyr/zephyr.bin",
+  "elf": "<artifacts>/normal-ec94fbe/build/zephyr/zephyr.elf",
+  "config": "<artifacts>/normal-ec94fbe/build/zephyr/.config"
+}

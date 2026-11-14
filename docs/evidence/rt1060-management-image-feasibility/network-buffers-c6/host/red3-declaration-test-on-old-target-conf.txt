@@ -1,0 +1,15 @@
+E
+======================================================================
+ERROR: test_network_buffers_and_arena_meet_the_declared_load_of_row_c6 (tests.build.test_management_bench_declaration.BenchDeclaration)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/tests/build/test_management_bench_declaration.py", line 91, in test_network_buffers_and_arena_meet_the_declared_load_of_row_c6
+    needs = check_bench_guard.buffer_needs(DECLARATION, values)
+  File "<worktree>/tests/zephyr/management_rt1060_compile/check_bench_guard.py", line 166, in buffer_needs
+    data = int(values["NET_BUF_DATA_SIZE"])
+KeyError: 'NET_BUF_DATA_SIZE'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.008s
+
+FAILED (errors=1)

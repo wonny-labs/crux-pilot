@@ -12,6 +12,9 @@
 
 #include <crux/sync.h>
 #include <crux/thread.h>
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+#include "service_priority.h"
+#endif
 #include <string.h>
 
 typedef enum { ATTEMPT_FREE = 0, ATTEMPT_QUEUED, ATTEMPT_RUNNING, ATTEMPT_DONE } attempt_state_t;
@@ -350,6 +353,10 @@ bool web_session_work_once(void)
 static void worker_main(void *argument)
 {
     (void)argument;
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+    /* First, so that the worker does its work at its per-service priority (ADR-0002 P3). */
+    crux_service_priority_place(CRUX_SERVICE_THREAD_WEB_SESSION_WORKER);
+#endif
     for (;;) {
         (void)crux_semaphore_take(attempt_signal, CRUX_WEB_SESSION_WORKER_WAIT_MS);
         while (web_session_work_once()) {

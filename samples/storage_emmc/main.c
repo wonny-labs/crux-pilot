@@ -6,7 +6,8 @@
 #include <zephyr/kernel.h>
 
 /* Reference composition of the File component on Reliance Edge over an eMMC disk. The mount runs
- * only when CONFIG_SAMPLE_EMMC_START is set; the default image touches no medium. With
+ * only when CONFIG_SAMPLE_EMMC_START is set; the default image does not call it, so the
+ * application starts no mount and writes nothing. With
  * CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE the sequence also initialises Configuration's settings,
  * after the layout check. Do not flash an image with it set until the physical gate has been
  * approved for the current task. */

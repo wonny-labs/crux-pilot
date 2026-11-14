@@ -4,6 +4,5 @@ list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_file_fatfs C)
 target_sources(app PRIVATE main.c)
-target_link_libraries(app PRIVATE crux::file)
-target_include_directories(app PRIVATE ${CRUX_ROOT}/components/file/src
-  ${CRUX_ROOT}/components/file/ports/zephyr)
+target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
+target_include_directories(app PRIVATE ${CRUX_ROOT}/components/file/src)

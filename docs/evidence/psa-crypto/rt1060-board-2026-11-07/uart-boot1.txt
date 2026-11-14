@@ -1,0 +1,202 @@
+*** Booting Zephyr OS build v4.4.2 ***
+Running TESTSUITE psa_conformance
+===================================================================
+PSA_RANDOM_PROBE 52c8082c1e0a63b4a644f7528503f385
+START - test_aes256_gcm_key_policy_not_permitted
+ PASS - test_aes256_gcm_key_policy_not_permitted in 0.001 seconds
+===================================================================
+START - test_aes256_gcm_known_answer_one_shot
+ PASS - test_aes256_gcm_known_answer_one_shot in 0.001 seconds
+===================================================================
+START - test_aes256_gcm_multipart_separate_tag_known_answer
+ PASS - test_aes256_gcm_multipart_separate_tag_known_answer in 0.001 seconds
+===================================================================
+START - test_aes256_gcm_slot_image_known_answer
+ PASS - test_aes256_gcm_slot_image_known_answer in 0.010 seconds
+===================================================================
+START - test_aes256_gcm_tampering_is_invalid_signature
+ PASS - test_aes256_gcm_tampering_is_invalid_signature in 0.001 seconds
+===================================================================
+START - test_aes256_key_import_wrong_size_rejected
+ PASS - test_aes256_key_import_wrong_size_rejected in 0.001 seconds
+===================================================================
+START - test_case_list_is_complete
+ PASS - test_case_list_is_complete in 0.001 seconds
+===================================================================
+START - test_destroyed_key_is_invalid_handle
+ PASS - test_destroyed_key_is_invalid_handle in 0.002 seconds
+===================================================================
+START - test_ecdsa_p256_flipped_signature_invalid
+ PASS - test_ecdsa_p256_flipped_signature_invalid in 0.875 seconds
+===================================================================
+START - test_ecdsa_p256_import_is_volatile
+ PASS - test_ecdsa_p256_import_is_volatile in 0.001 seconds
+===================================================================
+START - test_ecdsa_p256_key_policy_not_permitted
+ PASS - test_ecdsa_p256_key_policy_not_permitted in 0.002 seconds
+===================================================================
+START - test_ecdsa_p256_missing_prefix_import_rejected
+ PASS - test_ecdsa_p256_missing_prefix_import_rejected in 0.001 seconds
+===================================================================
+START - test_ecdsa_p256_off_curve_import_rejected
+ PASS - test_ecdsa_p256_off_curve_import_rejected in 0.001 seconds
+===================================================================
+START - test_ecdsa_p256_off_curve_key_never_verifies
+ PASS - test_ecdsa_p256_off_curve_key_never_verifies in 0.001 seconds
+===================================================================
+START - test_ecdsa_p256_tampered_input_invalid
+ PASS - test_ecdsa_p256_tampered_input_invalid in 1.634 seconds
+===================================================================
+START - test_ecdsa_p256_truncated_signature_rejected
+ PASS - test_ecdsa_p256_truncated_signature_rejected in 0.002 seconds
+===================================================================
+START - test_ecdsa_p256_verify_hash_known_answer
+ PASS - test_ecdsa_p256_verify_hash_known_answer in 0.819 seconds
+===================================================================
+START - test_ecdsa_p256_zero_signature_invalid
+ PASS - test_ecdsa_p256_zero_signature_invalid in 0.002 seconds
+===================================================================
+START - test_ed25519_generate_export_forms
+UNSUPPORTED ed25519_generate_export_forms (declared)
+ SKIP - test_ed25519_generate_export_forms in 0.005 seconds
+===================================================================
+START - test_ed25519_generated_key_signs_and_verifies
+UNSUPPORTED ed25519_generated_key_signs_and_verifies (declared)
+ SKIP - test_ed25519_generated_key_signs_and_verifies in 0.006 seconds
+===================================================================
+START - test_ed25519_known_answer_rfc8032
+UNSUPPORTED ed25519_known_answer_rfc8032 (declared)
+ SKIP - test_ed25519_known_answer_rfc8032 in 0.005 seconds
+===================================================================
+START - test_hash_unsupported_algorithm_not_supported
+ PASS - test_hash_unsupported_algorithm_not_supported in 0.001 seconds
+===================================================================
+START - test_hmac_key_policy_not_permitted
+ PASS - test_hmac_key_policy_not_permitted in 0.001 seconds
+===================================================================
+START - test_hmac_sha256_buffer_too_small
+ PASS - test_hmac_sha256_buffer_too_small in 0.001 seconds
+===================================================================
+START - test_hmac_sha256_empty_input_known_answer
+ PASS - test_hmac_sha256_empty_input_known_answer in 0.001 seconds
+===================================================================
+START - test_hmac_sha256_known_answer
+ PASS - test_hmac_sha256_known_answer in 0.001 seconds
+===================================================================
+START - test_init_is_idempotent
+ PASS - test_init_is_idempotent in 0.001 seconds
+===================================================================
+START - test_kdf_output_on_inactive_operation_is_bad_state
+ PASS - test_kdf_output_on_inactive_operation_is_bad_state in 0.001 seconds
+===================================================================
+START - test_kdf_unsupported_algorithm_not_supported
+ PASS - test_kdf_unsupported_algorithm_not_supported in 0.001 seconds
+===================================================================
+START - test_p256_generate_export_forms
+ PASS - test_p256_generate_export_forms in 0.419 seconds
+===================================================================
+START - test_p256_generated_key_signs_and_verifies
+ PASS - test_p256_generated_key_signs_and_verifies in 2.285 seconds
+===================================================================
+START - test_p256_private_export_requires_usage
+ PASS - test_p256_private_export_requires_usage in 0.212 seconds
+===================================================================
+START - test_p256_private_import_gives_known_public
+ PASS - test_p256_private_import_gives_known_public in 0.211 seconds
+===================================================================
+START - test_pbkdf2_empty_password_known_answer
+ PASS - test_pbkdf2_empty_password_known_answer in 0.038 seconds
+===================================================================
+START - test_pbkdf2_hmac_sha256_known_answer_4096
+ PASS - test_pbkdf2_hmac_sha256_known_answer_4096 in 0.153 seconds
+===================================================================
+START - test_pbkdf2_hmac_sha256_known_answer_rfc7914
+ PASS - test_pbkdf2_hmac_sha256_known_answer_rfc7914 in 0.001 seconds
+===================================================================
+START - test_pbkdf2_longest_password_known_answer
+ PASS - test_pbkdf2_longest_password_known_answer in 0.372 seconds
+===================================================================
+START - test_pbkdf2_verify_bytes_when_supported
+note: psa_key_derivation_verify_bytes is not supported by this provider
+ PASS - test_pbkdf2_verify_bytes_when_supported in 0.007 seconds
+===================================================================
+START - test_pbkdf2_wrong_password_derives_different_output
+ PASS - test_pbkdf2_wrong_password_derives_different_output in 0.305 seconds
+===================================================================
+START - test_random_fills_requested_bytes_only
+ PASS - test_random_fills_requested_bytes_only in 0.001 seconds
+===================================================================
+START - test_random_large_request_succeeds
+ PASS - test_random_large_request_succeeds in 0.003 seconds
+===================================================================
+START - test_sha256_buffer_too_small
+ PASS - test_sha256_buffer_too_small in 0.001 seconds
+===================================================================
+START - test_sha256_known_answer_one_shot
+ PASS - test_sha256_known_answer_one_shot in 0.001 seconds
+===================================================================
+START - test_sha256_multipart_matches_known_answer
+ PASS - test_sha256_multipart_matches_known_answer in 0.001 seconds
+===================================================================
+START - test_sha256_update_after_finish_is_bad_state
+ PASS - test_sha256_update_after_finish_is_bad_state in 0.001 seconds
+===================================================================
+START - test_sha256_verify_mismatch_invalid_signature
+ PASS - test_sha256_verify_mismatch_invalid_signature in 0.001 seconds
+===================================================================
+TESTSUITE psa_conformance succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [psa_conformance]: pass = 43, fail = 0, skip = 3, total = 46 duration = 7.392 seconds
+ - PASS - [psa_conformance.test_aes256_gcm_key_policy_not_permitted] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_aes256_gcm_known_answer_one_shot] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_aes256_gcm_multipart_separate_tag_known_answer] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_aes256_gcm_slot_image_known_answer] duration = 0.010 seconds
+ - PASS - [psa_conformance.test_aes256_gcm_tampering_is_invalid_signature] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_aes256_key_import_wrong_size_rejected] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_case_list_is_complete] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_destroyed_key_is_invalid_handle] duration = 0.002 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_flipped_signature_invalid] duration = 0.875 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_import_is_volatile] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_key_policy_not_permitted] duration = 0.002 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_missing_prefix_import_rejected] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_off_curve_import_rejected] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_off_curve_key_never_verifies] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_tampered_input_invalid] duration = 1.634 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_truncated_signature_rejected] duration = 0.002 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_verify_hash_known_answer] duration = 0.819 seconds
+ - PASS - [psa_conformance.test_ecdsa_p256_zero_signature_invalid] duration = 0.002 seconds
+ - SKIP - [psa_conformance.test_ed25519_generate_export_forms] duration = 0.005 seconds
+ - SKIP - [psa_conformance.test_ed25519_generated_key_signs_and_verifies] duration = 0.006 seconds
+ - SKIP - [psa_conformance.test_ed25519_known_answer_rfc8032] duration = 0.005 seconds
+ - PASS - [psa_conformance.test_hash_unsupported_algorithm_not_supported] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_hmac_key_policy_not_permitted] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_hmac_sha256_buffer_too_small] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_hmac_sha256_empty_input_known_answer] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_hmac_sha256_known_answer] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_init_is_idempotent] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_kdf_output_on_inactive_operation_is_bad_state] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_kdf_unsupported_algorithm_not_supported] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_p256_generate_export_forms] duration = 0.419 seconds
+ - PASS - [psa_conformance.test_p256_generated_key_signs_and_verifies] duration = 2.285 seconds
+ - PASS - [psa_conformance.test_p256_private_export_requires_usage] duration = 0.212 seconds
+ - PASS - [psa_conformance.test_p256_private_import_gives_known_public] duration = 0.211 seconds
+ - PASS - [psa_conformance.test_pbkdf2_empty_password_known_answer] duration = 0.038 seconds
+ - PASS - [psa_conformance.test_pbkdf2_hmac_sha256_known_answer_4096] duration = 0.153 seconds
+ - PASS - [psa_conformance.test_pbkdf2_hmac_sha256_known_answer_rfc7914] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_pbkdf2_longest_password_known_answer] duration = 0.372 seconds
+ - PASS - [psa_conformance.test_pbkdf2_verify_bytes_when_supported] duration = 0.007 seconds
+ - PASS - [psa_conformance.test_pbkdf2_wrong_password_derives_different_output] duration = 0.305 seconds
+ - PASS - [psa_conformance.test_random_fills_requested_bytes_only] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_random_large_request_succeeds] duration = 0.003 seconds
+ - PASS - [psa_conformance.test_sha256_buffer_too_small] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_sha256_known_answer_one_shot] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_sha256_multipart_matches_known_answer] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_sha256_update_after_finish_is_bad_state] duration = 0.001 seconds
+ - PASS - [psa_conformance.test_sha256_verify_mismatch_invalid_signature] duration = 0.001 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
