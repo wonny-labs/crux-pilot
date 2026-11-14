@@ -84,6 +84,10 @@ target_compile_definitions(product_adapters PRIVATE CRUX_WARN_FROZEN_HEADERS)
 
 The warning is silent in the targets that Crux's own CMake creates. A Zephyr image usually adds the sources of Crux services to `app`. Those sources include frozen headers on purpose, so they warn if you define the macro on `app` (and fail under the template's `-Werror`). Put the product's adapters in their own library, or accept the warnings from Crux's sources, and rely on `--product` for `app`.
 
+An adapter that calls Zephyr kernel objects (for example `k_msgq_*`) is the exception to that advice. Until the failure below is understood, make it a source of the `app` target (`target_sources(app PRIVATE ...)`) and rely on `--product` for it, because the warning guard cannot be defined on `app`. In one product (crux-controller, Zephyr 4.4.2, `native_sim` and RT1060-EVKB cross-build) an adapter built as a `STATIC` library failed to link with undefined references to `k_msgq_init`, `z_impl_k_msgq_put`, `z_impl_k_msgq_get` and `z_impl_k_msgq_purge`, while `k_thread` calls in the same file linked. Moving the file to `target_sources(app PRIVATE ...)` fixed it. The cause was not reproduced locally. An adapter that makes no kernel-object calls has not shown this failure.
+
+`--domain DIR` resolves a quoted include only relative to the including file and to `DIR`, never through an include path. A layout with `include/` beside `src/`, where `#include "name.h"` is found through an include path, therefore fails, even though the header is inside `DIR`. Either spell the include relative to `DIR` (`"include/name.h"`), or leave that directory out of `--domain`. Leaving it out keeps only the frozen-header rule for it, so `<zephyr/...>` includes there are no longer caught.
+
 ## Shared-state example
 
 `app/src/main.c` shows how product state is shared with threads that Crux services start. A command handler runs on the thread of its console or SSH session, a web handler on the Zephyr HTTP server thread, the reboot busy check on the reboot worker, and a status read on the caller's thread.
