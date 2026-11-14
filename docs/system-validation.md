@@ -191,8 +191,9 @@ physical latch persistence or worst-case latency qualification is claimed.
 
 [ADR-0005](decisions/0005-native-sim-test-watchdog-for-system-consumers.md) route A. The Zephyr module
 offers one Kconfig symbol, `CRUX_SYSTEM_NATIVE_SIM_WATCHDOG`, at tier Experimental
-([ADR-0001](decisions/0001-application-boundary-and-api-stability.md) Decision 4). It adds no header,
-no target and no function. Set it in a `native_sim`-only fragment, with `CRUX_SYSTEM`, `WATCHDOG`,
+([ADR-0001](decisions/0001-application-boundary-and-api-stability.md) Decision 4). It adds no public header,
+target or function (the device and its two accessors are private to the provider). "Experimental" is
+the ADR-0001 tier, not Zephyr's `EXPERIMENTAL` option. Set it in a `native_sim`-only fragment, with `CRUX_SYSTEM`, `WATCHDOG`,
 `HWINFO` and `REBOOT`, and `crux::system` finds a private simulated watchdog device where the normal
 simulator composition finds none. It is off by default, and every image and test that does not set it
 is unchanged. It selects `NATIVE_SIM_REBOOT`, so a missed feed restarts the simulated process.
@@ -221,10 +222,11 @@ is unchanged. It selects `NATIVE_SIM_REBOOT`, so a missed feed restarts the simu
   [ADR-0005 section 5](decisions/0005-native-sim-test-watchdog-for-system-consumers.md#5-the-possible-reset-loop)
   lists the options.
 
-The Host checks are `tests/build/test_system_native_sim_watchdog.py` and two cases of
-`tests/build/test_system_composition.py`. The `native_sim` scenario is
-[`tests/system/zephyr/native_sim_watchdog`](../tests/system/zephyr/native_sim_watchdog/testcase.yaml),
-run by `scripts/test-system.sh` through Twister.
+The Host check is `tests/build/test_system_native_sim_watchdog.py`. Two cases of
+`tests/build/test_system_composition.py` (a Zephyr configure for the board and for `native_sim`) and the
+`native_sim` scenario
+[`tests/system/zephyr/native_sim_watchdog`](../tests/system/zephyr/native_sim_watchdog/testcase.yaml)
+are Zephyr checks: `scripts/test-system.sh` runs them in the runtime shard, and the Host check does not.
 
 ## Minimal physical verification proposal — not authorized or performed
 

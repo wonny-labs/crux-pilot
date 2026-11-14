@@ -20,8 +20,9 @@ static void fail(const char *what) FUNC_NORETURN;
 static void fail(const char *what)
 {
     printk("simwdt: FAIL %s\n", what);
+    /* A fatal error ends the run at once, so a failure is not mistaken for a timeout. */
+    k_panic();
     for (;;) {
-        k_sleep(K_FOREVER);
     }
 }
 
@@ -70,7 +71,12 @@ int main(void)
         expect_state(CRUX_WATCHDOG_IDLE, "boot 2 fresh state");
         printk("simwdt: boot 2 fresh state, idle, simulated\n");
         start(&token);
-        printk("simwdt: boot 2 started and feeding, scenario complete\n");
+        for (int i = 0; i < FEEDS; ++i) {
+            k_msleep(FEED_PERIOD_MS);
+            expect(crux_watchdog_feed(token) == CRUX_OK, "boot 2 feed");
+        }
+        expect_state(CRUX_WATCHDOG_ACTIVE, "boot 2 active after feed cycle");
+        printk("simwdt: boot 2 feed cycle ok, no second restart, scenario complete\n");
         for (;;) {
             k_msleep(FEED_PERIOD_MS);
             expect(crux_watchdog_feed(token) == CRUX_OK, "boot 2 feed");

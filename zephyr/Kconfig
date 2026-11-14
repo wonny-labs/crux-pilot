@@ -238,7 +238,7 @@ config CRUX_SYSTEM_NATIVE_SIM_WATCHDOG
       restarts the simulated process, which then reads the reset cause SOFTWARE, never WATCHDOG.
       Selects NATIVE_SIM_REBOOT for that restart. No board dependency is declared on purpose:
       the component stops the configure step with an error on any board but native_sim, which
-      a hidden symbol could not do. Off by default; no header, target or function is added.
+      a hidden symbol could not do. Off by default; no public header, target or function is added.
 
 config CRUX_FILE_SIMULATOR
     bool "Crux File VFS simulator candidate"
