@@ -28,12 +28,18 @@ if(NOT CONFIG_CRUX_THREAD OR NOT CONFIG_CRUX_SYNC OR NOT CONFIG_CRUX_TIME)
     message(FATAL_ERROR "CONFIG_CRUX_ACCESS did not select Thread, Sync and Time")
 endif()
 
+if(NOT CONFIG_CRUX_CONFIG_SERVICE OR NOT CONFIG_CRUX_MGMT_STATUS)
+    message(FATAL_ERROR "The fixture needs CONFIG_CRUX_CONFIG_SERVICE and CONFIG_CRUX_MGMT_STATUS")
+endif()
+
 set(glue "${CRUX_ROOT}/tests/native/management_composition/composition/tf_psa_threading")
 target_sources(app PRIVATE src/main.c "${glue}/crux_tf_psa_threading.c")
 zephyr_include_directories("${glue}")
 target_include_directories(app PRIVATE
     "${CRUX_ROOT}/components/access/include" "${CRUX_ROOT}/components/access/adapter"
     "${CRUX_ROOT}/components/credential/include" "${CRUX_ROOT}/components/credential/adapter"
-    "${CRUX_ROOT}/components/security_event/include")
-target_link_libraries(app PRIVATE crux::file_zephyr crux::time)
+    "${CRUX_ROOT}/components/security_event/include"
+    "${CRUX_ROOT}/components/config_service/include" "${CRUX_ROOT}/components/configuration/include"
+    "${CRUX_ROOT}/components/mgmt_status/include")
+target_link_libraries(app PRIVATE crux::file_zephyr crux::system crux::time)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
