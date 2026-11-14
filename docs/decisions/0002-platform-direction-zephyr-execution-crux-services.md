@@ -96,11 +96,11 @@ None of these is part of this ADR. Each is its own reviewed change. Protected pa
 P9 left the internals decision to the reboot pilot and fixed its rule before the runs. The pilot has run, so P9's decision is made here. The body above is unchanged. Where it says that P9 is undecided, or words P8 as "not planned", this amendment applies. It changes no code, check, contract or protected path.
 
 1. **Result: O4.** Crux's services keep a narrow Crux Thread and Sync internally, with Zephyr and Linux providers. The services do not move to Zephyr kernel objects (O2).
-2. **Evidence.** The records are [Stage A](../research/reboot-native-sim-stage-a.md), which is merged, and Stage B, `docs/research/reboot-zephyr-direct-stage-b.md` on the branch of Draft PR #399, which is not merged. Every figure below comes from those two records. They are local figures from one arm64 container with no CI run and no physical board.
+2. **Evidence.** The records are [Stage A](../research/reboot-native-sim-stage-a.md), which is merged, and Stage B, `docs/research/reboot-zephyr-direct-stage-b.md` on branch `pilot-reboot-zephyr-direct` (Draft PR #399), which is not merged. Every figure below comes from those two records. They are local figures from arm64 containers. Neither record contains a CI figure, and nothing ran on a physical board.
    - Stage A ran the 79 `reboot` cases on `native_sim` over the unchanged Crux providers: 79 cases, 0 failed.
-   - Stage B moved the `reboot` service to `k_mutex`, `k_sem`, `k_thread` and `k_msleep`. The service changed by 47 lines added and 31 removed, and the flake bar passed (100 of 100 runs, then 200 of 200).
-   - The D-D rule allows O2 only if every criterion holds. Three fail. On the same suites the `native_sim` run takes about 19 to 23 times the Host `host-sanitize` run, against a limit of 2. The 9 checks of `sleep_provider` no longer run, which fails M4 and M6 narrowly. Blockers B1 to B4 have no owner answer. D-D also keeps the slim shim if M2 is above 2, and on the like-for-like basis it is.
-   - Not measured: ThreadSanitizer suites (B4) and any physical board. `native_sim` has no race detector, so neither build shows a data race.
+   - Stage B moved the `reboot` service to `k_mutex`, `k_sem`, `k_thread` and `k_msleep`. The service core changed by 47 lines added and 31 removed, and the flake bar passed (100 of 100 runs, then 200 of 200).
+   - The D-D rule allows O2 only if every criterion holds. Four fail, two of them (M4 and M6) on one suite. On the same suites the `native_sim` run takes about 19 to 23 times the Host `host-sanitize` run, against a limit of 2. The 9 checks of `sleep_provider` no longer run, which fails M4 and M6 narrowly. Blockers B1 to B4 have no owner answer. D-D also keeps the slim shim if M2 is above 2, and on the like-for-like basis it is.
+   - Not measured: ThreadSanitizer suites (B4) and any physical board. Neither the Host nor the `native_sim` build has a race detector for these suites, so neither shows a data race.
 3. **Principle.** Product code uses the OS natively: Zephyr products call Zephyr, Linux products call Linux. Crux's services use the narrow Crux Thread and Sync. Other OS facilities (drivers, networking, storage) are used natively in adapters. This is P1 with the services' inside named.
 4. **Target state.** Crux Thread and Sync become internal to Crux. That switch is a later, separate pull request. It needs the owner's approval, and it comes after CODESYS, `crux-controller` and the samples have migrated. Queue and Serial are decided separately, because `cli` uses Serial. Deprecating and removing the public headers is part of that later decision. The P2 freeze stays until then.
 5. **Known exception.** `ssh` uses native threads.
@@ -113,7 +113,7 @@ The owner approved this result as recommended in the Crux Pilot main session cha
 
 This means "I will approve as recommended". The statement that an Embedded Linux integration is expected is the owner's, from earlier in the same session. The switch to internal-only, hardware, tags and merging stay outside this approval.
 
-Statements elsewhere that still say P9 is undecided or that Embedded Linux is not planned (`README.md`, `docs/architecture.md`, and the freeze notices of `docs/thread-sync.md`, `docs/messaging-contract.md` and `docs/serial-contract.md`) follow in a separate documentation change.
+Statements elsewhere that still say P9 is undecided or that Embedded Linux is not planned (`README.md`, `docs/architecture.md`, `docs/thread-sync.md` including its freeze notice and the remark at `:150` that workers may become native threads under P9, and the freeze notices of `docs/messaging-contract.md` and `docs/serial-contract.md`) follow in a separate documentation change.
 
 ## The owner's decision
 

@@ -10,14 +10,14 @@ Ask them in order for each piece of code.
 2. **Is it a platform service that Crux provides?** Management over web, command line, SSH and SFTP; accounts; configuration with validation; file storage with Crux's rules; time authority and calendar; health and watchdog; log records. Use **Crux**, from any zone, with its provider bound in composition.
 3. **Is it the product's own behaviour?** Control laws, state machines, protocol logic, limits and alarms. Write **plain C in the domain**, behind ports that the product owns. The domain may call Crux public contracts and service APIs (for example Time, Logging, File, Configuration, System, the Sockets profile and the management services), never Zephyr. It owns no thread: the product's execution shell calls it. It is tested on the Linux Host with fakes of its ports.
 
-Product code meant to run on both Zephyr and Linux may use a POSIX subset; that is the product's choice and not a Crux API. The rule above still holds: Zephyr calls in adapters, plain C in the domain.
+Product code meant to run on both Zephyr and Linux may use a POSIX subset; that is the product's choice and not a Crux API. The rule above still holds: Zephyr calls stay in adapters and the domain stays plain C, with the POSIX subset taking the place of Question 1's Zephyr calls.
 
 ## Examples
 
 | Case | Question 1: Zephyr | Question 2: Crux | Question 3: domain |
 | --- | --- | --- | --- |
 | Cyclic task timers of a ported real-time runtime | One `k_thread` per timer at mapped priorities; `k_sem` or `k_timer` for a wakeable wait; recursive `k_mutex` | Monotonic timestamps, Logging, File for retained data, System watchdog | The runtime's scheduling logic, above its port layer |
-| A controller workload (the `crux-controller` shape) | Producer, consumer and queue as `k_thread` and `k_msgq` | Logging; File for its configuration record | The workload stays plain C with Host tests. The existing `crux-controller` keeps its Crux Thread and Queue code until the P9 decision |
+| A controller workload (the `crux-controller` shape) | Producer, consumer and queue as `k_thread` and `k_msgq` | Logging; File for its configuration record | The workload stays plain C with Host tests. The existing `crux-controller` keeps its Crux Thread and Queue code until it migrates (see the direction below) |
 | A temperature sensor | A Zephyr driver or `i2c_dt_spec` code behind a product port such as `temperature_read(&millikelvin)`; an emulator on `native_sim` | The status service for a remote reading; Configuration or File for limits | Filtering, limits and hysteresis, tested with a fake of the port |
 | An SSH service | The product's priority map places Crux's SSH listener and workers with `CONFIG_CRUX_SSH_LISTENER_PRIORITY` and `CONFIG_CRUX_SSH_WORKER_PRIORITY` (P3) | The `CONFIG_CRUX_SSH`, `CONFIG_CRUX_SSH_CLI` and `CONFIG_CRUX_SSH_SFTP` options; Access; the credential store | Which commands exist and who may run them |
 
