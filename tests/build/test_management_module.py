@@ -104,6 +104,18 @@ class KconfigTest(unittest.TestCase):
             self.assertNotRegex(blocks[symbol].upper(), r"WOLF", symbol)
 
 
+class FixtureTest(unittest.TestCase):
+    """C6: the fixture's prj.conf names the service symbol, and no Thread, Sync or Time symbol."""
+
+    def test_the_fixture_names_no_thread_sync_or_time_symbol(self):
+        text = (REPO / "tests/native/management_module/prj.conf").read_text()
+        self.assertIsNone(re.search(r"(?m)^\s*CONFIG_CRUX_(THREAD|SYNC|TIME)\w*\s*=", text))
+
+    def test_the_fixture_names_the_service_symbol(self):
+        text = (REPO / "tests/native/management_module/prj.conf").read_text()
+        self.assertRegex(text, r"(?m)^CONFIG_CRUX_ACCESS=y$")
+
+
 class ModuleCMakeTest(unittest.TestCase):
     def test_each_port_directory_is_added_only_under_the_service_symbol(self):
         text = MODULE_CMAKE.read_text()
