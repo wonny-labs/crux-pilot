@@ -277,18 +277,18 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 
 On 2026-11-14 the owner decided [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) as option C: **now, a product registers SSH user keys itself, and this section says how; a command-line command and a web API that do it come later, only when a consumer needs one.** No such command or route exists today. The only code that calls `crux_access_account_add_key` outside Access and its tests is the test composition, which is test-only.
 
-| Question | Answer, from `components/access/include/crux/access.h` and the test composition |
+| Question | Answer, from `components/access/include/crux/access.h`, `components/access/src/access_accounts.c` and the test composition |
 | --- | --- |
 | What does the product call? | `crux_access_account_add_key(session, user, key, key_length)`, and `crux_access_account_remove_key` to take a key away |
-| With which session? | One that holds `access.manage` for another account's key. An account's own keys need `access.self` only, which every role holds. The test composition adds keys for two accounts with an administrator session |
-| What is the key? | An SSH public key blob, compared byte for byte, of type `ssh-ed25519` or `ecdsa-sha2-nistp256`: the wire-format blob that the base64 field of an OpenSSH public key line holds, not the text line. Access also accepts P-384 and P-521 blobs today, which SSH never offers: the owner's decision on [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) (option A, Ed25519 and P-256 only) is not implemented yet, so register only those two types. Any other type or form is `INVALID_ARGUMENT`, and `CRUX_ACCESS_KEY_SIZE_MAX` bounds the blob |
-| What can come back? | `NOT_FOUND` (no such account), `ALREADY_EXISTS` (the account already lists this key), `NO_RESOURCES` (its key table is full), `INVALID_ARGUMENT`. The test composition treats `ALREADY_EXISTS` as success, because a later boot on the same disk finds the key that the first boot added |
+| With which session? | One that holds `access.manage` for another account's key. An account's own keys need `access.self` only, which every role holds, but a session under a forced password change is denied even that: it may only change the password and log out, so add a first account's key after that change or with an administrator session. The test composition adds keys for two accounts with an administrator session |
+| What is the key? | An SSH public key blob, compared byte for byte, of type `ssh-ed25519` or `ecdsa-sha2-nistp256`: the wire-format blob that the base64 field of an OpenSSH public key line holds, not the text line. Access also accepts P-384 and P-521 blobs today, which SSH never offers: the owner's decision on [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) (option A, Ed25519 and P-256 only) is not implemented yet, so register only those two types. Any other type or form is `INVALID_ARGUMENT`, and `CRUX_ACCESS_KEY_SIZE_MAX` (192 bytes by default, [Access contract](access-contract.md)) bounds the blob |
+| What can come back? | `NOT_FOUND` (no such account), `ALREADY_EXISTS` (the account already lists this key), `NO_RESOURCES` (its key table is full), `INVALID_ARGUMENT`, and also `DENIED` (the session lacks the permission), `SESSION_INVALID`, `NOT_READY` (Access is not ready) and `STORE` (the save failed and the account is unchanged in RAM). A product handles `STORE` and `DENIED` in particular; the result enum in `access.h` is the full list. The test composition treats `ALREADY_EXISTS` as success, because a later boot on the same disk finds the key that the first boot added |
 | What happens to sessions? | Adding a key leaves the account's sessions as they are. Removing a key ends the account's sessions |
 | When? | After Access is ready and the account exists, before the SSH listener starts, in the composition's own code: [boot order](#boot-order) |
 
 The product decides where its keys come from (a manufacturing step, a setup step, a file it reads) and how it holds them. Crux does not store them for the product: the keys live in the account store, which persists as that store does. On the RT1060-EVKB bench image the store is on a RAM disk, so keys do not survive a restart there.
 
-The example is the function `crux_native_management_ssh_add_keys` in [`tests/native/management_composition/composition/crux_native_management_ssh.c`](../tests/native/management_composition/composition/crux_native_management_ssh.c): it decodes one key from the test arguments and adds it to each listed account with an administrator session. Treat it as a shape to follow, not as code to ship: it is test-only and refuses to build outside a declared `native_sim` test image.
+The example is the function `crux_native_management_ssh_add_keys` in [`tests/native/management_composition/composition/crux_native_management_ssh.c`](../tests/native/management_composition/composition/crux_native_management_ssh.c): it decodes one key, given as hex in the test arguments (`-testargs key=...`), and adds it to each listed account with an administrator session. A product takes its key from its own source and passes the decoded blob. Treat it as a shape to follow, not as code to ship: it is test-only and refuses to build outside a declared `native_sim` test image.
 
 ## Browsers
 
@@ -342,13 +342,13 @@ Decisions that need the owner, with where each is recorded. Nothing here is deci
 | Criterion 1 with one case open on Wolf | [HTTPS composition](https-composition.md#approvals-needed), approval A1, [Issue #280](https://github.com/wonny-labs/crux-pilot/issues/280) | Open |
 | TLS 1.3 only | [HTTPS composition](https-composition.md#approvals-needed), approval A2 | Open |
 | A separately approved physical run on RT1060-EVKB | [HTTPS composition](https-composition.md#approvals-needed), approval A4 | Open |
-| A server deadline for trickled headers | [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268) | Open |
+| A server deadline for trickled headers | [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268) | Decided 2026-11-14, option B (a header-phase deadline, as a build-local patch); not implemented yet |
 | Certificate validity, the private key as PKCS #8 in RAM, `psa_sign_hash` outside the qualified subset, event identifiers | [TLS certificate](tls-certificate.md#owner-decisions-needed-before-adoption), decisions A to D | Open |
-| Which user key types Access accepts and SSH offers | [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) | Open |
-| Emitting the SSH security events | [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) | Open |
+| Which user key types Access accepts and SSH offers | [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) | Decided 2026-11-14, option A (Ed25519 and P-256 only); not implemented yet |
+| Emitting the SSH security events | [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) | Decided 2026-11-14: emit `ssh.auth_limit` and `ssh.host_key_missing` (option A), refusals before the first callback stay reserved (option B); not implemented yet |
 | How a product registers an SSH user key | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) | Decided 2026-11-14, option C: the product registers keys itself ([how](#registering-a-user-key)); a command and a web API only when a consumer needs one |
-| Events for a refused CSRF token or `Origin` | [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319) | Open |
-| Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Open |
+| Events for a refused CSRF token or `Origin` | [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319) | Decided 2026-11-14, option A with rate limiting; not implemented yet |
+| Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Direction accepted 2026-11-14; the row-by-row table is a proposal in review, see [SFTP design](sftp-design.md#each-refusal-and-its-event) |
 | Passing the terminal flag to the SSH `exec` callback | [Issue #269](https://github.com/wonny-labs/crux-pilot/issues/269) | Open |
 | Replacing the host key and printing its fingerprint | [wolfSSH provider](ssh-wolf-provider.md#decisions-for-review), decision 24 | Not built |
 | Safari: no issue tracks running firmware in it | [Web contract](web-contract.md#header-capture) | No issue yet |
