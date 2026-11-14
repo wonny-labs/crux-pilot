@@ -84,6 +84,10 @@ target_compile_definitions(product_adapters PRIVATE CRUX_WARN_FROZEN_HEADERS)
 
 The warning is silent in the targets that Crux's own CMake creates. A Zephyr image usually adds the sources of Crux services to `app`. Those sources include frozen headers on purpose, so they warn if you define the macro on `app` (and fail under the template's `-Werror`). Put the product's adapters in their own library, or accept the warnings from Crux's sources, and rely on `--product` for `app`.
 
+An adapter that calls Zephyr kernel objects (for example `k_msgq_*`) should be a source of the `app` target (`target_sources(app PRIVATE ...)`), not a separate `STATIC` library. In one product (crux-controller, Zephyr 4.4.2, `native_sim` and RT1060-EVKB cross-build) a static library with the adapter failed to link with undefined references to `k_msgq_init` and `z_impl_k_msgq_put`, `z_impl_k_msgq_get` and `z_impl_k_msgq_purge`, while `k_thread` calls in the same file linked. Moving the file to `target_sources(app PRIVATE ...)` fixed it. The cause was not reproduced locally. An adapter that makes no kernel-object calls has not shown this failure.
+
+`--domain DIR` also checks that every quoted include stays inside `DIR`. A domain whose public header lives outside it, for example `include/` beside `src/`, fails that rule for its own sources, so check such a repository with `--product` alone.
+
 ## Shared-state example
 
 `app/src/main.c` shows how product state is shared with threads that Crux services start. A command handler runs on the thread of its console or SSH session, a web handler on the Zephyr HTTP server thread, the reboot busy check on the reboot worker, and a status read on the caller's thread.
