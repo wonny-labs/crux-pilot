@@ -13,6 +13,19 @@ class LoggingCompositionTest(unittest.TestCase):
     def test_rejected_compositions(self):
         root = Path(os.environ.get('CRUX_LOGGING_COMPOSITION_ROOT', str(REPO / 'build/logging-composition')))
         root.mkdir(parents=True, exist_ok=True)
+        udp = ('CONFIG_LOG_BACKEND_UART=n\n'
+               'CONFIG_LOG_BACKEND_NET=y\n'
+               'CONFIG_NETWORKING=y\n'
+               'CONFIG_NET_IPV4=y\n'
+               'CONFIG_NET_UDP=y\n'
+               'CONFIG_NET_SOCKETS=y\n'
+               'CONFIG_NET_CONNECTION_MANAGER=y\n'
+               'CONFIG_LOG_BACKEND_NET_AUTOSTART=y\n'
+               'CONFIG_LOG_BACKEND_NET_USE_CONNECTION_MANAGER=y\n'
+               'CONFIG_LOG_BACKEND_NET_SERVER="127.0.0.1:15141"\n')
+        udp_ipv6 = (udp.replace('CONFIG_NET_IPV4=y\n',
+                                'CONFIG_NET_IPV4=n\nCONFIG_NET_IPV6=y\n')
+                    .replace('127.0.0.1:15141', '[2001:db8::1]:15141'))
         cases = {
             'missing': ('/ { chosen { /delete-property/ zephyr,log-uart; }; };', '',
                         'requires explicit zephyr,log-uart'),
@@ -49,6 +62,44 @@ class LoggingCompositionTest(unittest.TestCase):
                            'shared Console requires Logging-only routing'),
             'evkb_positive': ('', '', None),
             'positive': ('', '', None),
+            'no_backend': ('', 'CONFIG_LOG_BACKEND_UART=n\nCONFIG_LOG_BACKEND_NET=n\n',
+                           'requires at least one supported backend'),
+            'udp_missing_dependencies': ('', 'CONFIG_LOG_BACKEND_UART=n\nCONFIG_LOG_BACKEND_NET=y\n'
+                                         'CONFIG_NETWORKING=y\nCONFIG_NET_UDP=y\nCONFIG_NET_SOCKETS=n\n',
+                                         'requires CONFIG_NET_SOCKETS=y'),
+            'udp_missing_server': ('', udp.replace('CONFIG_LOG_BACKEND_NET_SERVER="127.0.0.1:15141"\n',
+                                                    'CONFIG_LOG_BACKEND_NET_SERVER=""\n'),
+                                   'requires a numeric Syslog server address'),
+            'udp_dhcp_server_option': ('', udp + 'CONFIG_NET_DHCPV4=y\n'
+                                       'CONFIG_LOG_BACKEND_NET_USE_DHCPV4_OPTION=y\n',
+                                       'requires a fixed CONFIG_LOG_BACKEND_NET_SERVER address'),
+            'udp_malformed_server': ('', udp.replace('127.0.0.1:15141', 'not-an-ip'),
+                                     'requires a numeric Syslog server address'),
+            'udp_tcp_server': ('', udp.replace('127.0.0.1:15141', 'tcp://127.0.0.1:15141'),
+                               'does not support TCP Syslog'),
+            'udp_family_mismatch': ('', udp.replace('CONFIG_NET_IPV4=y\n',
+                                                     'CONFIG_NET_IPV4=n\nCONFIG_NET_IPV6=y\n'),
+                                    'address family does not match enabled'),
+            'udp_ipv6_positive': ('', udp_ipv6, None),
+            'udp_bracketed_ipv4': ('', udp.replace('127.0.0.1:15141', '[127.0.0.1]:15141'),
+                                   'bracketed Syslog addresses must use IPv6'),
+            'udp_nontext_output': ('', udp + 'CONFIG_LOG_BACKEND_NET_OUTPUT_DICTIONARY=y\n',
+                                   'requires CONFIG_LOG_BACKEND_NET_OUTPUT_TEXT=y'),
+            'udp_signed_port': ('', udp.replace('127.0.0.1:15141', '127.0.0.1:+15141'),
+                                'requires a numeric Syslog server address'),
+            'udp_port_zero': ('', udp.replace('127.0.0.1:15141', '127.0.0.1:0'),
+                              '1..65535'),
+            'udp_port_too_large': ('', udp.replace('127.0.0.1:15141', '127.0.0.1:65536'),
+                                   '1..65535'),
+            'udp_malformed_ipv6': ('', udp_ipv6.replace('[2001:db8::1]:15141',
+                                                        '[2001:db8::zzz]:15141'),
+                                   'IPv4 or IPv6 syntax'),
+            'udp_scoped_ipv6': ('', udp.replace('127.0.0.1:15141', '[fe80::1%eth0]:15141'),
+                                'scoped IPv6 Syslog addresses are unsupported'),
+            'udp_positive': ('', udp, None),
+            'udp_no_uart_binding': ('/ { chosen { /delete-property/ zephyr,log-uart; }; };', udp, None),
+            'dual_positive': ('', udp.replace('CONFIG_LOG_BACKEND_UART=n\n',
+                                               'CONFIG_LOG_BACKEND_UART=y\n'), None),
         }
         selected = os.environ.get('CRUX_LOGGING_COMPOSITION_CASE')
         if selected and selected not in cases:

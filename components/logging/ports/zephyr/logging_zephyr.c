@@ -12,9 +12,11 @@ bool crux_log_context_allowed(void)
 
 crux_status_t crux_log_impl_write(crux_log_level_t level, const char *tag, const char *text)
 {
+#if defined(CONFIG_LOG_BACKEND_UART)
     if (!device_is_ready(crux_log_zephyr_device())) {
         return CRUX_ERR_NOT_READY;
     }
+#endif
     /* Native deferred packaging copies these writable strings before return.
      * Its void submission API provides no per-record capacity acknowledgement. */
     switch (level) {

@@ -1,7 +1,50 @@
 tests:
-  crux.logging:
+  crux.logging.uart:
     platform_allow:
       - native_sim/native/64
     tags:
       - logging
       - portable
+  crux.logging.udp:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - logging
+      - portable
+    extra_configs:
+      - CONFIG_LOG_BACKEND_UART=n
+      - CONFIG_NETWORKING=y
+      - CONFIG_NET_IPV4=y
+      - CONFIG_NET_IPV6=y
+      - CONFIG_NET_DRIVERS=y
+      - CONFIG_NET_LOOPBACK=y
+      - CONFIG_NET_UDP=y
+      - CONFIG_NET_SOCKETS=y
+      - CONFIG_NET_TEST=y
+      - CONFIG_NET_CONNECTION_MANAGER=y
+      - CONFIG_LOG_BACKEND_NET=y
+      - CONFIG_LOG_BACKEND_NET_AUTOSTART=y
+      - CONFIG_LOG_BACKEND_NET_USE_CONNECTION_MANAGER=y
+      - CONFIG_LOG_BACKEND_NET_SERVER="127.0.0.1:15141"
+      - CONFIG_LOG_BACKEND_NET_MAX_BUF_SIZE=480
+  crux.logging.dual:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - logging
+      - portable
+    extra_configs:
+      - CONFIG_NETWORKING=y
+      - CONFIG_NET_IPV4=y
+      - CONFIG_NET_IPV6=y
+      - CONFIG_NET_DRIVERS=y
+      - CONFIG_NET_LOOPBACK=y
+      - CONFIG_NET_UDP=y
+      - CONFIG_NET_SOCKETS=y
+      - CONFIG_NET_TEST=y
+      - CONFIG_NET_CONNECTION_MANAGER=y
+      - CONFIG_LOG_BACKEND_NET=y
+      - CONFIG_LOG_BACKEND_NET_AUTOSTART=y
+      - CONFIG_LOG_BACKEND_NET_USE_CONNECTION_MANAGER=y
+      - CONFIG_LOG_BACKEND_NET_SERVER="127.0.0.1:15141"
+      - CONFIG_LOG_BACKEND_NET_MAX_BUF_SIZE=480
