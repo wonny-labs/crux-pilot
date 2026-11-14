@@ -235,5 +235,5 @@ On native macOS, in the worktree at `5c09d431`: `git fetch`, reads of the files 
 | Skills and agents used | `ecc:architecture-decision-records` (record shape, with this repository's convention and `docs/decisions/` taking precedence over its defaults), `ecc:search-first` (search of existing seams, tests, targets and precedents before proposing anything new, with no install or dependency) |
 | Model | `claude-sonnet-5-5`, Claude Code |
 | Independent review | The `reviewer` agent, verdict in the pull request |
-| Approval | Proposal only, by the owner in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC: "추천대로 승인할게", relayed by that session. The request came from the Crux Controller chat ("Crux에 요청"), relayed. Acceptance of this record is not given |
+| Approval | Proposal only, by the owner in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC: "추천대로 승인할게", relayed by that session. The request came from the Crux Controller chat ("Crux에 요청"), relayed. This row records the approval to write the proposal only; acceptance is the next row |
 | Acceptance | The owner, as recommended (S1 to S9), 14 November 2026 at about 18:37 UTC in the Crux Pilot main session chat: "추천대로 승인할게". Relayed by that session. See [the owner's decisions](#the-owners-decisions) |
