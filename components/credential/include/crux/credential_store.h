@@ -95,8 +95,9 @@ typedef enum {
  * path, whether or not the medium mounted, before any other thread uses the store and before
  * crux_access_init(). An unbound root gives UNUSABLE, which lasts until the next reset.
  *
- * Thread context only. It can wait on storage and on the store lock. The device keys that the TLS
- * and SSH providers need are made by their own start calls, so a product does not generate them.
+ * Thread context only. It can wait on storage and on the store lock. A product does not generate
+ * device keys: crux_tls_certificate_start() ensures the TLS key, and the SSH composition code of
+ * phase 3 ensures the SSH host key before it starts the provider.
  *
  * @param slot_a File root of the first slot. No file area may name it.
  * @param slot_b File root of the second slot, on a path that does not overlap the first.

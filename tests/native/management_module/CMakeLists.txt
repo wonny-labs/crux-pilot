@@ -6,9 +6,10 @@
 # Build it with the Mbed profile, as scripts/test-management-module.sh does:
 #   -DEXTRA_CONF_FILE=../tls_offload_probe/mbed.conf;../management_composition/profile-psa.conf;../management_composition/mbed-threading.conf
 #
-# What this fixture still reaches by include path, because no public header carries it yet (the
-# composition interfaces of ADR-0004 phase 1a): the Access first-account call and the credential
-# store's start. The TF-PSA-Crypto locks of the Mbed profile come from the management composition's
+# What this fixture still reaches by include path: the Access first-account call, which no public
+# header carries by decision (ADR-0004 section 2), and the credential store's start, which
+# <crux/credential_store.h> and crux::credential_store now carry (phase 1a) but this fixture has not
+# moved to yet. The TF-PSA-Crypto locks of the Mbed profile come from the management composition's
 # test glue, which a later phase decides how a product obtains.
 cmake_minimum_required(VERSION 3.20.0)
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)

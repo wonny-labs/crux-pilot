@@ -79,7 +79,7 @@ flowchart TB
 | --- | --- | --- |
 | 1 | `crux_credential_start(root_a, root_b)` | Once, on every boot path, whether or not the medium mounted, before other threads use the store. Public: `<crux/credential_store.h>` |
 | 2 | `crux_access_init(policy)` | Loads accounts through the bridge. Its `EMPTY` is the absence of the account record. |
-| 3 | `crux_credential_key_ensure(record, type)` | For each key the build needs. A failure stops that listener. Private. A product does not call it: `crux_tls_certificate_start` ensures the TLS key (`components/tls_certificate/src/tls_certificate.c`) and the SSH host key is ensured by the SSH provider's own start |
+| 3 | `crux_credential_key_ensure(record, type)` | Private, and a product does not call it. `crux_tls_certificate_start` ensures the TLS key (`components/tls_certificate/src/tls_certificate.c`), and `crux_ssh_host_key_load` in the SSH composition code (`components/ssh/access/crux_ssh_host_key.c`, phase 3) ensures the SSH host key before the provider starts. A failure stops that listener |
 | 4 | `crux_credential_roots(roots)` | Passed to `crux_file_service_start` as the reserved list, which refuses an area on either slot. Private: a product that composes the file service passes the two roots that it gave to `crux_credential_start` |
 
 ## Slot format

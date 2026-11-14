@@ -207,6 +207,17 @@ class PublicTargets(unittest.TestCase):
                 linked = {word for entry in links for word in entry.split()}
                 self.assertEqual(linked, allowed[component])
 
+    def test_the_include_root_names_a_directory_variable_that_the_file_defines(self):
+        # A misspelt variable would make the include root "/include", which the text check above
+        # would not see and a mock that sets the variables itself would hide.
+        for component in self.CASES:
+            text = self.port_text(component)
+            used = re.findall(r'"\$\{(CRUX_\w+_COMPONENT_DIR)\}/include"', self.body(component) or "")
+            with self.subTest(component=component):
+                self.assertTrue(used)
+                for variable in used:
+                    self.assertRegex(text, rf'get_filename_component\({variable} "\$\{{CMAKE_CURRENT_LIST_DIR\}}/\.\./\.\."')
+
     def test_the_providers_are_not_linked_by_the_public_targets(self):
         # The libraries are registered with the Zephyr link by zephyr_append_cmake_library.
         for component in self.CASES:
