@@ -1,6 +1,6 @@
 # Status and configuration services
 
-Status: implemented on Host with fakes, Issue #180, with `native_sim` suites through CI. The contract is not adopted until review and gate #183 pass. The owner [accepted decisions C1 to C8 on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894) and approved the headers, fakes and Host tests. Target and physical work stays behind M7 and needs its own approval. The reasoning and the threat table are in [the proposal](plans/status-configuration-contract-proposal.md), which this document does not repeat.
+Status: implemented on Host with fakes for [Issue #180](https://github.com/wonny-labs/crux-pilot/issues/180), with `native_sim` suites through CI, and merged in [PR #237](https://github.com/wonny-labs/crux-pilot/pull/237) on 4 November 2026 after an independent re-check returned `PASS`. Gate [#183](https://github.com/wonny-labs/crux-pilot/issues/183) was met the same day, so the contract is adopted for Host and `native_sim` use. Issue #180 stays open for its target and physical criteria. The owner [accepted decisions C1 to C8 on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894) and approved the headers, fakes and Host tests. Target and physical work stays behind M7 and needs its own approval. The reasoning and the threat table are in [the proposal](plans/status-configuration-contract-proposal.md), which this document does not repeat.
 
 | Component | Public header | Usage target |
 | --- | --- | --- |
@@ -148,7 +148,7 @@ sequenceDiagram
 | `save`, `save_local` | Finite wait, `CRUX_CONFIG_SERVICE_SAVE_WAIT_MS`, default 5000, and holds the lock across storage | Worker, SSH session or console thread only |
 | `try_read`, `try_update` | Polls, `ERR_BUSY` if held | A control thread, which keeps its last snapshot on `BUSY` |
 
-A control thread never waits on the service lock or on storage. It can still wait briefly, with no stated bound, on the global Sync metadata lock, and a poll also returns `BUSY` if another reader holds the lock, so a web read can get `503` with no save running. `try_update` and `save_local` produce no event, so a control thread never meets the event lock.
+A control thread never waits on the service lock or on storage. Sync calls take no lock of their own ([Sync slot metadata](thread-sync.md#sync-slot-metadata)). A poll returns `BUSY` if another reader holds the service lock, so a web read can get `503` with no save running. `try_update` and `save_local` produce no event, so a control thread never meets the event lock.
 
 Once a parameter is in a started table, no thread calls `crux_config_read`, `_update`, `_load` or `_save` on it, and no thread calls `crux_config_save` or `crux_config_load` on any parameter, because the provider is caller-serialised too. A parameter the application keeps private goes in the table under a permission no role holds. Validators run with the lock held, so they stay short and never call this service: a call back returns `NOT_READY`.
 

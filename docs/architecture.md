@@ -48,6 +48,76 @@ The diagram distinguishes two supported consumer paths. Crux-owned APIs use comp
 
 Consumers of Crux-owned APIs include `<crux/...>` headers and use their public CMake targets. Sockets consumers instead include the [qualified standard headers](networking-contract.md#socket-profile) and link `crux::sockets`. The [native-free consumer policy](native-interface-policy.md) defines the permitted standard APIs, native restrictions and enforcement limits. Platform-specific samples, test fixtures and product composition code may use OS APIs where their roles require them; that permission does not extend to reusable portable logic.
 
+### Three layers for a product (ADR-0001)
+
+**Source and status.** This subsection restates [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), Decisions 1 and 2, which the owner accepted on 12 November 2026 (D1 to D3). It refines the roles above and replaces none of them: the domain is the existing "portable application logic", adapters are a named part of the existing "platform composition", and the native-free boundary stays where it is. It prescribes no directory layout, and the statement above that roles are not mandatory directories still holds. It adds no check. In Crux the two existing checks stay (`scripts/check-native-interfaces.py` and `cmake/CruxConsumerBoundary.cmake`). The product template carries an example include check for its domain (`templates/product/check_domain_includes.py`). A Host build of the domain is exercised by Crux's template test and is not yet a script that a product copies.
+
+For product code, the ADR names three layers:
+
+| Layer | Owns | May use | Must not use | Tested by |
+| --- | --- | --- | --- | --- |
+| Domain | Product policy, state, workflows | ISO C. Public `<crux/NAME.h>` headers and `crux::` usage targets. Qualified standard profiles such as Sockets. The product's own port headers | Zephyr, board, vendor or Crux private headers. Crux composition interfaces. Devicetree identifiers | Linux Host, with Crux Host providers and product fakes of its ports |
+| Adapters and platform composition (product-owned) | The implementation of each port. Mounting, Devicetree, Kconfig, device initialisation | Any Zephyr API, Devicetree, drivers and subsystems. Crux public headers. Crux composition interfaces | Crux private headers and `ports/` include paths | `native_sim` with Zephyr emulators where they exist, and the board |
+| Crux platform services | Public contracts, usage targets, providers | Inside providers, Zephyr, as today | Product knowledge | Crux's own Host, `native_sim` and board evidence |
+
+A **port** is a header that the product owns, in the domain's tree, written in the product's terms (a temperature, a valve position, a measurement period) and not in a device's terms such as a register or a bus. It holds no Zephyr type. An adapter implements it, and a Host fake implements it in tests. Crux publishes no product ports. A port becomes a Crux capability only under [Extending Crux](#extending-crux) and the rule against pass-through wrappers of native APIs in [AGENTS.md](../AGENTS.md#engineering-approach). This is ports and adapters: the domain calls ports, and adapters implement them with Zephyr, so a product needing a Zephyr feature that Crux does not offer writes an adapter and needs no change in Crux.
+
+**Which API to use.** The [developer rule in Choosing an API](choosing-an-api.md) turns the layers into three questions: OS and hardware facilities use Zephyr directly in the product's adapters, platform services use Crux, and product behaviour is plain C in the domain behind product-owned ports. It also freezes Thread, Sync, Queue and Serial for new product code (approved 13 November 2026): no new features, no real-time extension, existing users keep working, and the deprecation decision waits. In the layer table above, the domain's "public `<crux/NAME.h>` headers" therefore means the non-frozen ones for new code. The product template's include check rejects the four headers in the domain.
+
+Where Zephyr is allowed (Decision 2):
+
+| Place | Zephyr allowed |
+| --- | --- |
+| Product domain | No |
+| Product adapters and platform composition | Yes: any Zephyr API, Devicetree, driver or subsystem. A vendor HAL only where Zephyr has no driver |
+| Crux public headers, `components/<c>/include/crux/` | No, as today |
+| Crux composition interfaces, `components/<c>/ports/zephyr/include/crux/` | Only where a binding needs a Zephyr type, under the [composition interface rules](composition-interfaces.md) |
+| Crux providers, `components/<c>/ports/zephyr/` | Yes, as today |
+| Crux samples' `zephyr/` folders, and tests | Yes, by role, as today |
+
+In a product, the ADR recommends two checks: a lexical include check per zone, and a Host build of the domain. A Zephyr header does not exist in a Linux Host build, so a Zephyr include in the domain then fails to compile. The product owns both checks and may make them stricter. Lexical checks can be bypassed and need review, as the [native-free consumer policy](native-interface-policy.md#three-layers-and-ports-adr-0001) states.
+
+### Current platform structure (ADR-0002)
+
+**Source and status.** This subsection draws the structure that [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) accepted on 13 November 2026. It adds no interface and no check. The [developer rule](choosing-an-api.md) is the same decision in words.
+
+```mermaid
+flowchart TB
+    subgraph PRODUCT["Product software"]
+        direction LR
+        DOM["Product domain<br/>plain C, host-tested"]
+        ADP["Adapters<br/>call Zephyr directly"]
+        DOM <-->|"ports the product owns"| ADP
+    end
+    subgraph CRUX["Crux platform software"]
+        direction LR
+        CON["Public contracts<br/>Time, Logging, File, Config, System, Sockets"]
+        MGT["12 management services<br/>10 use Crux Sync"]
+        FRZ["Frozen API<br/>Thread, Sync, Queue, Serial"]
+        MGT -->|"10 use Sync, cli uses Thread and Serial"| FRZ
+    end
+    subgraph VAR["Platform variants"]
+        direction LR
+        LIN["Linux providers<br/>host test runs, not a product target"]
+        ELX["Embedded Linux<br/>deferred, would plug in<br/>at the service boundary"]
+        ZEP["Zephyr<br/>kernel, drivers, BSP, vendor HALs"]
+    end
+    HW["Target hardware"]
+    DOM -->|"uses"| CON
+    DOM -->|"uses service APIs"| MGT
+    ADP -.->|"bypasses Crux"| ZEP
+    CON --> ZEP
+    MGT -->|"ssh: native threads"| ZEP
+    FRZ --> ZEP
+    CRUX -->|"Host tests"| LIN
+    CRUX -.->|"not planned"| ELX
+    ZEP --> HW
+```
+
+The domain reaches the platform only through Crux's public contracts and service APIs, never Zephyr, and the Linux providers let its tests run on a Host without Zephyr. The adapters use Zephyr threads, locks, queues, devices and buses directly and do not go through Crux (dashed). Of the 12 management services, 10 use Crux Sync. `cli` uses Thread and Serial instead, and `ssh` uses native threads and none of the four frozen APIs. The Linux providers serve the services' Host tests. Sockets has no Crux Linux provider, as it uses the standard socket API of the C library. Embedded Linux has no provider and no plan. The dashed edge marks where one would attach.
+
+**What changed from the original goal.** Crux was first framed as a portability layer: one set of public interfaces over Zephyr and, later, Embedded Linux, so that firmware could move between them. ADR-0002 decided that Zephyr is the execution layer, that products use it directly for OS and hardware facilities, and that Crux keeps its services and public contracts, with Thread, Sync, Queue and Serial frozen for new product code. Embedded Linux is not planned and would be designed at the service boundary if ever needed, and the Linux providers remain as test providers.
+
 ## Component ownership and source layout
 
 Each component owns its applicable public contract, common code, private helpers, build definitions and optional OS-specific implementations:
@@ -72,11 +142,12 @@ cross-OS support. These names do not imply production qualification.
 
 A composition target is not a portable usage target: the native-free consumer check rejects it, and only platform
 composition code or a final application executable links it. `crux::file_zephyr` is the Zephyr example, the binding of a mounted directory to the File
-provider; see [File root binding](file-composition-interface.md).
+provider; see [File root binding](file-composition-interface.md). The general rules for composition interfaces, adopted with
+[ADR-0001](decisions/0001-application-boundary-and-api-stability.md), are in [Composition interface rules](composition-interfaces.md).
 
 For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CPU Busy-wait](time-busy-wait.md) and authority state, with a controlled memory realtime implementation separately from Linux/Zephyr system realtime and an optional Zephyr RTC adapter. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
 
-Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
+Thread and Sync are separate component-owned capabilities, frozen for new product code (see [Choosing an API](choosing-an-api.md)). `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
 
 Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples, and the reference controller with them, are under `samples/` today, and no `applications/` folder exists yet. The owner decided on 9 November 2026 that the maintained integrated applications get their own top-level folder, [`applications/`](#applications-proposed), beside `samples/`. The folder does not exist yet, and `samples/controller` would move into it. That move is not scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposed) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
 
@@ -228,20 +299,20 @@ The folder and the names are decided. The move is not, and nothing is moved by t
 
 ### Current capability integration
 
-This is a source/integration inventory, not a qualification matrix. “Host” means the Linux development configuration; Zephyr support is limited to the selected native_sim/board profiles in the linked records. Presence of portable code does not imply an adopted production backend or physical qualification.
+This is a source/integration inventory, not a qualification matrix. “Host” means the Linux development configuration; Zephyr support is limited to the selected native_sim/board profiles in the linked records. Presence of portable code does not imply an adopted production backend or physical qualification. For each component's Host provider, Zephyr composition, strongest recorded evidence, gaps and provisional stability tier in one table, see [Component readiness](component-readiness.md).
 
 | Capability | Purpose | Current integration and limits | Reference |
 | --- | --- | --- | --- |
 | Base | Common status declarations | Header-only usage in Host and Zephyr; no OS provider | [Public header](../components/base/include/crux/status.h) |
 | Time | Typed monotonic/realtime, authority, calendar and optional CPU Busy-wait | Explicit Memory or Linux system realtime; Zephyr system realtime without RTC, optional RTC storage; no implicit fallback | [Contract](time-contract.md) |
-| Thread | Bounded joinable workers | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
-| Sync | Nonrecursive mutexes and bounded semaphores | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
-| Queue | Bounded copy messaging | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |
+| Thread | Bounded joinable workers (frozen for new product code) | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
+| Sync | Nonrecursive mutexes and bounded semaphores (frozen for new product code) | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
+| Queue | Bounded copy messaging (frozen for new product code) | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |
 | Netif | Read-only primary-interface status | Linux selected-interface and Zephyr network integration | [Networking contract](networking-contract.md) |
 | Sockets | Qualified IPv4 client standard-API profile | Linux libc and selected Zephyr POSIX facilities; no Crux wrapper or separate stack | [Qualified profile](networking-contract.md#socket-profile) |
 | Configuration | Scalar and bounded string validation, explicit save/load and encoding | Portable core with deterministic Host test provider, a selectable no-provider port and simulator-only Zephyr Settings/NVS integration; no EVKB persistence qualification | [Host contract and validation](configuration-validation.md), [simulator validation](configuration-native-validation.md) |
 | File | Bounded synchronous file operations | Linux Host provider and simulator-only Zephyr VFS/LittleFS provider; an optional Reliance Edge provider (GPLv2 west group, simulator tests, RT1060 link only); no EVKB writable-storage qualification | [Contract](file-contract.md), [Host validation](file-validation.md), [simulator validation](file-native-validation.md), [microSD composition](microsd-composition.md), [eMMC composition](emmc-reliance-composition.md) |
-| Serial | Bounded synchronous UART/TTY byte transfer | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
+| Serial | Bounded synchronous UART/TTY byte transfer (frozen for new product code) | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
 | GPIO | Synchronous input on one statically composed logical line | Host simulation and Zephyr native GPIO driver; no output or interrupt API, no physical qualification | [Contract](gpio-contract.md) |
 | Logging | Validated bounded text records and filtering | Linux stderr and selected Zephyr deferred UART logger compositions; explicit UART ownership/configuration checks; no physical qualification | [Contract](logging-contract.md), [validation](logging-validation.md) |
 | System | Service observations, reset diagnostics and single-owner watchdog | Linux watchdog simulation and selected Zephyr HWINFO/watchdog/reset composition; normal Host reset/cause unsupported; physical acceptance pending | [Approved contract](superpowers/specs/2026-10-24-system-health-design.md), [validation](system-validation.md) |
@@ -318,6 +389,26 @@ Run tests proportionate to the change. Preserve existing contract and boundary p
 
 Evidence and historical qualification records must retain their original source, board and toolchain identity. Earlier Time Pilot M0–M5 records in [implementation status](implementation-status.md) are **not** the same milestones as the current platform roadmap.
 
+### Status of a hypothesis or exit criterion
+
+This applies to a hypothesis, such as H1 to H4 of [ADR-0001](decisions/0001-application-boundary-and-api-stability.md#decision-5-crux-value-and-the-evidence-that-would-show-it), and to an exit criterion of a milestone, an issue or a decision record. It governs how new or edited records state a status. It does not restate any existing record, and it adds no approval: the gates in [AGENTS.md](../AGENTS.md#scope-and-authorisation) are unchanged.
+
+A criterion has one of four statuses: **Validated**, **Open**, **Blocked** or **Failed**.
+
+- **Open**: no result yet, or results that cover only part of what the criterion says.
+- **Blocked**: a recorded limitation stops the central claim from being tested or shown. The status names the limitation.
+- **Failed**: a result tested the central claim and contradicted it.
+- **Validated**: a result covers the criterion as worded, and no recorded limitation blocks its central claim.
+
+The rule:
+
+1. **A result that proves only a narrow slice stays labelled as that slice.** The label names the slice: the component, environment, configuration, board, client and revision. It travels with the result when another document cites it.
+2. **A recorded limitation that blocks the central hypothesis keeps the criterion Open, Blocked or Failed.** It is not counted as validated, whatever else passed.
+3. **A narrow success never closes a broader criterion.** A result for one environment does not close a criterion worded for another, and the [evidence kinds above](#engineering-and-validation-boundaries) do not imply one another. For example, a `native_sim` run of a management service is a `native_sim` result, and a criterion worded for a board stays Open or Blocked.
+4. **Limits are written next to the result they limit**: in the same row, paragraph or status line, not only in another document or a later section.
+
+The [component readiness table](component-readiness.md) applies the same reading to each component's evidence.
+
 ## Extending Crux
 
 Before adding or significantly changing a capability:
@@ -336,8 +427,10 @@ Use [CONTRIBUTING](../CONTRIBUTING.md) for code, PR and review requirements and 
 The [capability inventory](#current-capability-integration) links to component-specific API contracts and validation records. For cross-cutting information, use:
 
 - [Build and Integration Guide](build.md)
+- [Choosing an API for product code](choosing-an-api.md)
 - [GPIO contract](gpio-contract.md)
 - [Native-free consumer policy](native-interface-policy.md)
+- [ADR-0001: application boundary and public API stability](decisions/0001-application-boundary-and-api-stability.md) and [composition interface rules](composition-interfaces.md)
 - [Test organisation and commands](../tests/README.md)
 - [Reference controller and supported scenarios](../samples/controller/README.md)
 

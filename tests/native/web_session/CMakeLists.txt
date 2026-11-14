@@ -21,7 +21,7 @@ crux_native_management_compose()
 target_sources(app PRIVATE src/main.c src/test_routes.c ${CRUX_WEB_SESSION_SOURCES}
   ${CRUX_WEB_SESSION_ROUTES} ${CRUX_WEB_SESSION_PSA_PORT})
 target_include_directories(app PRIVATE ${CRUX_WEB_SESSION_DIR} ${CRUX_ROOT}/components/web/src)
-target_link_libraries(app PRIVATE crux_web_adapter)
+target_link_libraries(app PRIVATE crux_web_adapter crux_service_priority_placement)
 if(CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS)
   target_compile_definitions(app PRIVATE CRUX_WEB_SESSION_PLAIN_HTTP_FOR_TESTS=1)
 endif()

@@ -81,7 +81,13 @@ crux_status_t crux_thread_impl_create(thread_native_thread_t *thread, crux_threa
     if (pthread_attr_init(&attributes) != 0) {
         return CRUX_ERR_NO_RESOURCES;
     }
+    /* Every request fits the 64 KiB cap above, but a libc may refuse a stack below its own
+     * minimum (aarch64 glibc: 128 KiB). Raise the allocation to that minimum instead of failing.
+     * Where the minimum is lower (x86-64 glibc: 16 KiB) the stack stays exactly 64 KiB. */
     size_t actual_stack = 65536;
+    if (actual_stack < (size_t)PTHREAD_STACK_MIN) {
+        actual_stack = (size_t)PTHREAD_STACK_MIN;
+    }
     int result = pthread_attr_setstacksize(&attributes, actual_stack);
     if (result == 0) {
         thread->entry = entry;

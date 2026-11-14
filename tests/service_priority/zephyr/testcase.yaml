@@ -1,0 +1,20 @@
+tests:
+  crux.service_priority.defaults:
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    tags:
+      - thread
+    harness: ztest
+  crux.service_priority.placed:
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    tags:
+      - thread
+    harness: ztest
+    extra_args:
+      - EXTRA_CONF_FILE=placed.conf
+      - CRUX_TEST_PLACED=ON

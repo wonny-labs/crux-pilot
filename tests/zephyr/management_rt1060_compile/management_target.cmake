@@ -93,7 +93,8 @@ function(crux_management_target_compose)
         "${component}/cli/include" "${component}/cli/adapter" "${component}/cli/src"
         "${component}/file_service/include" "${component}/file_service/src")
     target_link_libraries(app PRIVATE crux::file crux::sync crux::thread crux::time
-        crux::logging crux::system crux::netif crux_interrupt crux_web_adapter)
+        crux::logging crux::system crux::netif crux_interrupt crux_web_adapter
+        crux_service_priority_placement)
     target_compile_definitions(app PRIVATE
         CRUX_SECURITY_EVENT_RING=32 CRUX_SECURITY_EVENT_RESERVE=8
         CRUX_SECURITY_EVENT_DRAIN_BURST=4 CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS=100

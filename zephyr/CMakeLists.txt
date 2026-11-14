@@ -1,5 +1,10 @@
 message(STATUS "Crux Zephyr integration module discovered")
 
+# Crux's own targets are not product code. This directory definition reaches the targets that
+# the module creates and no usage requirement, so the application does not inherit it. It keeps
+# the opt-in frozen header warning (CRUX_WARN_FROZEN_HEADERS) out of Crux's own sources.
+add_compile_definitions(CRUX_INTERNAL_BUILD)
+
 # Rule L5 of the command line contract applies to every image, including one with no management.
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxManagementShell.cmake")
 crux_check_management_shell()
@@ -13,6 +18,13 @@ if(CONFIG_CRUX_PILOT_MODULE)
         "${CMAKE_CURRENT_LIST_DIR}/../components/base/include"
     )
     add_library(crux::base ALIAS crux_base)
+endif()
+
+# The per-service priority placement of the services' workers (ADR-0002 P3). It exposes nothing by
+# itself: a composition links crux_service_priority_placement to the target that compiles a worker.
+if(CONFIG_CRUX_PILOT_MODULE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/service_priority"
+        "${CMAKE_CURRENT_BINARY_DIR}/service_priority")
 endif()
 
 if(CONFIG_CRUX_TIME OR CONFIG_CRUX_THREAD OR CONFIG_CRUX_SYNC OR CONFIG_CRUX_QUEUE OR CONFIG_CRUX_SYSTEM)

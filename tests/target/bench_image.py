@@ -22,12 +22,14 @@ NAME = 'crux-mgmt-bench-rt1060-evkb-b'          # the image id of the declaratio
 MANIFEST_PATH = 'crux-pilot'
 TARGET = 'mimxrt1060_evk@B//qspi'               # the target string of the firmware identity
 
-# OPEN OWNER QUESTION B4. The plan needs about 2,000 s of capture (boot, clients, a reset, a second boot), and the
-# driver cannot give it: the window is at most MAX_CAPTURE_SECONDS (300 s) and the series budget is 900 s. This is the
-# largest value the existing constraints allow (a driver change is out of scope here); it covers one boot and its first
-# report only, not the traffic steps. A longer window needs the owner's decision, a change of MAX_CAPTURE_SECONDS and of
-# the series budget, which are driver and gate changes made in their own reviewed change.
+# Blocker B4, decided by the owner on 2026-11-12 as option X of docs/rt1060-bench-freeze-and-capture-design.md, part 2.
+# The plan needs about 2,000 s of capture (boot, clients, a reset, a second boot). The program mode keeps its window of
+# MAX_CAPTURE_SECONDS (300 s, unchanged) and its 900 s series: it covers the first boot and its first report. The rest is
+# the read-only watch mode, which runs no probe command, after program has released the port: 2,400 s (decision D2; the
+# design names 2,700 s as the alternative if the 35-minute client figure of the plan is credible). Two evidence files and a
+# seam between them (decision D6 of the design, docs/board-image-profiles.md decisions 33 to 40).
 BENCH_CAPTURE_SECONDS = MAX_CAPTURE_SECONDS
+BENCH_WATCH_SECONDS = 2400
 
 # Section b of the plan: the ten pinned projects and where the build finds them (the build names its modules itself).
 PINNED = {
@@ -153,4 +155,5 @@ def bench_profile():
     return ImageProfile(name=NAME, manifest_path=MANIFEST_PATH, pinned=PINNED, pinned_paths=PINNED_PATHS,
                         check_image=check_image, commit_tag=False, errno_suffix=None,
                         tool_scripts=('record-build-provenance.py', 'freeze-patched-zephyr.sh'), capture='raw',
-                        capture_seconds=BENCH_CAPTURE_SECONDS, extra_roles=('bench_manifest', 'patched_zephyr'))
+                        capture_seconds=BENCH_CAPTURE_SECONDS, extra_roles=('bench_manifest', 'patched_zephyr'),
+                        watch_seconds=BENCH_WATCH_SECONDS)

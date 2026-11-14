@@ -93,11 +93,13 @@ The slot is free before the socket closes, so a client that sees the close can c
 | `CRUX_SSH_WOLF_LISTENER_STACK_BYTES` | 4096 | The same |
 | `CRUX_SSH_WOLF_WINDOW_BYTES` | 16384 | In place of wolfSSH's 128 KiB, which is most of a connection's heap |
 | `CRUX_SSH_WOLF_PACKET_BYTES` | 16384 | Largest channel packet in either direction |
-| `CRUX_SSH_WOLF_THREAD_PRIORITY` | lowest application priority | Below control work |
+| `CRUX_SSH_WOLF_THREAD_PRIORITY` | lowest application priority | Below control work. The default of the two below |
+| `CRUX_SSH_WOLF_LISTENER_PRIORITY` | `CRUX_SSH_WOLF_THREAD_PRIORITY` | From `CONFIG_CRUX_SSH_LISTENER_PRIORITY` when that is not -1. See [Priority map of Crux threads](thread-sync.md#priority-map-of-crux-threads) |
+| `CRUX_SSH_WOLF_WORKER_PRIORITY` | `CRUX_SSH_WOLF_THREAD_PRIORITY` | From `CONFIG_CRUX_SSH_WORKER_PRIORITY` when that is not -1. Every worker has it, with a time slice |
 | `CRUX_SSH_WOLF_COMMAND_MAX` | 1023 | A longer `exec` is refused |
 | `CRUX_SSH_WOLF_OFFER_MLKEM` | off | Offers `mlkem768x25519-sha256` first, if `CONFIG_WOLFSSL_MLKEM=y` compiled it |
 
-A composition sets these on the target `crux_ssh_wolf_provider`, which `crux_ssh_wolf_settings()` creates. The test image does.
+A composition sets these on the target `crux_ssh_wolf_provider`, which `crux_ssh_wolf_settings()` creates. The test image does. With `CONFIG_CRUX_SSH`, `crux_ssh_wolf_settings()` sets the stack sizes, the window and the two priorities from Kconfig.
 
 **The host key form** is what the issue left to this document: the private part, then the public part. That is seed and public key for
 Ed25519, 64 bytes, and scalar and uncompressed point for ECDSA P-256, 97 bytes. These are the parts of a credential store key record, and

@@ -1,0 +1,9 @@
+{
+  "what": "real output of the bench report code (reports 1 to 3: boot, quiet, idle) from the native_sim run of tests/native/bench_report, copied unchanged and never edited. It is host output, not a board UART capture: no bench image has run on a board, so no real capture of the program and watch windows exists. The seam tests split it at a report boundary into the two windows.",
+  "files": {
+    "real-native-reports-1-to-3.txt": {
+      "source": "docs/evidence/rt1060-management-image-feasibility/bench-report-c2/native/run-reports-1-to-3.txt",
+      "sha256": "a7066697f623ba602196deb5efad8c691d3511353e571c8498f3d817f8879c9b"
+    }
+  }
+}

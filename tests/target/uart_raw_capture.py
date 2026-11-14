@@ -21,7 +21,7 @@ from pathlib import Path
 
 import m3_clock
 from capture_m3 import HardwareStop
-from image_profile import MAX_CAPTURE_SECONDS
+from image_profile import MAX_CAPTURE_SECONDS, MAX_WATCH_SECONDS
 
 GAP_THRESHOLD = .25            # seconds between two polls that the accepted Receiver tolerates; more is classified, not fatal
 QUIET_THRESHOLD = 1.             # seconds without a chunk that the analysis reports (offline split of old image and new image)
@@ -112,9 +112,10 @@ def analyse(raw, chunks, gaps, marks, failure, opened, file_bytes=None):
 class RawCapture:
     """One bounded capture. ``window`` is the normal end, ``abort`` the end after a failure of the step it watches."""
 
-    def __init__(self, directory, port, *, seconds, clock=m3_clock.monotonic, sleep=m3_clock.sleep, thread=True):
+    def __init__(self, directory, port, *, seconds, clock=m3_clock.monotonic, sleep=m3_clock.sleep, thread=True,
+                 limit=MAX_CAPTURE_SECONDS):
         self.directory, self.port, self.clock, self.sleep = Path(directory), port, clock, sleep
-        self.seconds = CaptureSpec(seconds).seconds
+        self.seconds = bounded_seconds(seconds, limit)   # the program cap unless the watch mode's spec passes its own
         self.failure, self.stopped_by = None, None
         self.chunks, self.gaps, self.marks = [], [], []
         self.raw = bytearray()
@@ -247,13 +248,33 @@ class RawCapture:
                     acceptance='offline replay required; this is a raw passive capture')
 
 
+def bounded_seconds(seconds, limit):
+    """The window if it is a whole number of seconds from 1 to ``limit``, which must be one of the two reviewed caps."""
+    if limit not in (MAX_CAPTURE_SECONDS, MAX_WATCH_SECONDS):
+        raise ValueError('Unknown capture cap %r' % (limit,))
+    if type(seconds) is not int or not 1 <= seconds <= limit:
+        raise ValueError('Capture window must be a whole number of seconds from 1 to %d' % limit)
+    return seconds
+
+
 class CaptureSpec:
     """What a profile asks for: a raw capture with a bounded window. Opening it is the driver's decision."""
 
+    LIMIT = MAX_CAPTURE_SECONDS                 # the cap of the program mode's window; a class fact, never an argument
+
     def __init__(self, seconds, factory=RawCapture):
-        if type(seconds) is not int or not 1 <= seconds <= MAX_CAPTURE_SECONDS:
-            raise ValueError('Capture window must be a whole number of seconds from 1 to %d' % MAX_CAPTURE_SECONDS)
-        self.seconds, self.factory = seconds, factory
+        self.seconds, self.factory = bounded_seconds(seconds, self.LIMIT), factory
 
     def open(self, port, directory):
         return self.factory(directory, port, seconds=self.seconds)
+
+
+class WatchSpec(CaptureSpec):
+    """The window of the read-only ``watch`` mode: the same capture under its own cap, MAX_WATCH_SECONDS.
+
+    A separate class, so the program mode's spec, its cap and what it passes to the capture stay exactly as reviewed."""
+
+    LIMIT = MAX_WATCH_SECONDS
+
+    def open(self, port, directory):
+        return self.factory(directory, port, seconds=self.seconds, limit=self.LIMIT)
