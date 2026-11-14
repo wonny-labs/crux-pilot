@@ -187,6 +187,45 @@ The earlier evidence remains in the existing execution/messaging/serial/logging
 records. No endurance, sustained load, oscillator tolerance, reset propagation,
 physical latch persistence or worst-case latency qualification is claimed.
 
+## Simulated watchdog on native_sim (tests only)
+
+[ADR-0005](decisions/0005-native-sim-test-watchdog-for-system-consumers.md) route A. The Zephyr module
+offers one Kconfig symbol, `CRUX_SYSTEM_NATIVE_SIM_WATCHDOG`, at tier Experimental
+([ADR-0001](decisions/0001-application-boundary-and-api-stability.md) Decision 4). It adds no header,
+no target and no function. Set it in a `native_sim`-only fragment, with `CRUX_SYSTEM`, `WATCHDOG`,
+`HWINFO` and `REBOOT`, and `crux::system` finds a private simulated watchdog device where the normal
+simulator composition finds none. It is off by default, and every image and test that does not set it
+is unchanged. It selects `NATIVE_SIM_REBOOT`, so a missed feed restarts the simulated process.
+
+- **Refused elsewhere.** The symbol has no board dependency on purpose: an unmet `depends on` only
+  warns and leaves the symbol off, so a product would believe it had a simulation. The component stops
+  the configure step with an error naming the symbol on any board but `native_sim`, and the binding
+  repeats it as an `#error`.
+- **The device.** One channel, window minimum 0 and the reset flag only, which is the call sequence of
+  the shared provider. A missed feed prints one line and calls `sys_reboot`, the path
+  `crux_system_reset` takes. `watchdog_emulated` is `true` exactly when this device is bound.
+- **What a `native_sim` run can show.** The boot cause line, a start with state ACTIVE, a feed cycle
+  with no restart, a missed feed that restarts the process, and a second boot with a fresh IDLE state.
+- **What it cannot show.** The `WATCHDOG` cause bit: the native HWINFO supports POR and SOFTWARE only,
+  and the restart records SOFTWARE. A product's warning for a watchdog reset stays covered by its Host
+  test with injected causes. Nothing models the hardware timer, WDOG1 resolution, debug pause, flag
+  accumulation or power loss.
+- **Not hardware evidence.** A pass says that a product calls System in the right order and handles the
+  answers in simulated kernel time. It says nothing about the RT1060-EVKB, its watchdog, its reset or
+  its reset-cause register, and no board result may cite it.
+- **The restart can loop.** A scenario that never feeds restarts for ever, so it must tell the second
+  boot apart by the SOFTWARE cause and feed on it.
+  `tests/system/zephyr/native_sim_watchdog` does this. Arming order and the reset-loop policy
+  (when to arm, what to do after repeated watchdog resets) belong to the product. Crux System has no
+  stop, no rearm and no boot journal by contract, and adds none for this symbol.
+  [ADR-0005 section 5](decisions/0005-native-sim-test-watchdog-for-system-consumers.md#5-the-possible-reset-loop)
+  lists the options.
+
+The Host checks are `tests/build/test_system_native_sim_watchdog.py` and two cases of
+`tests/build/test_system_composition.py`. The `native_sim` scenario is
+[`tests/system/zephyr/native_sim_watchdog`](../tests/system/zephyr/native_sim_watchdog/testcase.yaml),
+run by `scripts/test-system.sh` through Twister.
+
 ## Minimal physical verification proposal — not authorized or performed
 
 After separate approval, identify the exact revision-B target, probe, firmware,

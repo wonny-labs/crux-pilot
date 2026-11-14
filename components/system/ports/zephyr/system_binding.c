@@ -2,7 +2,25 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/sys/util.h>
 
+#if defined(CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG) && !defined(CONFIG_BOARD_NATIVE_SIM)
+#error "CRUX_SYSTEM_NATIVE_SIM_WATCHDOG is a native_sim test setting, refused on other boards"
+#endif
+
 #if defined(CONFIG_BOARD_NATIVE_SIM)
+#if defined(CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG)
+#include "system_sim_watchdog.h"
+/* Test-only: the private simulated watchdog of system_sim_watchdog.c. */
+
+const struct device *crux_watchdog_zephyr_device(void)
+{
+    return crux_system_sim_watchdog_device();
+}
+
+bool crux_watchdog_zephyr_running(void)
+{
+    return crux_system_sim_watchdog_running();
+}
+#else
 /* No physical watchdog is claimed by the normal simulator composition. Tests
  * substitute an actual native driver object at this private binding seam. */
 
@@ -15,6 +33,7 @@ bool crux_watchdog_zephyr_running(void)
 {
     return false;
 }
+#endif
 #elif defined(CONFIG_BOARD_MIMXRT1060_EVK)
 #if !DT_NODE_EXISTS(DT_ALIAS(crux_watchdog0))
 #error "Crux System requires explicit crux-watchdog0 selection"
