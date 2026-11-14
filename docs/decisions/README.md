@@ -1,6 +1,6 @@
 # Architecture decision records
 
-Status: **in use**. [ADR-0001](0001-application-boundary-and-api-stability.md) and [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) are accepted, and the convention below applies to both.
+Status: **in use**. [ADR-0001](0001-application-boundary-and-api-stability.md), [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) and [ADR-0003](0003-p9-result-services-keep-narrow-thread-sync.md) are accepted, and the convention below applies to all three.
 
 A decision record holds one platform-wide decision that stays in force: its context, the options, their trade-offs, the recommendation and the owner's decision. A decision that belongs to one capability stays in that capability's contract or design document, as today. Examples are the decision tables in the [product composition guide](../product-composition.md) and the [File root binding](../file-composition-interface.md). Records under `docs/plans/` stay as they are. They are historical, and the documentation check excludes them.
 

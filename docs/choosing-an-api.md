@@ -10,7 +10,7 @@ Ask them in order for each piece of code.
 2. **Is it a platform service that Crux provides?** Management over web, command line, SSH and SFTP; accounts; configuration with validation; file storage with Crux's rules; time authority and calendar; health and watchdog; log records. Use **Crux**, from any zone, with its provider bound in composition.
 3. **Is it the product's own behaviour?** Control laws, state machines, protocol logic, limits and alarms. Write **plain C in the domain**, behind ports that the product owns. The domain may call Crux public contracts and service APIs (for example Time, Logging, File, Configuration, System, the Sockets profile and the management services), never Zephyr. It owns no thread: the product's execution shell calls it. It is tested on the Linux Host with fakes of its ports.
 
-Product code meant to run on both Zephyr and Linux may use a POSIX subset; that is the product's choice and not a Crux API. The rule above still holds: Zephyr calls stay in adapters and the domain stays plain C, with the POSIX subset taking the place of Question 1's Zephyr calls.
+Product code meant to run on both Zephyr and Linux may use a POSIX subset; that is the product's choice and not a Crux API. It needs a C library for Zephyr's POSIX layer that the Crux workspace does not have today (see O5 in [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md)). The rule above still holds: Zephyr calls stay in adapters and the domain stays plain C, with the POSIX subset taking the place of Question 1's Zephyr calls.
 
 ## Examples
 

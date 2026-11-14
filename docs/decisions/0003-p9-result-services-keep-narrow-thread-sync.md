@@ -6,22 +6,33 @@ This record is documentation only. It changes no code, check, contract or protec
 
 ## Context
 
-P9 of ADR-0002 left one choice open until evidence existed: keep a slim internal Crux Thread and Sync (O4), or move the services to Zephyr kernel objects (O2). It fixed the rule before the runs. The reboot pilot supplies the evidence:
+P9 of ADR-0002 left the internals choice open until evidence existed: keep a slim internal Crux Thread and Sync (O4), or move the services to Zephyr kernel objects (O2). It fixed the rule before the runs, and the pilot's exit criteria (D-D, section 3.5 of the pilot report, approved on 13 November 2026) refine it. The reboot pilot supplies the evidence:
 
 - [Stage A](../research/reboot-native-sim-stage-a.md), merged, ran the 79 `reboot` cases on `native_sim` over the unchanged Crux providers: 79 cases, 0 failed.
 - Stage B, `docs/research/reboot-zephyr-direct-stage-b.md` on branch `pilot-reboot-zephyr-direct` (Draft PR #399, not merged), moved the `reboot` service to `k_mutex`, `k_sem`, `k_thread` and `k_msleep`. The service core changed by 47 lines added and 31 removed, and the flake bar passed (100 of 100 runs, then 200 of 200).
 
-Every figure here comes from those two records. They are local figures from arm64 containers. Neither record contains a CI figure, and nothing ran on a physical board.
+Every figure here comes from those two records. They are local figures from arm64 containers. Neither record contains a CI run of the pilot suites. The only CI number in them, 268 s for the whole `host-sanitize` preset, is used as a context denominator. Nothing ran on a physical board.
 
 Against the D-D rule, O2 needs every criterion to hold, and four fail, two of them (M4 and M6) on one suite:
 
-- **M2.** On the same suites the `native_sim` run takes about 19 to 23 times the Host `host-sanitize` run, against a limit of 2.
+- **M2.** On the same suites, the like-for-like basis that the pilot protocol fixed, Stage B's `native_sim` run takes about 19 to 23 times the Host `host-sanitize` run (Stage A, under load: about 33 and 52), against a limit of 2.
 - **M4 and M6, narrowly.** The 9 checks of `sleep_provider` no longer run.
 - **Blockers B1 to B4** have no owner answer.
 
-D-D also keeps the slim shim if M2 is above 2, and on the like-for-like basis it is. Not measured: the ThreadSanitizer suites (B4) and any physical board. Neither the Host nor the `native_sim` build has a race detector for these suites, so neither shows a data race.
+D-D also keeps the slim shim if M2 is above 2, and on that basis it is. Dividing instead by the whole `host-sanitize` preset gives 0.19 to 0.69, but that divides different test sets, and the records do not count it as a pass. Not measured: the ThreadSanitizer suites (B4) and any physical board. Neither the Host nor the `native_sim` build has a race detector for these suites, so neither shows a data race.
 
 ## Decisions
+
+Reasons and alternatives are taken from the pilot records, ADR-0002 and the [platform direction review](../research/platform-direction-review.md). The recommendation is the Crux Pilot main session's, as it relayed it to the owner in the session, and the owner approved it as stated ([the owner's decision](#the-owners-decision)).
+
+| # | Recommendation | Reason | Alternative |
+| --- | --- | --- | --- |
+| R1 | O4: keep a narrow Crux Thread and Sync inside the services | O2's criteria do not all hold (above), and the service swap itself was small and passed the flake bar | O2: move the services to Zephyr kernel objects |
+| R2 | State the rule for both OSes, with Crux's services using the narrow Thread and Sync | It is P1 with the services' inside named, so product code sees no change under O4 | Leave P1 as it is, which does not say what the services use |
+| R3 | Thread and Sync become internal later, in a separate approved change, after the migrations | The switch is the owner's call, and the consumers must move first. P2 already freezes new use | Decide deprecation now, which ADR-0002's P9 rejected as untested option c |
+| R4 | Record `ssh`'s native threads as a known exception | It is the current state, and the review lists it (F7) | None |
+| R5 | Embedded Linux is expected and designed at the service boundary when its first product is defined, with no date | The owner expects the integration, and the service boundary is where ADR-0002 already placed it | ADR-0002's P8 wording, "not planned for the foreseeable future" |
+| R6 | Record the POSIX subset as candidate O5, evaluated when a Linux product is defined | The review evaluated it and it lost at the recorded pin (F18), and it stays an option for a consumer whose evidence differs | Drop O5, or adopt it now without a Linux product |
 
 1. **R1. P9 result: O4.** Crux's services keep a narrow Crux Thread and Sync internally, with Zephyr and Linux providers. The services do not move to Zephyr kernel objects (O2).
 2. **R2. Principle.** Product code uses the OS natively: Zephyr products call Zephyr, Linux products call Linux. Crux's services use the narrow Crux Thread and Sync. Other OS facilities (drivers, networking, storage) are used natively in adapters. This is P1 with the services' inside named.
