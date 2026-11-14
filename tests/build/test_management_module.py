@@ -162,6 +162,55 @@ class SourceParityTest(unittest.TestCase):
             self.assertLessEqual(set(port_sources(component)), allowed, component)
 
 
+SCRIPT = REPO / "scripts/test-management-module.sh"
+
+
+class ScriptTest(unittest.TestCase):
+    """What scripts/test-management-module.sh must do, so that a defect in it fails here first."""
+
+    def setUp(self):
+        self.text = SCRIPT.read_text()
+
+    def test_the_image_run_has_a_time_limit(self):
+        self.assertRegex(
+            self.text, r"(?m)^\s*timeout\s+(-k\s+\d+\s+)?\S+\s+\"\$build/zephyr/zephyr\.exe\"")
+
+    def test_no_nm_output_is_piped_into_grep_quiet(self):
+        # grep -q exits at the first match, nm then gets SIGPIPE, and pipefail turns a match into a failure
+        # that an `if` reads as "no match". A pipe from nm, or from the script's own wrapper of it, into any
+        # grep spelling of quiet is refused.
+        self.assertIsNone(re.search(r"(nm|defined_symbols)\b[^\n]*\|\s*grep\b[^\n]*(\s-\w*q|--quiet)",
+                                    self.text))
+
+    def default_off_section(self):
+        return self.text.split("# Default off")[1]
+
+    def test_the_default_off_check_lists_every_service_symbol_and_entry_point(self):
+        section = self.default_off_section()
+        symbols = re.search(r"for symbol in ([^;]*?);\s*do", section, re.DOTALL).group(1).replace("\\\n", " ")
+        entries = re.search(r"for entry in ([^;]*?);\s*do", section, re.DOTALL).group(1).replace("\\\n", " ")
+        for symbol in ("CRUX_ACCESS", "CRUX_CREDENTIAL", "CRUX_SECURITY_EVENT", "CRUX_CONFIG_SERVICE",
+                       "CRUX_MGMT_STATUS", "CRUX_CONFIGURATION_CORE"):
+            self.assertIn(symbol, symbols.split(), symbol)
+        for function in ("crux_access_init", "crux_credential_start", "crux_security_event_init",
+                         "crux_config_service_start", "crux_mgmt_status_start"):
+            self.assertIn(function, entries.split(), function)
+
+    def test_the_default_off_check_fails_on_a_match_and_reads_the_elf_without_a_pipe(self):
+        section = self.default_off_section()
+        self.assertRegex(section, r"off_symbols=\"\$\(defined_symbols \"\$off/zephyr/zephyr\.elf\"\)\"")
+        self.assertRegex(section, r"! grep -qE[^\n]*<<< \"\$off_symbols\" \|\| fail")
+        self.assertRegex(section, r"! grep -q \"\^CONFIG_\$\{symbol\}=y\" \"\$off/zephyr/\.config\" \|\| fail")
+
+    def test_the_header_claims_only_what_the_script_checks(self):
+        header = self.text.split("set -euo pipefail")[0]
+        self.assertNotIn("libraries are in the link", header)
+        self.assertIn("ELF defines the entry point", header)
+        # The claim is backed by code: the fixture's ELF is read and each entry point is searched in it.
+        self.assertRegex(self.text, r"fixture_symbols=\"\$\(defined_symbols \"\$build/zephyr/zephyr\.elf\"\)\"")
+        self.assertRegex(self.text, r"grep -qE[^\n]*<<< \"\$fixture_symbols\" \|\| fail")
+
+
 # Slice 2: the Configuration service and the status service. Two visible symbols that need Access, and
 # one hidden symbol for the Configuration core that both read: the character rule and, until a provider
 # exists for a target (#16), the no-provider port.
