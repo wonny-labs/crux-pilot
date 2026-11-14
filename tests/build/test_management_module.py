@@ -166,7 +166,7 @@ class SourceParityTest(unittest.TestCase):
 # one hidden symbol for the Configuration core that both read: the character rule and, until a provider
 # exists for a target (#16), the no-provider port.
 SLICE2_VISIBLE = {
-    "CRUX_CONFIG_SERVICE": {"CRUX_CONFIGURATION_CORE", "CRUX_THREAD", "CRUX_SYNC", "CRUX_TIME"},
+    "CRUX_CONFIG_SERVICE": {"CRUX_CONFIGURATION_CORE", "CRUX_SYNC"},
     "CRUX_MGMT_STATUS": {"CRUX_CONFIGURATION_CORE", "CRUX_SYNC", "CRUX_TIME"},
 }
 SLICE2_HIDDEN = ("CRUX_CONFIGURATION_CORE",)

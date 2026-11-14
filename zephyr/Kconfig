@@ -473,14 +473,13 @@ config CRUX_SECURITY_EVENT
       because the events cannot be linked without Access and the credential store.
 
 # ADR-0004 phase 0, slice 2: the Configuration service and the status service. Each needs Access and so
-# selects nothing of it. Each selects the Thread, Sync and Time symbols that it uses itself (ADR-0004 C6).
+# selects nothing of it. Each selects the Crux symbols that it links itself (ADR-0004 C6): both use Sync,
+# and the status service also reads Time.
 config CRUX_CONFIG_SERVICE
     bool "Crux Configuration service (Experimental)"
     depends on CRUX_PILOT_MODULE && CRUX_ACCESS
     select CRUX_CONFIGURATION_CORE
-    select CRUX_THREAD
     select CRUX_SYNC
-    select CRUX_TIME
     help
       Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
       release, and the release notes list the change. Off by default, and nothing changes in an image
@@ -489,9 +488,10 @@ config CRUX_CONFIG_SERVICE
       Builds the Configuration service core and the provider of its event port over the security
       events, and the Configuration core beneath it. It starts nothing and adds no crux:: target and
       no public header: the application lists its parameters and calls crux_config_service_start().
-      Without CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE there is no save provider, so a save answers
-      NOT_SUPPORTED (the "no provider" port of components/configuration), and the service still reads
-      and updates parameters in memory.
+      Without CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE there is no save provider, a save returns
+      CRUX_CONFIG_SERVICE_ERR_STORE with CRUX_CONFIG_ERR_NOT_SUPPORTED in the report's failed_result
+      (the "no provider" port of components/configuration), and the service still reads and updates
+      parameters in memory.
 
 config CRUX_MGMT_STATUS
     bool "Crux status service (Experimental)"
