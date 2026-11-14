@@ -1,17 +1,17 @@
 /* The pthread calls that the unchanged reboot suites and fakes make, over Zephyr kernel objects.
  *
- * Why not Zephyr's POSIX layer: it needs a C library that is not the host's (CONFIG_POSIX_API selects
- * options that require picolibc or newlib), and the pinned workspace has neither picolibc nor a
- * toolchain that carries it. native_sim then links the host's glibc, whose pthread_create() starts a
- * host thread that the Zephyr scheduler does not know and that enters the kernel at the same time as
- * the simulated one: the kernel's own spinlock checks fail within seconds. These calls make Zephyr
- * threads instead, so that every thread of a case is scheduled by the kernel. Only what the suites
- * use exists.
+ * Why not Zephyr's POSIX layer: it needs a C library that is not the host's (CONFIG_POSIX_API
+ * selects options that require picolibc or newlib), and the pinned workspace has neither picolibc
+ * nor a toolchain that carries it. native_sim then links the host's glibc, whose pthread_create()
+ * starts a host thread that the Zephyr scheduler does not know and that enters the kernel at the
+ * same time as the simulated one: the kernel's own spinlock checks fail within seconds. These calls
+ * make Zephyr threads instead, so that every thread of a case is scheduled by the kernel. Only what
+ * the suites use exists.
  *
  * Two differences from POSIX that a suite could notice: a Zephyr k_mutex is recursive and inherits
  * priority, so a thread that locks its own mutex twice, which hangs a default Linux mutex, does not
- * hang here; and pthread_barrier_wait() never returns PTHREAD_BARRIER_SERIAL_THREAD. No suite relies
- * on either. */
+ * hang here; and pthread_barrier_wait() never returns PTHREAD_BARRIER_SERIAL_THREAD. No suite
+ * relies on either. */
 #ifndef REBOOT_NATIVE_PTHREAD_H
 #define REBOOT_NATIVE_PTHREAD_H
 

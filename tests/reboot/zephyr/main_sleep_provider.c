@@ -1,5 +1,5 @@
-/* tests/reboot/sleep_provider.c on native_sim, over the real Zephyr Sync provider with the semaphore
- * take wrapped as on the Host. It has one case and needs no isolation. */
+/* tests/reboot/sleep_provider.c on native_sim, over the real Zephyr Sync provider with the
+ * semaphore take wrapped as on the Host. It has one case and needs no isolation. */
 #include <zephyr/ztest.h>
 
 int reboot_sleep_provider_main(void);

@@ -1,5 +1,5 @@
-/* tests/web/reboot/routes.c and openapi_fixture.c on native_sim, with the route table that names the
- * reboot routes. crux_web_respond and crux_mutex_lock are wrapped as on the Host. */
+/* tests/web/reboot/routes.c and openapi_fixture.c on native_sim, with the route table that names
+ * the reboot routes. crux_web_respond and crux_mutex_lock are wrapped as on the Host. */
 #include "main_common.h"
 
 #include <zephyr/ztest.h>
