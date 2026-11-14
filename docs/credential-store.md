@@ -4,7 +4,8 @@ Status: merged in [PR #235](https://github.com/wonny-labs/crux-pilot/pull/235) f
 [accepted proposal](plans/credential-store-contract-proposal.md), which this document does not repeat. S1 to S7 are
 accepted, recorded in [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894).
 
-Owner: `components/credential`. Public header `<crux/credential_store.h>`, usage target `crux::credential_store`. Adapter
+Owner: `components/credential`. Public header `<crux/credential_store.h>` (Experimental), usage target `crux::credential_store`. It declares the store's
+state and `crux_credential_start`, and nothing that reads or writes a record (ADR-0004, phase 1a). Adapter
 header `crux_credential_adapter.h`, internal target `crux_credential_adapter`. The private ports are in
 `components/credential/src/credential_port.h`.
 
@@ -67,7 +68,7 @@ flowchart TB
 
 | Target | Who links it | What it exposes |
 | --- | --- | --- |
-| `crux::credential_store` | A project that displays the basis, the status service | The public header only. It links the core, which needs providers, so an image without them does not link. |
+| `crux::credential_store` | A product that starts the store, a project that displays the basis, the status service | The public header only, with the File contract that it includes. On Host it links the core, which needs providers, so an image without them does not link. In the Zephyr module (`CONFIG_CRUX_ACCESS`) it is an INTERFACE target that adds the include root and links `crux::base` and `crux::file`, and the module links the library itself. |
 | `crux_credential_adapter` | The bridge, TLS and SSH providers, a composition, always `PRIVATE` | The adapter header. `cmake/CruxCredentialBoundary.cmake` rejects any path by which it reaches a consumer. |
 | `crux_credential_access_store` | A composition | Nothing. It implements a private port of Access. |
 | `crux_credential_test_composition` and `_small` | Only `tests/credential` | Exist only under `CRUX_BUILD_TESTS`. |
@@ -76,10 +77,10 @@ flowchart TB
 
 | Step | Call | Notes |
 | --- | --- | --- |
-| 1 | `crux_credential_start(root_a, root_b)` | Once, on every boot path, whether or not the medium mounted, before other threads use the store |
+| 1 | `crux_credential_start(root_a, root_b)` | Once, on every boot path, whether or not the medium mounted, before other threads use the store. Public: `<crux/credential_store.h>` |
 | 2 | `crux_access_init(policy)` | Loads accounts through the bridge. Its `EMPTY` is the absence of the account record. |
-| 3 | `crux_credential_key_ensure(record, type)` | For each key the build needs. A failure stops that listener. |
-| 4 | `crux_credential_roots(roots)` | Passed to `crux_file_service_start` as the reserved list, which refuses an area on either slot |
+| 3 | `crux_credential_key_ensure(record, type)` | For each key the build needs. A failure stops that listener. Private. A product does not call it: `crux_tls_certificate_start` ensures the TLS key (`components/tls_certificate/src/tls_certificate.c`) and the SSH host key is ensured by the SSH provider's own start |
+| 4 | `crux_credential_roots(roots)` | Passed to `crux_file_service_start` as the reserved list, which refuses an area on either slot. Private: a product that composes the file service passes the two roots that it gave to `crux_credential_start` |
 
 ## Slot format
 
