@@ -10,6 +10,8 @@ Ask them in order for each piece of code.
 2. **Is it a platform service that Crux provides?** Management over web, command line, SSH and SFTP; accounts; configuration with validation; file storage with Crux's rules; time authority and calendar; health and watchdog; log records. Use **Crux**, from any zone, with its provider bound in composition.
 3. **Is it the product's own behaviour?** Control laws, state machines, protocol logic, limits and alarms. Write **plain C in the domain**, behind ports that the product owns. The domain may call Crux public contracts and service APIs (for example Time, Logging, File, Configuration, System, the Sockets profile and the management services), never Zephyr. It owns no thread: the product's execution shell calls it. It is tested on the Linux Host with fakes of its ports.
 
+Product code meant to run on both Zephyr and Linux may use a POSIX subset; that is the product's choice and not a Crux API. The rule above still holds: Zephyr calls in adapters, plain C in the domain.
+
 ## Examples
 
 | Case | Question 1: Zephyr | Question 2: Crux | Question 3: domain |
@@ -25,7 +27,7 @@ Do not use `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` or `<crux/serial
 
 - **Frozen means:** no new features and no real-time extension. It adds no promise and removes none. The contracts, tests and evidence stay as they are, and existing users keep working.
 - **Why:** threads and locks decide scheduling, through priorities, inheritance and pools. Two kinds of them in one image is a design problem. Time, Logging, File, Configuration and System carry policy or serve both of today's product consumers, and none of them decides scheduling, so they stay public contracts.
-- **Not decided yet:** whether these four are deprecated or become Crux-internal. That decision (P9 of ADR-0002) waits for D10 phase 1, a `native_sim` sanitizer probe and a slim-Sync spike. Until then nothing is removed.
+- **Direction (P9 result of ADR-0002, O4):** Crux's services keep a narrow Crux Thread and Sync inside, and Thread and Sync are to become internal to Crux. That switch is a later, separate change that needs the owner's approval. Queue and Serial are decided separately. Until then nothing is removed, and the freeze stays.
 - **Checked in the template:** `templates/product/check_domain_includes.py` rejects these four headers, every `<zephyr/...>` header and the Crux composition interfaces in a product's domain, and the template's tests run it. Nothing checks the rest of the product's code, and Crux's own trees and D10's Build B are exempt.
 
 ## Coexistence in one image

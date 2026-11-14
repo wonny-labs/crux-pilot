@@ -7,7 +7,7 @@ A decision record holds one platform-wide decision that stays in force: its cont
 | # | Title | Status |
 | --- | --- | --- |
 | [0001](0001-application-boundary-and-api-stability.md) | Application boundary and public API stability | Accepted, D10 phase 1 only. Amended by ADR-0002 |
-| [0002](0002-platform-direction-zephyr-execution-crux-services.md) | Platform direction: Zephyr for execution, Crux for services | Accepted, 13 November 2026 |
+| [0002](0002-platform-direction-zephyr-execution-crux-services.md) | Platform direction: Zephyr for execution, Crux for services | Accepted, 13 November 2026. P9 result (O4) added by amendment, 14 November 2026 |
 
 ## Convention
 
