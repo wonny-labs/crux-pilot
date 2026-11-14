@@ -1,6 +1,6 @@
 # ADR-0004: How a product composes the Crux management services (proposal)
 
-Status: **Proposed**, 14 November 2026. Nothing here is adopted, and adoption is the owner's alone. Baseline: `origin/main` at `a72032b2f29c8c4579de8de07a43b40f19bb9516`. Author: Claude Code, model `claude-sonnet-5-5`. The owner approved writing this proposal, and only the proposal, in the Crux Pilot main session on 14 November 2026 (relayed by that session as the words "추천대로 승인할게", meaning "I approve as you recommended"). The scope for the product comes from the owner's decision in the Crux Controller chat on 14 November 2026 at about 16:30 UTC (also relayed): the management set plus the System service, HTTPS first on the Mbed profile, SSH and SFTP later on a manual job that publishes nothing. Excluded: Device I/O, the four frozen headers on the product surface, Reliance and eMMC, Linux and RT1170.
+Status: **Accepted** on 14 November 2026, as recommended: C1 to C9, with C8 deferred. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `a72032b2f29c8c4579de8de07a43b40f19bb9516`. Author: Claude Code, model `claude-sonnet-5-5`. The owner approved writing this proposal, and only the proposal, in the Crux Pilot main session on 14 November 2026 (relayed by that session as the words "추천대로 승인할게", meaning "I approve as you recommended"). The scope for the product comes from the owner's decision in the Crux Controller chat on 14 November 2026 at about 16:30 UTC (also relayed): the management set plus the System service, HTTPS first on the Mbed profile, SSH and SFTP later on a manual job that publishes nothing. Excluded: Device I/O, the four frozen headers on the product surface, Reliance and eMMC, Linux and RT1170.
 
 This record is documentation only. It adds no code, check, target, header or Kconfig symbol, adopts no public interface and changes no protected path. It does not edit an accepted ADR. Every change that it puts forward would be its own reviewed change, listed under [Follow-up changes](#follow-up-changes).
 
@@ -248,7 +248,25 @@ The recommendation comes first in each row.
 
 ### The owner's decisions
 
-Pending. This section stays empty until the owner decides. Accepting this record decides C1 to C9 as recommended unless the owner says otherwise. It changes no code, check or protected path. Each follow-up is its own reviewed change ([the convention](README.md#convention)).
+The owner accepted this record as recommended, in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC. The time is the one the Crux Pilot main session read from its shell (17:50:36Z) when it acted, moments after the owner's message, and the owner's time zone was not recorded. The owner's words, relayed by that session, answered its question "accept ADR-0004 as recommended (C1-C9)":
+
+> 추천대로 승인할게
+
+This means "I approve as you recommended". The main session had explained C2 and C4 and their trade-offs in that message, and it had recommended deferring C8. Acceptance was recorded from the owner's words as that session relayed them.
+
+| # | Decision |
+| --- | --- |
+| C1 | Route A: composition interfaces under the six rules, phased |
+| C2 | The subset of section 2. `web_zephyr` is the one composition interface. The TLS certificate calls, the credential start and the web session and management lifecycle are ordinary service API. First-account provisioning and raw credential access stay private. Publishing the TLS certificate and credential calls must resolve the credential boundary rule |
+| C3 | The network apply port is a header with two declarations that the product implements |
+| C4 | A1 for phase 1: the product adapter calls `tls_credential_add`. It is security-sensitive, and the owner may ask to revisit it before the certificate step |
+| C5 | Phase 1 includes the serial CLI first-account step before any board image |
+| C6 | Service Kconfig symbols `select` Thread and Sync, so a product's `prj.conf` names only service symbols |
+| C7 | The licence boundary uses a blocklist in the product manifest, with T5 |
+| C8 | **Deferred.** Phase 3 (SSH, the command line over SSH and SFTP) is not planned until the wolfSSL patch terms are confirmed |
+| C9 | Protected-path changes are approved per follow-up change, not in one block |
+
+Accepting this record decides these questions. It changes no code, check, target, header or protected path, and it authorises no hardware operation. Each follow-up under [Follow-up changes](#follow-up-changes) is its own reviewed change and needs its own approval, including for every protected path that it touches ([the convention](README.md#convention)).
 
 ## What was run
 
@@ -262,3 +280,4 @@ On native macOS, in the worktree at `a72032b2`: `git fetch`, reads of the files 
 | Skills and agents used | `ecc:architecture-decision-records` (record format, with this repository's convention taking precedence), `ecc:search-first` (search of existing tests, targets and decisions before writing, with no install or dependency) |
 | Model | `claude-sonnet-5-5`, Claude Code |
 | Independent review | The `reviewer` agent, verdict in the pull request |
+| Acceptance | The owner, as recommended (C1 to C9, C8 deferred), 14 November 2026 at about 17:50 UTC in the Crux Pilot main session chat: "추천대로 승인할게". Relayed by that session. See [the owner's decisions](#the-owners-decisions) |
