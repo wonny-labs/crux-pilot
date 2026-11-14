@@ -165,6 +165,11 @@ if(CONFIG_CRUX_ACCESS)
         message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs the Mbed profile of PSA Crypto "
                             "(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS): its ports are the PSA ports")
     endif()
+    if(NOT CONFIG_TF_PSA_CRYPTO_USER_CONFIG)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs the locks that the Mbed profile's core calls "
+                            "(CONFIG_TF_PSA_CRYPTO_USER_CONFIG): see "
+                            "tests/native/management_composition/mbed-threading.conf")
+    endif()
     if(NOT TARGET crux::file)
         message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs a Crux File provider for the credential store's "
                             "two roots: set one of the CONFIG_CRUX_FILE_* selections")

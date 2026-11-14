@@ -9,7 +9,7 @@
 #    compiles none of Crux's service sources into its own target. It builds, its three cases pass, the
 #    configuration shows Thread, Sync and Time selected by the service symbol, and the three module
 #    libraries are in the link.
-# 3. The refusals: each missing piece (Crux Logging, hwinfo, a File provider) stops the configuration with
+# 3. The refusals: each missing piece (its locks, Crux Logging, hwinfo, a File provider) stops the configuration with
 #    the module's message, so a misconfiguration never reaches the compiler.
 # 4. Default off: an application of the module that does not set the symbol links no Access symbol.
 #
@@ -52,25 +52,30 @@ config="$build/zephyr/.config"
 for symbol in CRUX_ACCESS CRUX_CREDENTIAL CRUX_SECURITY_EVENT CRUX_THREAD CRUX_SYNC CRUX_TIME; do
     grep -qx "CONFIG_$symbol=y" "$config" || fail "CONFIG_$symbol is not set in the fixture's configuration"
 done
-if grep -q 'CONFIG_CRUX_\(THREAD\|SYNC\)=' "$fixture/prj.conf"; then
-    fail 'the fixture names Thread or Sync itself: C6 says the service symbol selects them'
+if grep -qE 'CONFIG_CRUX_(THREAD|SYNC|TIME)[A-Z_]*=' "$fixture/prj.conf"; then
+    fail 'the fixture names a Thread, Sync or Time symbol itself: C6 says the service symbol selects them'
 fi
 ! grep -qE '^CONFIG_(WOLF|CRUX_SSH=)' "$config" || fail 'a Wolf or SSH symbol is set in the fixture'
 printf 'ok: the fixture builds and passes, and CONFIG_CRUX_ACCESS selected Thread, Sync and Time\n'
 
 # Each refusal is a configuration error with the module's message, before any compilation.
-refuse() { # override, expected text
-    local log="$out/refuse.log"
-    if (cd "$workspace" && west build -p always -b "$board" -d "$out/refuse" "$fixture" -- "$profile" "-D$1") \
+refuse() { # override, expected text, and the profile, which defaults to the fixture's
+    local log="$out/refuse.log" use="${3:-$profile}"
+    if (cd "$workspace" && west build -p always -b "$board" -d "$out/refuse" "$fixture" -- "$use" "-D$1") \
         > "$log" 2>&1; then
         fail "$1 was accepted"
     fi
     grep -q "$2" "$log" || { tail -20 "$log" >&2; fail "$1 stopped, but not with: $2"; }
     printf 'ok: %s is refused: %s\n' "$1" "$2"
 }
+# The Mbed profile check has no case here: the provider is a choice that a -D override does not move,
+# and the only other provider is the Wolf one, which this change does not fetch.
 refuse CONFIG_CRUX_LOGGING=n 'CONFIG_CRUX_ACCESS needs CONFIG_CRUX_LOGGING'
 refuse CONFIG_HWINFO=n 'CONFIG_CRUX_ACCESS needs CONFIG_HWINFO'
 refuse CONFIG_CRUX_FILE_FATFS_SIMULATOR=n 'CONFIG_CRUX_ACCESS needs a Crux File provider'
+# The Mbed profile without the locks that its core calls (the profile conf without mbed-threading.conf).
+refuse CONFIG_CRUX_ACCESS=y 'CONFIG_CRUX_ACCESS needs the locks' \
+    '-DEXTRA_CONF_FILE=../tls_offload_probe/mbed.conf;../management_composition/profile-psa.conf'
 
 # Default off: the module is discovered and the symbol is not set, so no Access code is linked.
 zephyr="$workspace/zephyr"

@@ -441,8 +441,8 @@ config CRUX_ACCESS
     select CRUX_SYNC
     select CRUX_TIME
     help
-      Experimental (ADR-0001 Decision 4): the symbol, and what it builds, may change before a tier is
-      assigned. Off by default, and nothing changes in an image that leaves it off.
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image that leaves it off.
 
       Builds the Access core with its PSA Crypto and Time ports, the credential store with its Access
       store port, PSA ports and device ID, and the security events with their drain thread and the
@@ -451,10 +451,11 @@ config CRUX_ACCESS
       sequence (docs/management-in-a-product.md), and reaches the public <crux/access.h> through its
       own include path until the composition interfaces of ADR-0004 phase 1a exist.
 
-      The configuration is checked when it is made. The image needs the Mbed profile of PSA Crypto
-      (CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS and the algorithms of
-      tests/native/management_composition/profile-psa.conf), a Crux File provider for the store's two
-      roots, Crux Logging for the events, and CONFIG_HWINFO for the device ID. No SSH provider and
+      The image needs the Mbed profile of PSA Crypto (CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS, with the
+      locks of tests/native/management_composition/mbed-threading.conf, and the algorithms of
+      profile-psa.conf), a Crux File provider for the store's two roots, Crux Logging for the events,
+      and CONFIG_HWINFO for the device ID. The configuration refuses a missing profile, locks, File
+      provider, Logging or HWINFO by name; a missing algorithm is not checked and fails at run time. No SSH provider and
       no other PSA profile is part of this symbol.
 
 config CRUX_CREDENTIAL
