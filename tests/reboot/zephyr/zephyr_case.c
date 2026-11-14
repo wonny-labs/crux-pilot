@@ -1,12 +1,14 @@
 /* How a reboot case runs on native_sim. On the Host every case runs in a forked child, so that each
  * starts from nothing: the service has no stop, and its state, its worker and its Sync objects stay
- * for the life of the process. Zephyr has no fork(), so here the image runs one case for each process.
+ * for the life of the process. Zephyr has no fork(), so here the image runs one case for each
+ * process.
  *
- *   zephyr.exe -test=<suite>::<name> -reboot-list         prints "CASE <index> <name>" for each case
- *   zephyr.exe -test=<suite>::<name> -reboot-case=<index> runs that one case
+ * zephyr.exe -test=<suite>::<name> -reboot-list prints "CASE <index> <name>" for each case.
+ * zephyr.exe -test=<suite>::<name> -reboot-case=<index> runs that one case.
  *
- * scripts/test-reboot-native.sh starts the image once for each case, which is what the fork did. A run
- * with neither option fails: the second case in one process would run on the first one's state. */
+ * scripts/test-reboot-native.sh starts the image once for each case, which is what the fork did. A
+ * run with neither option fails: the second case in one process would run on the first one's state.
+ */
 #include "reboot_test.h"
 
 #include "main_common.h"
@@ -48,7 +50,8 @@ void reboot_native_expect_one_case(const char *suite)
         return;
     }
     zassert_true(selected != NOT_SELECTED,
-                 "%s: pass -reboot-case=<index>, one case for each process (see zephyr_case.c)", suite);
+                 "%s: pass -reboot-case=<index>, one case for each process (see zephyr_case.c)",
+                 suite);
     zassert_true(selected < next_index, "%s: no case %d, the suite has %d", suite, selected,
                  next_index);
     zassert_equal(cases_run, 1, "%s: %d cases ran, expected one", suite, cases_run);
