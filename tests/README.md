@@ -231,7 +231,8 @@ in `domain/` from the shell in `app/src/main.c`. The tests run `check_domain_inc
 shipped domain and on mutated copies (each frozen Crux header, each Zephyr header class, composition
 interfaces, dot components, a byte order mark, an empty directory), build the domain on the Host with
 a fake port and `-Wpedantic`, and check the shared-state example by reading the shell. They need
-only Python and a C compiler, so the host CI job runs them. Real west then takes the
+only Python and a C compiler, so the host CI job runs them. The same file tests `check_domain_includes.py --product`,
+which applies the frozen-header rule to every source file of a product repository and keeps the domain rules in `domain/`. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
 runs the frozen-manifest flow, the build record's input capture and the guide's routes: a vendor
@@ -242,6 +243,16 @@ PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <boa
 manifest, then cross-builds the application in that workspace. It does not operate hardware. The
 Zephyr CI job runs it. See the
 [Product Composition Guide](../docs/product-composition.md).
+
+## Frozen header warning
+
+`tests/build/test_frozen_header_guard.py` checks the opt-in `#warning` of `<crux/thread.h>`,
+`<crux/sync.h>`, `<crux/queue.h>` and `<crux/serial.h>`. With a C compiler it shows that the
+headers are silent by default, even under `-Werror`, that `CRUX_WARN_FROZEN_HEADERS` makes each one
+warn once and name itself and `docs/choosing-an-api.md`, and that `CRUX_INTERNAL_BUILD` silences it.
+On Linux it configures Crux as a subdirectory and reads `compile_commands.json`: Crux's own sources
+carry `-DCRUX_INTERNAL_BUILD` and the consumer's source does not, no usage requirement exports it, and a
+global opt-in warns only in the consumer's file. Host CI runs it with `tests/build`.
 
 ## Portable execution capability
 

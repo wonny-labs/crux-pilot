@@ -5,6 +5,10 @@ project(crux_pilot LANGUAGES C)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
+# Crux's own targets are not product code. This directory definition reaches every target that
+# this tree creates and no usage requirement, so no consumer inherits it. It keeps the opt-in
+# frozen header warning (CRUX_WARN_FROZEN_HEADERS) out of Crux's own sources.
+add_compile_definitions(CRUX_INTERNAL_BUILD)
 # Development defaults belong to this project, never the including application's CTest policy.
 set(_crux_tests_default OFF)
 if(PROJECT_IS_TOP_LEVEL)

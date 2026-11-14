@@ -428,6 +428,233 @@ class DomainIncludeCheckTest(unittest.TestCase):
         self.assertNotIn("passed", result.stdout)
 
 
+class ProductIncludeCheckTest(unittest.TestCase):
+    """--product ROOT runs the check over a whole product repository (domain and adapters)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.check = load_domain_check()
+
+    def product_copy(self, tmp):
+        root = Path(tmp) / "product-x"
+        shutil.copytree(TEMPLATE, root, ignore=shutil.ignore_patterns("build", ".git"))
+        return root
+
+    def run_cli(self, *args):
+        return subprocess.run([sys.executable, str(TEMPLATE / "check_domain_includes.py"), *args],
+                              capture_output=True, text=True)
+
+    def product(self, root, *extra):
+        return self.run_cli("--product", str(root), *extra)
+
+    def write(self, root, relative, text):
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_the_template_as_shipped_passes(self):
+        result = self.run_cli("--product", str(TEMPLATE))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("product include check passed", result.stdout)
+
+    def test_each_frozen_header_fails_in_an_adapter_file_of_any_source_suffix(self):
+        for header in FROZEN_CRUX_HEADERS:
+            for relative in ("app/src/adapter.c", "app/src/deep/er/adapter.h", "adapters/net.cpp",
+                             "adapters/net.hpp", "adapters/net.cc", "adapters/start.S", "app/src/x.inc"):
+                with self.subTest(header=header, relative=relative), tempfile.TemporaryDirectory() as tmp:
+                    root = self.product_copy(tmp)
+                    self.write(root, relative, f"#include <{header}>\n")
+                    result = self.product(root)
+                    self.assertEqual(1, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(f"{relative}:1: {header}: frozen Crux header", result.stdout)
+
+    def test_the_quoted_form_and_every_directive_spelling_fail_in_an_adapter(self):
+        spellings = (
+            '#include "crux/thread.h"\n',
+            "  #  include <crux/thread.h>\n",
+            "%:include <crux/thread.h>\n",
+            "??=include <crux/thread.h>\n",
+            "#include_next <crux/thread.h>\n",
+            "#import <crux/thread.h>\n",
+            "#include <crux/\\\nthread.h>\n",
+            "#include <crux/./thread.h>\n",
+            "#include <crux//thread.h>\n",
+            "#include <crux/../crux/thread.h>\n",
+            "#include <crux/thread.h>\r\n",
+            "﻿#include <crux/thread.h>\n",
+            "/* note */ #include <crux/thread.h>\n",
+        )
+        for text in spellings:
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
+                root = self.product_copy(tmp)
+                self.write(root, "app/src/adapter.c", text)
+                found = self.check.check_product(root)
+                self.assertEqual(["app/src/adapter.c"], [v.path for v in found])
+                self.assertIn("frozen", found[0].reason)
+
+    def test_an_adapter_may_include_zephyr_composition_and_unfrozen_crux_headers(self):
+        text = ("#include <zephyr/kernel.h>\n#include <zephyr.h>\n#include <zephyr/net/socket.h>\n"
+                "#include <crux/file_zephyr.h>\n#include <crux/queue_linux.h>\n#include <crux/time.h>\n"
+                "#include <crux/status.h>\n#include <stdint.h>\n#include \"../domain/product_domain.h\"\n"
+                "#include \"local_helper.h\"\n#include <./anything.h>\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/adapter.c", text)
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_the_domain_keeps_its_stricter_rules_in_product_mode(self):
+        cases = {
+            "zephyr/kernel.h": "Zephyr",
+            "crux/file_zephyr.h": "composition",
+            "crux/sync.h": "frozen",
+        }
+        for header, word in cases.items():
+            with self.subTest(header=header), tempfile.TemporaryDirectory() as tmp:
+                root = self.product_copy(tmp)
+                path = root / "domain/product_domain.c"
+                path.write_text(f"#include <{header}>\n" + path.read_text())
+                found = self.check.check_product(root)
+                self.assertEqual([("domain/product_domain.c", header)], [(v.path, v.include) for v in found])
+                self.assertIn(word, found[0].reason)
+
+    def test_the_domain_still_rejects_a_macro_operand_and_a_quoted_file_outside_it(self):
+        for text in ("#define H <stdint.h>\n#include H\n", '#include "../app/src/main.c"\n'):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
+                root = self.product_copy(tmp)
+                path = root / "domain/product_domain.c"
+                path.write_text(text + path.read_text())
+                self.assertEqual(["domain/product_domain.c"], [v.path for v in self.check.check_product(root)])
+
+    def test_a_comment_across_lines_cannot_hide_a_frozen_include_in_an_adapter(self):
+        for text in ("#include /*\n*/ <crux/thread.h>\n", "#include\\\n"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as tmp:
+                root = self.product_copy(tmp)
+                self.write(root, "app/src/adapter.c", text)
+                found = self.check.check_product(root)
+                self.assertEqual(["app/src/adapter.c"], [v.path for v in found])
+
+    def test_an_adapter_macro_operand_is_not_a_violation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/adapter.c", "#define H <stdint.h>\n#include H\n")
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_a_header_named_only_in_a_comment_or_string_passes_in_an_adapter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/adapter.c",
+                       '/* no #include <crux/thread.h> */\n// <crux/sync.h>\nstatic const char *n = "#include <crux/queue.h>";\n')
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_build_output_git_and_non_source_files_are_not_scanned(self):
+        text = "#include <crux/thread.h>\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            for relative in ("build/app/generated.c", ".git/hooks/x.c", ".west/y.c",
+                             "README.md", "west.yml", "notes.txt", "app/src/data.bin"):
+                self.write(root, relative, text)
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_a_symlinked_directory_is_not_followed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            outside = Path(tmp) / "outside"
+            self.write(outside.parent, "outside/x.c", "#include <crux/thread.h>\n")
+            try:
+                (root / "linked").symlink_to(outside, target_is_directory=True)
+            except OSError:
+                self.skipTest("symlinks are not available")
+            self.assertEqual([], self.check.check_product(root))
+
+    def test_exclude_skips_a_legacy_path_and_nothing_else(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "legacy/old.c", "#include <crux/thread.h>\n")
+            self.write(root, "legacy-other/old.c", "#include <crux/thread.h>\n")
+            self.assertEqual(1, self.product(root).returncode)
+            found = self.check.check_product(root, excludes=("legacy",))
+            self.assertEqual(["legacy-other/old.c"], [v.path for v in found])
+            result = self.product(root, "--exclude", "legacy", "--exclude", "legacy-other")
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertIn("excluded", result.stdout)
+
+    def test_exclude_may_name_one_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/old.c", "#include <crux/thread.h>\n")
+            self.assertEqual([], self.check.check_product(root, excludes=("app/src/old.c",)))
+
+    def test_exclude_cannot_name_a_missing_path_or_leave_the_root_or_cover_the_domain(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            for bad in ("nowhere", "../x", "/etc", ".", "", "domain", "domain/product_domain.c"):
+                with self.subTest(bad=bad):
+                    self.assertEqual(2, self.product(root, "--exclude", bad).returncode)
+
+    def test_the_domain_option_picks_other_directories_and_a_missing_one_is_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "core/logic.c", "#include <zephyr/kernel.h>\n")
+            self.assertEqual([], self.check.check_product(root))
+            found = self.check.check_product(root, domain_dirs=("domain", "core"))
+            self.assertEqual(["core/logic.c"], [v.path for v in found])
+            self.assertEqual(1, self.product(root, "--domain", "domain", "--domain", "core").returncode)
+            self.assertEqual(2, self.product(root, "--domain", "nowhere").returncode)
+            self.assertEqual(2, self.product(root, "--domain", "../x").returncode)
+
+    def test_a_product_without_a_domain_directory_is_checked_for_frozen_headers_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "product-y"
+            self.write(root, "app/src/main.c", "#include <zephyr/kernel.h>\n")
+            self.assertEqual(0, self.product(root).returncode)
+            self.write(root, "app/src/more.c", "#include <crux/serial.h>\n")
+            self.assertEqual(1, self.product(root).returncode)
+
+    def test_a_domain_that_is_the_product_root_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.assertEqual(2, self.product(root, "--domain", ".").returncode)
+
+    def test_the_command_names_file_line_and_header_and_counts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.product_copy(tmp)
+            self.write(root, "app/src/adapter.c", "int x;\n#include <crux/queue.h>\n#include <crux/serial.h>\n")
+            result = self.product(root)
+        self.assertEqual(1, result.returncode)
+        self.assertIn("app/src/adapter.c:2: crux/queue.h: frozen Crux header", result.stdout)
+        self.assertIn("app/src/adapter.c:3: crux/serial.h: frozen Crux header", result.stdout)
+        self.assertIn("2 product include violation(s)", result.stdout)
+
+    def test_a_root_with_no_source_or_a_missing_root_is_an_error_not_a_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "empty"
+            root.mkdir()
+            self.write(root, "README.md", "text\n")
+            with self.assertRaises(ValueError):
+                self.check.check_product(root)
+            for args in ((str(root),), (str(Path(tmp) / "nowhere"),)):
+                result = self.run_cli("--product", *args)
+                self.assertEqual(2, result.returncode)
+                self.assertNotIn("passed", result.stdout)
+
+    def test_a_product_root_and_a_positional_domain_directory_cannot_be_combined(self):
+        result = self.run_cli("--product", str(TEMPLATE), str(TEMPLATE / "domain"))
+        self.assertEqual(2, result.returncode)
+        self.assertNotIn("passed", result.stdout)
+
+    def test_the_domain_mode_command_is_unchanged(self):
+        result = self.run_cli()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("domain include check passed", result.stdout)
+
+    def test_the_readme_tells_a_product_repository_how_to_run_it(self):
+        text = (TEMPLATE / "README.md").read_text()
+        self.assertIn("python3 check_domain_includes.py --product .", text)
+        for word in ("--exclude", "--domain", "adapter"):
+            self.assertIn(word, text)
+
+
 class SharedStatePatternTest(unittest.TestCase):
     """The shell shows the pattern of docs/choosing-an-api.md: one owner, snapshot reads, message writes."""
 
