@@ -10,6 +10,7 @@ A decision record holds one platform-wide decision that stays in force: its cont
 | [0002](0002-platform-direction-zephyr-execution-crux-services.md) | Platform direction: Zephyr for execution, Crux for services | Accepted, 13 November 2026. Amended by ADR-0003 |
 | [0003](0003-p9-result-services-keep-narrow-thread-sync.md) | P9 result: services keep a narrow Crux Thread and Sync | Accepted, 14 November 2026 |
 | [0004](0004-product-composition-of-management-services.md) | How a product composes the Crux management services (proposal) | Accepted, 14 November 2026, as recommended (C8 deferred) |
+| [0006](0006-cryptographic-dependency-policy.md) | How Crux handles its cryptographic dependencies over time (proposal) | Proposed |
 
 ## Convention
 
