@@ -40,7 +40,7 @@ What is **not built**, and so is the product's work or an open decision:
 | --- | --- | --- |
 | **Host key holding.** The provider borrows the key's bytes until `stop()`. | The test images keep it in a static buffer that is never wiped. A product must define how to hold and wipe it. There is no command to replace the key or to print its fingerprint. | [wolfSSH provider](ssh-wolf-provider.md) decision 24, [integrated image](ssh-integrated-image.md#the-test-image-declaration) |
 | **First account.** | The test images provision it in code. The serial `!setup` loop exists on Host, and the serial console is composed in no image. **A product creates its first account in that serial setup step, from a password a person types, with nothing in the image.** The RT1060-EVKB bench image instead embeds a password from a file as plaintext, a test form accepted under its bench declaration only. | [Command line contract](cli-contract.md), [bench first account](rt1060-bench-first-account.md#what-a-product-does-instead) |
-| **User key registration.** | No command or web route registers an SSH user key. Only test code calls `crux_access_account_add_key`. | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) |
+| **User key registration.** | No command or web route registers an SSH user key, and none is planned until a consumer needs one (decided 2026-11-14, option C). **A product registers keys itself** with `crux_access_account_add_key`: [how](#registering-a-user-key). Only test code calls it today. | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) |
 | **Certificate registration.** | No composition registers the device certificate with the listener, and no web route exists for it. No decision about how a product does this is recorded. | [TLS certificate](tls-certificate.md) (status line, and "Registration with Zephyr's TLS credentials") |
 | **A frontend.** | The product builds its own. Crux serves a built folder. | [Web guide](../web/README.md) |
 | **Interface binding.** | Which interface a listener binds is the composition's. Both listeners can be bound to one IPv4 address: `CONFIG_CRUX_WEB_BIND_ADDRESS` and `CONFIG_CRUX_SSH_BIND_ADDRESS`, empty by default, which keeps every address. The RT1060-EVKB bench image sets both. Zephyr's HTTP server falls back to every address for a text that is not an address, so a composition that sets it checks the text. | [Integrated image](ssh-integrated-image.md#what-a-consumer-uses-and-what-is-test-only), [RT1060 report](rt1060-management-image-feasibility.md#listeners-d10) |
@@ -273,6 +273,23 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 
 **Licence.** wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence. Check their terms before enabling the optional group: [product composition](product-composition.md). The Mbed profile avoids wolfSSL, and then has no SSH.
 
+### Registering a user key
+
+On 2026-11-14 the owner decided [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) as option C: **now, a product registers SSH user keys itself, and this section says how; a command-line command and a web API that do it come later, only when a consumer needs one.** No such command or route exists today. The only code that calls `crux_access_account_add_key` outside Access and its tests is the test composition, which is test-only.
+
+| Question | Answer, from `components/access/include/crux/access.h` and the test composition |
+| --- | --- |
+| What does the product call? | `crux_access_account_add_key(session, user, key, key_length)`, and `crux_access_account_remove_key` to take a key away |
+| With which session? | One that holds `access.manage` for another account's key. An account's own keys need `access.self` only, which every role holds. The test composition adds keys for two accounts with an administrator session |
+| What is the key? | An SSH public key blob, compared byte for byte, of type `ssh-ed25519` or `ecdsa-sha2-nistp256`: the wire-format blob that the base64 field of an OpenSSH public key line holds, not the text line. Access also accepts P-384 and P-521 blobs today, which SSH never offers: the owner's decision on [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) (option A, Ed25519 and P-256 only) is not implemented yet, so register only those two types. Any other type or form is `INVALID_ARGUMENT`, and `CRUX_ACCESS_KEY_SIZE_MAX` bounds the blob |
+| What can come back? | `NOT_FOUND` (no such account), `ALREADY_EXISTS` (the account already lists this key), `NO_RESOURCES` (its key table is full), `INVALID_ARGUMENT`. The test composition treats `ALREADY_EXISTS` as success, because a later boot on the same disk finds the key that the first boot added |
+| What happens to sessions? | Adding a key leaves the account's sessions as they are. Removing a key ends the account's sessions |
+| When? | After Access is ready and the account exists, before the SSH listener starts, in the composition's own code: [boot order](#boot-order) |
+
+The product decides where its keys come from (a manufacturing step, a setup step, a file it reads) and how it holds them. Crux does not store them for the product: the keys live in the account store, which persists as that store does. On the RT1060-EVKB bench image the store is on a RAM disk, so keys do not survive a restart there.
+
+The example is the function `crux_native_management_ssh_add_keys` in [`tests/native/management_composition/composition/crux_native_management_ssh.c`](../tests/native/management_composition/composition/crux_native_management_ssh.c): it decodes one key from the test arguments and adds it to each listed account with an administrator session. Treat it as a shape to follow, not as code to ship: it is test-only and refuses to build outside a declared `native_sim` test image.
+
 ## Browsers
 
 | Browser | What ran | Not shown |
@@ -329,7 +346,7 @@ Decisions that need the owner, with where each is recorded. Nothing here is deci
 | Certificate validity, the private key as PKCS #8 in RAM, `psa_sign_hash` outside the qualified subset, event identifiers | [TLS certificate](tls-certificate.md#owner-decisions-needed-before-adoption), decisions A to D | Open |
 | Which user key types Access accepts and SSH offers | [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) | Open |
 | Emitting the SSH security events | [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) | Open |
-| How a product registers an SSH user key | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) | Open |
+| How a product registers an SSH user key | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) | Decided 2026-11-14, option C: the product registers keys itself ([how](#registering-a-user-key)); a command and a web API only when a consumer needs one |
 | Events for a refused CSRF token or `Origin` | [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319) | Open |
 | Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Open |
 | Passing the terminal flag to the SSH `exec` callback | [Issue #269](https://github.com/wonny-labs/crux-pilot/issues/269) | Open |
