@@ -1,6 +1,6 @@
 # File software qualification
 
-See [the subsequent simulator candidate](file-native-validation.md) for the separately authorised sleepable-lock change and actual VFS/LittleFS software tests. The retained results below describe the original Host qualification.
+See [the subsequent simulator candidate](file-native-validation.md) for the separately authorised sleepable-lock change and actual VFS/LittleFS software tests. The retained results below describe the original Host qualification. The FatFs provider on `native_sim` and on the EVKB microSD slot is described in [microsd-composition.md](microsd-composition.md).
 
 Issue [#23](https://github.com/wonny-labs/crux-pilot/issues/23) implements the
 [approved contract](file-contract.md) as a bounded portable C17 component with a

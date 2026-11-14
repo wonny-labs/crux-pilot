@@ -116,7 +116,7 @@ nothing was formatted and no directory was created. With a provisioned card the 
 was clean afterwards. Removing the card while mounted gave `CRUX_FILE_ERR_IO` on the next open, no hang, and the
 application unmount and remount did not bring the volume back after the card was re-seated (`remount=-5`, no
 recovery; flashing the `sd-start` image and resetting mounted the same card), which matches "a card swap needs a reboot". One run per state; the M.2 slot was
-empty (operator-reported) and uSDHC1 ownership was not checked against a schematic. Details and limits:
+empty (operator-reported) and uSDHC1 ownership was not checked at the time of these runs (a schematic and photo check was recorded afterwards, see [uSDHC1 ownership check](#usdhc1-ownership-check-document-and-photo-only)). Details and limits:
 [docs/evidence/microsd-card-states-stack](evidence/microsd-card-states-stack/README.md).
 
 ## Profile limits and decisions
@@ -172,10 +172,28 @@ new card initialisation (the source suggests the disk reference count never retu
 after a real swap is consistent with the documented reboot-on-swap policy. If the unmount fails the probe
 stays LOST (`remount=-120`, `-EALREADY` on the RT1060 picolibc image, on the console). The stack probe leaves `bootcount` and `pattern` in the File root,
 the removal probe leaves `probe`. The blank-card and wrong-layout cases need a card prepared on a
-host, the M.2 slot and uSDHC1 ownership need the board in hand. The stack probe, the removal probe and the
+host. The stack probe, the removal probe and the
 blank and wrong-layout cards were run on the board on 3 November 2026
-([evidence](evidence/microsd-card-states-stack/README.md)); uSDHC1 ownership has not been checked and the M.2 slot
-was reported empty by the operator.
+([evidence](evidence/microsd-card-states-stack/README.md)). The M.2 slot was reported empty by the operator, and
+uSDHC1 ownership has only the document and photo check below (no measurement); a board with a module fitted was not tested.
+
+### uSDHC1 ownership check (document and photo only)
+
+Source: [comment on issue #14](https://github.com/wonny-labs/crux-pilot/issues/14#issuecomment-6609663276), posted 2026-11-03 16:33 UTC, after the physical runs above
+(which is why the accepted evidence README of those runs says no schematic was available then). The comment was
+recorded by a Claude session from the owner's GitHub account. It reads the board label as `SCH-47858 REV B1`, so the
+schematic SPF-47858 Rev B1 applies. On it, the SD slot reaches `GPIO_SD_B0_00` to `B0_05` (uSDHC1 CMD, CLK, DAT0-3, on
+`NVCC_SD`) through populated 0 ohm resistors (R364, R366, R351, R348, R377, R369), and the M.2 `WIFI_SDIO_*` nets
+reach the same pads only through six resistors (R368, R376, R347, R349, R365, R363) that the B1 BOM marks DNP. A photo
+of the board's underside is consistent with that pattern, but its labels were not legible enough to confirm each
+resistor, and R347 and R348 were not in the photo. Nothing was measured. The M.2 slot is empty (operator-reported,
+the photo agrees).
+
+Limits: this is a document and photo check, not a measurement on this board. The control pin of the SD power
+switch (`SD_PWREN`) was not traced, and card-detect GPIO ownership is not recorded as checked in that comment. A board
+with a module fitted or those resistors populated was not tested. The schematic pages are not copied into this
+repository (the document is marked proprietary); only its number, revision and resistor references are cited.
+So on this board the SD slot appears to be the only user of uSDHC1, and that is all this check supports.
 
 ## Recovery step for an interrupted compaction (3 November 2026, software only)
 
@@ -198,8 +216,8 @@ tail, orphaned clusters remain, and a cut inside the FAT metadata update has no 
 
 Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted beyond the one run above (no forced driver re-initialisation was tried);
 whether the M.2 Wi-Fi SDIO path shares uSDHC1 on this board (the board devicetree labels the
-same controller `m2_wifi_sdio`; nothing in this repository confirms pin or controller
-ownership); stack use beyond the one probe run (no Settings backend, networking or other threads); the line-aligned bounce path of USDHC reads and writes and cache coherence with a concurrent writer (no physical run used alignment 32); and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
+same controller `m2_wifi_sdio`; the [schematic and photo check above](#usdhc1-ownership-check-document-and-photo-only) is a document check, not a
+measurement, and the schematic is not stored in this repository); stack use beyond the one probe run (no Settings backend, networking or other threads); the line-aligned bounce path of USDHC reads and writes and cache coherence with a concurrent writer (no physical run used alignment 32); and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
 writes, directory changes other than that replace, other cards, the Settings File backend itself); data
 across normal CPU restarts and those two power-cut tests are covered in the physical results above.
 
