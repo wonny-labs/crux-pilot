@@ -10,12 +10,14 @@ Ask them in order for each piece of code.
 2. **Is it a platform service that Crux provides?** Management over web, command line, SSH and SFTP; accounts; configuration with validation; file storage with Crux's rules; time authority and calendar; health and watchdog; log records. Use **Crux**, from any zone, with its provider bound in composition.
 3. **Is it the product's own behaviour?** Control laws, state machines, protocol logic, limits and alarms. Write **plain C in the domain**, behind ports that the product owns. The domain may call Crux public contracts and service APIs (for example Time, Logging, File, Configuration, System, the Sockets profile and the management services), never Zephyr. It owns no thread: the product's execution shell calls it. It is tested on the Linux Host with fakes of its ports.
 
+Product code meant to run on both Zephyr and Linux may use a POSIX subset; that is the product's choice and not a Crux API. It needs a C library for Zephyr's POSIX layer that the Crux workspace does not have today (see O5 in [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md)). The rule above still holds: Zephyr calls stay in adapters and the domain stays plain C, with the POSIX subset taking the place of Question 1's Zephyr calls.
+
 ## Examples
 
 | Case | Question 1: Zephyr | Question 2: Crux | Question 3: domain |
 | --- | --- | --- | --- |
 | Cyclic task timers of a ported real-time runtime | One `k_thread` per timer at mapped priorities; `k_sem` or `k_timer` for a wakeable wait; recursive `k_mutex` | Monotonic timestamps, Logging, File for retained data, System watchdog | The runtime's scheduling logic, above its port layer |
-| A controller workload (the `crux-controller` shape) | Producer, consumer and queue as `k_thread` and `k_msgq` | Logging; File for its configuration record | The workload stays plain C with Host tests. The existing `crux-controller` keeps its Crux Thread and Queue code until the P9 decision |
+| A controller workload (the `crux-controller` shape) | Producer, consumer and queue as `k_thread` and `k_msgq` | Logging; File for its configuration record | The workload stays plain C with Host tests. The existing `crux-controller` keeps its Crux Thread and Queue code until it migrates (see the direction below) |
 | A temperature sensor | A Zephyr driver or `i2c_dt_spec` code behind a product port such as `temperature_read(&millikelvin)`; an emulator on `native_sim` | The status service for a remote reading; Configuration or File for limits | Filtering, limits and hysteresis, tested with a fake of the port |
 | An SSH service | The product's priority map places Crux's SSH listener and workers with `CONFIG_CRUX_SSH_LISTENER_PRIORITY` and `CONFIG_CRUX_SSH_WORKER_PRIORITY` (P3) | The `CONFIG_CRUX_SSH`, `CONFIG_CRUX_SSH_CLI` and `CONFIG_CRUX_SSH_SFTP` options; Access; the credential store | Which commands exist and who may run them |
 
@@ -25,7 +27,7 @@ Do not use `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` or `<crux/serial
 
 - **Frozen means:** no new features and no real-time extension. It adds no promise and removes none. The contracts, tests and evidence stay as they are, and existing users keep working.
 - **Why:** threads and locks decide scheduling, through priorities, inheritance and pools. Two kinds of them in one image is a design problem. Time, Logging, File, Configuration and System carry policy or serve both of today's product consumers, and none of them decides scheduling, so they stay public contracts.
-- **Not decided yet:** whether these four are deprecated or become Crux-internal. That decision (P9 of ADR-0002) waits for D10 phase 1, a `native_sim` sanitizer probe and a slim-Sync spike. Until then nothing is removed.
+- **Direction ([ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md), the P9 result, O4):** Crux's services keep a narrow Crux Thread and Sync inside, and Thread and Sync are to become internal to Crux. That switch is a later, separate change that needs the owner's approval. Queue and Serial are decided separately. Until then nothing is removed, and the freeze stays.
 - **Checked in the template:** `templates/product/check_domain_includes.py` rejects these four headers, every `<zephyr/...>` header and the Crux composition interfaces in a product's domain, and the template's tests run it. Nothing checks the rest of the product's code, and Crux's own trees and D10's Build B are exempt.
 
 ## Coexistence in one image

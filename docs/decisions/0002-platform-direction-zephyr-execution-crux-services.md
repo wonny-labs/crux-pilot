@@ -1,6 +1,6 @@
 # ADR-0002: Platform direction: Zephyr for execution, Crux for services
 
-Status: **Accepted** on 13 November 2026. See [the owner's decision](#the-owners-decision). Proposed: 13 November 2026. Baseline: main `828021cf`. It amends [ADR-0001](0001-application-boundary-and-api-stability.md) by reference, as [What this amends](#what-this-amends-in-adr-0001) lists. ADR-0001's body is unchanged.
+Status: **Accepted** on 13 November 2026. **Amended by [ADR-0003](0003-p9-result-services-keep-narrow-thread-sync.md)** on 14 November 2026. See [the owner's decision](#the-owners-decision). Proposed: 13 November 2026. Baseline: main `828021cf`. It amends [ADR-0001](0001-application-boundary-and-api-stability.md) by reference, as [What this amends](#what-this-amends-in-adr-0001) lists. ADR-0001's body is unchanged.
 
 This record is documentation only. It changes no code, check, contract or protected path. Each decision that it puts into effect needs its own reviewed change afterwards, listed under [Follow-up changes](#follow-up-changes). The evidence is in the [platform direction review](../research/platform-direction-review.md) and is not copied here.
 
