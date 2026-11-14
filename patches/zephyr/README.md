@@ -199,5 +199,5 @@ attempt. When the read works, the number is the hash of the key and the tuple pl
 
 `scripts/prepare-isn-fail-closed.py` applies it to a **build-local copy** of the pinned tree (it refuses a Git checkout), after
 `scripts/prepare-wolf-tls-zephyr.sh` has made the copy and applied the TLS socket patch, and checks the hash of the original, the patch and the result.
-It writes the marker `.crux-isn-fail-closed`. The bench guards check the marker and the patched file's hash. The patch is the intended end
+It extends the one marker of the copy, `.crux-wolf-tls`, from `<pin> <tls patch sha256>` to `<pin> <tls patch sha256> <isn patch sha256>`, and writes no marker of its own (on a bare copy without the TLS marker it writes none). The bench guard compares that marker with the pin and the declared patches' hashes in order, and checks every patched file's hash (`patched_zephyr`, schema 2, in `bench_declaration.json`). The patch is the intended end
 state only until Zephyr fixes the two defects upstream; the upstream status was not checked.

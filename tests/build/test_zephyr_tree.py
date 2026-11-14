@@ -333,13 +333,17 @@ class Marker(unittest.TestCase):
         self.assertNotEqual(subject.marker_text(PIN, [PATCH_ONE, PATCH_TWO]), subject.marker_text(PIN, [PATCH_TWO, PATCH_ONE]))
 
     def test_the_guard_expects_the_same_text_for_the_one_patch_case(self):
+        # T11: the guard builds the expected text from the declared ordered list, which for one patch is today's one-patch text.
         guard = (ROOT / 'tests' / 'zephyr' / 'management_rt1060_compile' / 'bench_guard.cmake').read_text()
-        self.assertIn('"${marker_text}" STREQUAL "${BENCH_ZEPHYR_PIN} ${BENCH_PATCH_SHA256}"', guard)   # stripped text of the one-patch marker
+        self.assertIn('string(APPEND expected_marker " ${patch_hash}")', guard)
+        self.assertIn('"${marker_text}" STREQUAL "${expected_marker}"', guard)          # stripped text of the marker
         import json
         declaration = json.loads((ROOT / 'tests' / 'zephyr' / 'management_rt1060_compile' / 'bench_declaration.json').read_text())
         block = declaration['patched_zephyr']
-        self.assertEqual(subject.marker_text(block['zephyr_pin'], [block['patch_sha256']]).rstrip('\n'),
-                         '%s %s' % (block['zephyr_pin'], block['patch_sha256']))
+        first = block['patches'][0]['sha256']
+        self.assertEqual(subject.marker_text(block['zephyr_pin'], [first]).rstrip('\n'), '%s %s' % (block['zephyr_pin'], first))
+        self.assertEqual(subject.marker_text(block['zephyr_pin'], [p['sha256'] for p in block['patches']]),
+                         '%s %s\n' % (block['zephyr_pin'], ' '.join(p['sha256'] for p in block['patches'])))
 
     def test_a_marker_is_parsed_back_into_pin_and_hashes(self):
         self.assertEqual(subject.parse_marker(subject.marker_text(PIN, [PATCH_ONE, PATCH_TWO])), (PIN, [PATCH_ONE, PATCH_TWO]))

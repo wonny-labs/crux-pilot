@@ -10,11 +10,18 @@ directory with .git), and the west workspace's Zephyr is one. It never writes th
   scripts/prepare-isn-fail-closed.py ZEPHYR_COPY
 
 Order for the bench image: first scripts/prepare-wolf-tls-zephyr.sh ZEPHYR_COPY (the wolfSSL TLS socket patch, D8, which
-makes the copy and writes .crux-wolf-tls), then this script on the same folder (which writes .crux-isn-fail-closed). The
-two patches touch different files (sockets_tls.c and the random subsystem, and tcp.c): this script checks that tcp.c is
-still the pinned one, so a TLS patch that touched it would be refused here. The bench guard (bench_guard.cmake) checks
-both markers and both patched files' hashes at configuration. Without the wolf marker the script still works, because
-native_sim tests of this patch alone use a copy of the pinned tree.
+makes the copy and writes .crux-wolf-tls as "<pin> <tls patch sha256>"), then this script on the same folder. The copy has
+ONE marker, the one the freeze of docs/rt1060-bench-freeze-and-capture-design.md reads: this script requires it to be exactly
+"<pin> <tls patch sha256>" and rewrites it as "<pin> <tls patch sha256> <isn patch sha256>", so the order of the two patches is
+the order of the hashes and a copy made in another order or with a missing step has another marker. It writes no marker of its own.
+The two patches touch different files (sockets_tls.c and the random subsystem, and tcp.c): this script checks that tcp.c is
+still the pinned one, so a TLS patch that touched it would be refused here. The bench guard (bench_guard.cmake) checks the one
+marker and every patched file's hash at configuration.
+
+Without the TLS marker the script is in its standalone mode, which is what scripts/test-isn-fail-closed.sh uses on a bare copy
+of the pinned tree for native_sim: it applies the patch and writes NO marker (no marker format is invented for it), so the bench
+guard refuses such a copy, and a second run on it is refused. A copy with the marker of the earlier version of this script
+(.crux-isn-fail-closed) is refused: make the copy again with the two commands above.
 """
 import argparse
 import hashlib
@@ -25,7 +32,13 @@ import tempfile
 from pathlib import Path
 
 RELATIVE_SOURCE = Path("subsys/net/ip/tcp.c")
-MARKER = ".crux-isn-fail-closed"
+# The one marker of the copy, written by scripts/prepare-wolf-tls-zephyr.sh and extended here, and the marker that this script
+# wrote before the freeze design (T11): a copy that has it is refused.
+TLS_MARKER = ".crux-wolf-tls"
+LEGACY_MARKER = ".crux-isn-fail-closed"
+# The sha256 of the TLS patch, which scripts/prepare-wolf-tls-zephyr.sh writes into the marker: change both together with
+# bench_declaration.json.
+TLS_PATCH_SHA256 = "3d1cc0307bbeea5f000698bca5be717f73fdb8c47e90083b003336364e8fdbda"
 # tcp.c at the pinned Zephyr (v4.4.2), the patch, and tcp.c after it. A change of any of them means a base or a patch
 # moved: review the result and change the three hashes here, in bench_declaration.json and in docs/rt1060-isn-fail-closed.md together.
 BASE_SHA256 = "393b940e0d96adba9a0f7667c061b9e0e5d8d0ea2f49642e60f29ce1efdb7ad6"
@@ -60,15 +73,21 @@ def prepare(tree, pin, patch=PATCH):
     patch_bytes = Path(patch).read_bytes()
     if digest(patch_bytes) != PATCH_SHA256:
         raise ValueError("The patch file is not the one whose hash this script knows; nothing written")
-    marker = tree / MARKER
-    marker_text = f"{pin} {PATCH_SHA256}"
+    if (tree / LEGACY_MARKER).exists() or (tree / LEGACY_MARKER).is_symlink():
+        raise ValueError(f"{LEGACY_MARKER} is the marker of an earlier version of this script: make the copy again; nothing written")
+    marker = tree / TLS_MARKER
+    marker_present = marker.exists() or marker.is_symlink()
+    tls_text = f"{pin} {TLS_PATCH_SHA256}"
+    done_text = f"{tls_text} {PATCH_SHA256}"
     original = source.read_bytes()
     if digest(original) == PATCHED_SHA256:
-        if marker.is_file() and marker.read_text().strip() == marker_text:
+        if marker.is_file() and not marker.is_symlink() and marker.read_text() == done_text + "\n":
             return "already prepared"
-        raise ValueError(f"{RELATIVE_SOURCE} is patched but {MARKER} is missing or names another patch; nothing written")
+        raise ValueError(f"{RELATIVE_SOURCE} is patched but {TLS_MARKER} is missing or is not '<pin> <tls sha256> <isn sha256>'; nothing written")
     if digest(original) != BASE_SHA256:
         raise ValueError(f"{RELATIVE_SOURCE} is not the pinned Zephyr's; nothing written")
+    if marker_present and (marker.is_symlink() or not marker.is_file() or marker.read_text() != tls_text + "\n"):
+        raise ValueError(f"{TLS_MARKER} is not exactly '<pin> <tls sha256>' on this pin (the TLS patch comes first, and only once); nothing written")
     # --no-index isolates application from any enclosing Git worktree.
     with tempfile.TemporaryDirectory(prefix="crux-isn-fail-closed-") as directory:
         work = Path(directory)
@@ -85,7 +104,11 @@ def prepare(tree, pin, patch=PATCH):
     temporary = source.with_name(source.name + ".new")
     temporary.write_bytes(patched)
     os.replace(temporary, source)
-    marker.write_text(marker_text + "\n")
+    if not marker_present:
+        return "prepared (standalone: no TLS marker, so no marker written)"
+    temporary = marker.with_name(marker.name + ".new")
+    temporary.write_text(done_text + "\n")
+    os.replace(temporary, marker)
     return "prepared"
 
 
