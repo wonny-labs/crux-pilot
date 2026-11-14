@@ -12,7 +12,8 @@
 # 3. The refusals: each missing piece (its locks, Crux Logging, hwinfo, a File provider) stops the configuration with
 #    the module's message, so a misconfiguration never reaches the compiler.
 # 4. Default off: an application of the module that sets no service symbol has none of them in its
-#    configuration and none of the entry points in its ELF. The configuration is the stronger half: a linker
+#    configuration and none of the entry points defined in its ELF (a T or t symbol: an undefined reference
+#    does not count). The configuration is the stronger half: a linker
 #    that drops unreferenced sections would hide a library that was built.
 #
 # The Mbed profile needs the mbedtls and tf-psa-crypto projects, so a workspace that enables them is
@@ -47,7 +48,7 @@ build="$out/fixture"
     > "$out/fixture-build.log" 2>&1 || { tail -40 "$out/fixture-build.log" >&2; fail 'the fixture failed to build'; }
 rm -f "$out/disk.bin"
 # native_sim runs in real time here, so a hung image would otherwise hold the job until the runner's limit.
-timeout "${CRUX_MODULE_RUN_TIMEOUT:-300}" "$build/zephyr/zephyr.exe" --flash="$out/disk.bin" --seed=7 \
+timeout -k 10 "${CRUX_MODULE_RUN_TIMEOUT:-300}" "$build/zephyr/zephyr.exe" --flash="$out/disk.bin" --seed=7 \
     > "$out/fixture-run.log" 2>&1 ||
     { tail -40 "$out/fixture-run.log" >&2; fail 'the fixture failed to run, or ran past its time limit'; }
 grep -q 'PROJECT EXECUTION SUCCESSFUL' "$out/fixture-run.log" || fail 'the fixture did not report success'
@@ -67,8 +68,9 @@ defined_symbols() { # ELF
 }
 fixture_symbols="$(defined_symbols "$build/zephyr/zephyr.elf")"
 entry_points=(crux_access_init crux_credential_start crux_security_event_init)
-grep -q '^CONFIG_CRUX_CONFIG_SERVICE=y' "$fixture/prj.conf" && entry_points+=(crux_config_service_start)
-grep -q '^CONFIG_CRUX_MGMT_STATUS=y' "$fixture/prj.conf" && entry_points+=(crux_mgmt_status_start)
+# From the resolved configuration, so that a symbol set by a select or a profile file counts too.
+grep -q '^CONFIG_CRUX_CONFIG_SERVICE=y' "$config" && entry_points+=(crux_config_service_start)
+grep -q '^CONFIG_CRUX_MGMT_STATUS=y' "$config" && entry_points+=(crux_mgmt_status_start)
 for entry in "${entry_points[@]}"; do
     grep -qE " [Tt] ${entry}\$" <<< "$fixture_symbols" || fail "the fixture's ELF does not define $entry"
 done
