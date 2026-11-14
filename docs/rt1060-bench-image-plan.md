@@ -109,7 +109,7 @@ Read on `origin/main` at `cf6e5895` and from the merged pull requests; nothing h
 | 9 | **Day of the run.** | the host, at B0 |
 | 10 | 12 GiB free on the data volume on 2026-11-14, above the 5 GB. The probe and the port may be held by another project's board test: read it on the day. | the host, on the day |
 
-The board stage also waits, apart from these conditions, for the owner's own approval of the board operations and, by the order of the `Controller` session (Q10), for Crux's own integrated-image stage.
+The board stage also waits, apart from these conditions, for the owner's own approval of the board operations. The `Crux Pilot` session also reported on 2026-11-14 that an order of the `Controller` session (its Q10) makes the board stage wait for "Crux's own integrated-image stage"; that order is not recorded in this repository, and which other stage is meant is not stated here.
 
 ## The image that was built
 
