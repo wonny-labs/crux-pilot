@@ -155,6 +155,41 @@ if(CONFIG_CRUX_WEB)
     cmake_language(DEFER CALL crux_assert_portable_usage crux::web)
 endif()
 
+# ADR-0004 phase 0: Access, the credential store and the security events, which are wired to each
+# other, so one symbol builds the three. Off by default, and an image without the symbol is unchanged.
+# Each library is registered with the Zephyr link. No crux:: target and no public header is added: see
+# components/access/ports/zephyr/CMakeLists.txt. What the three need from the rest of the image is
+# refused here, at configuration, with the missing piece named.
+if(CONFIG_CRUX_ACCESS)
+    if(NOT CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs the Mbed profile of PSA Crypto "
+                            "(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS): its ports are the PSA ports")
+    endif()
+    if(NOT CONFIG_TF_PSA_CRYPTO_USER_CONFIG)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs the locks that the Mbed profile's core calls "
+                            "(CONFIG_TF_PSA_CRYPTO_USER_CONFIG): see "
+                            "tests/native/management_composition/mbed-threading.conf")
+    endif()
+    if(NOT TARGET crux::file)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs a Crux File provider for the credential store's "
+                            "two roots: set one of the CONFIG_CRUX_FILE_* selections")
+    endif()
+    if(NOT CONFIG_CRUX_LOGGING)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_CRUX_LOGGING: the security events "
+                            "write their records through it")
+    endif()
+    if(NOT CONFIG_HWINFO)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_HWINFO: the credential store's device ID "
+                            "comes from it")
+    endif()
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/access/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/access")
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/credential/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/credential")
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/security_event/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/security_event")
+endif()
+
 # SSH has no crux:: target and no public header, so the module builds nothing for it. It refuses what no
 # composition could make work, at configuration, and a composition then calls crux_ssh_wolf_settings() from
 # components/ssh/ports/zephyr/wolf_ssh_settings.cmake, which reads CONFIG_CRUX_SSH_CLI, CONFIG_CRUX_SSH_SFTP
