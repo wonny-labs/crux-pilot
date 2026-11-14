@@ -24,7 +24,7 @@ policy](native-interface-policy.md#qualified-psa-crypto-subset). Nothing here is
 | Host toolchain | Clang 18.1.3, CMake 3.28.4 |
 | `native_sim` toolchain | Host GCC, as `ZEPHYR_TOOLCHAIN_VARIANT=host` |
 
-`scripts/test-psa-crypto.sh` checks that `cmake/CruxPsaCrypto.cmake`, `west.yml`, Zephyr's manifest and the checkouts agree, and that
+`scripts/test-psa-crypto.sh` checks that `cmake/CruxPsaCrypto.cmake`, `west.yml`, Zephyr's manifest and the checkouts agree (with one reviewed exception, see [Pin move](#pin-move-pr-416-approved-14-november-2026)), and that
 the Host archive has the same files as the west checkout.
 
 ## Why the earlier `zephyr` CI run failed
@@ -287,6 +287,10 @@ Whoever distributes an image that links a provider needs a licence basis that co
 
 The first trial, at Zephyr v4.4.0 and `f57ff22`, covered 22 cases on TF-PSA-Crypto. Its logs stay unchanged in [`docs/evidence/psa-crypto/`](evidence/psa-crypto/) and its plan in
 [`docs/superpowers/plans/`](superpowers/plans/2026-11-02-psa-crypto-qualification.md). Its first run found the `verify_bytes` stub and two assertions that went beyond the documented API.
+
+### Pin move (PR #416, approved 14 November 2026)
+
+The Inputs table and every result above are for the pins of Zephyr's manifest at v4.4.0 and v4.4.2, which are the same pair (`mbedtls` `a3e190fe`, `tf-psa-crypto` `dc575a2d`), and they stay as recorded. [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416) moves `mbedtls` to `098e120afb51877ed814bdc04443890ae12e0642` and `tf-psa-crypto` to `fa92349590a54959ee2efc21b668e5afdb144726`, the revisions of Zephyr's `v4.4-branch` (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1), under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) and the [dependency review](dependency-review-mbed-tls-4.1.1.md). None of the results above carries over to the new pair. Its evidence is the CI of that pull request, listed in its description, and `scripts/test-psa-crypto.sh` accepts these two revisions, and only these, as security pins that differ from Zephyr's manifest at v4.4.2.
 
 ## Acceptance criteria
 

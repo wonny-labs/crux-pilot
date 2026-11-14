@@ -38,8 +38,8 @@ Added under [Issue #142](https://github.com/wonny-labs/crux-pilot/issues/142). T
 
 | Project | Revision | Licence stated by its source | Basis here |
 | --- | --- | --- | --- |
-| TF-PSA-Crypto, Zephyr's fork | `dc575a2ddcc8cb16275d24c42a52eaf79ebe2231` | Apache-2.0 OR GPL-2.0-or-later. `drivers/everest` is Apache-2.0 only, and one configuration header is BSD-3-Clause. | Apache-2.0 option |
-| Mbed TLS module, Zephyr's fork | `a3e190fe44c78d1ba67f55979e1257328cc7d0d8` | Apache-2.0 OR GPL-2.0-or-later | Apache-2.0 option |
+| TF-PSA-Crypto, Zephyr's fork | `fa92349590a54959ee2efc21b668e5afdb144726` | Apache-2.0 OR GPL-2.0-or-later. `drivers/everest` is Apache-2.0 only, and one configuration header is BSD-3-Clause. | Apache-2.0 option |
+| Mbed TLS module, Zephyr's fork | `098e120afb51877ed814bdc04443890ae12e0642` | Apache-2.0 OR GPL-2.0-or-later | Apache-2.0 option |
 | wolfPSA | `55ae0ec58cd2ef4c528f44e8466095550c16ca8a`, v5.9.4 | GPL-3.0-or-later | Used for test builds, and no binary is published |
 | wolfSSL | `3c5eead44904df64e6a5a1f4ebdce377d35a849a`, v5.9.4-stable | GPL-3.0-or-later in its file headers, with `LICENSING` adding an exception for other named software | Used for test builds, and no binary is published |
 
