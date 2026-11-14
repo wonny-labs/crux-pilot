@@ -217,6 +217,29 @@ if(CONFIG_CRUX_MGMT_STATUS)
         "${CMAKE_CURRENT_BINARY_DIR}/mgmt_status")
 endif()
 
+# ADR-0004 phase 0, slice 3: network settings, the TLS certificate module, the file service and reboot. Each
+# is off by default and added only under its symbol.
+if(CONFIG_CRUX_NETWORK_SETTINGS)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/network_settings/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/network_settings")
+endif()
+if(CONFIG_CRUX_TLS_CERTIFICATE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/tls_certificate/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/tls_certificate")
+endif()
+if(CONFIG_CRUX_FILE_SERVICE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file_service/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/file_service")
+endif()
+if(CONFIG_CRUX_REBOOT)
+    if(NOT TARGET crux::system)
+        message(FATAL_ERROR "CONFIG_CRUX_REBOOT needs CONFIG_CRUX_SYSTEM: the reboot service resets "
+                            "through the System contract")
+    endif()
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/reboot/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/reboot")
+endif()
+
 # SSH has no crux:: target and no public header, so the module builds nothing for it. It refuses what no
 # composition could make work, at configuration, and a composition then calls crux_ssh_wolf_settings() from
 # components/ssh/ports/zephyr/wolf_ssh_settings.cmake, which reads CONFIG_CRUX_SSH_CLI, CONFIG_CRUX_SSH_SFTP
