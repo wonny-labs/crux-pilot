@@ -2,6 +2,9 @@
  * @file
  * @brief Accounts, roles and permission checks shared by every management channel.
  *
+ * Status: Experimental (ADR-0001 decision 4). Access has no Zephyr composition outside tests/ yet,
+ * and a change is listed in the release notes.
+ *
  * Thread context only. Buffers are borrowed for the call, and the policy stays borrowed for the
  * program's life. crux_access_init() must return before any other operation starts, and until it
  * succeeds every operation returns CRUX_ACCESS_ERR_NOT_READY.
