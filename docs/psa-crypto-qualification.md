@@ -288,6 +288,10 @@ Whoever distributes an image that links a provider needs a licence basis that co
 The first trial, at Zephyr v4.4.0 and `f57ff22`, covered 22 cases on TF-PSA-Crypto. Its logs stay unchanged in [`docs/evidence/psa-crypto/`](evidence/psa-crypto/) and its plan in
 [`docs/superpowers/plans/`](superpowers/plans/2026-11-02-psa-crypto-qualification.md). Its first run found the `verify_bytes` stub and two assertions that went beyond the documented API.
 
+### Pin move of 14 November 2026
+
+The Inputs table and every result above are for the pins of Zephyr v4.4.2 (`mbedtls` `a3e190fe`, `tf-psa-crypto` `dc575a2d`), and they stay as recorded. A later pull request moves `mbedtls` to `098e120afb51877ed814bdc04443890ae12e0642` and `tf-psa-crypto` to `fa92349590a54959ee2efc21b668e5afdb144726`, the revisions of Zephyr's `v4.4-branch` (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1), under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) and the [dependency review](dependency-review-mbed-tls-4.1.1.md). None of the results above carries over to the new pair. Its evidence is the CI of that pull request, listed in its description, and `scripts/test-psa-crypto.sh` accepts these two revisions as security pins that differ from Zephyr's manifest.
+
 ## Acceptance criteria
 
 | Criterion | Status |

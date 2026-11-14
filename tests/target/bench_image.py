@@ -41,8 +41,8 @@ PINNED = {
     'wolfssl': '3c5eead44904df64e6a5a1f4ebdce377d35a849a',
     'wolfssh': '8221e4ee48c93da6cea3325a91de2ecc00ae5f56',
     'wolfpsa': '55ae0ec58cd2ef4c528f44e8466095550c16ca8a',
-    'mbedtls': 'a3e190fe44c78d1ba67f55979e1257328cc7d0d8',
-    'tf-psa-crypto': 'dc575a2ddcc8cb16275d24c42a52eaf79ebe2231',
+    'mbedtls': '098e120afb51877ed814bdc04443890ae12e0642',
+    'tf-psa-crypto': 'fa92349590a54959ee2efc21b668e5afdb144726',
 }
 PINNED_PATHS = {
     'zephyr': 'zephyr', 'cmsis': 'modules/hal/cmsis', 'cmsis_6': 'modules/hal/cmsis_6', 'hal_nxp': 'modules/hal/nxp',

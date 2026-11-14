@@ -8,9 +8,9 @@
 include_guard(GLOBAL)
 include(FetchContent)
 
-set(CRUX_TF_PSA_CRYPTO_REVISION dc575a2ddcc8cb16275d24c42a52eaf79ebe2231)
+set(CRUX_TF_PSA_CRYPTO_REVISION fa92349590a54959ee2efc21b668e5afdb144726)
 set(CRUX_TF_PSA_CRYPTO_SHA256
-    1a122bcb91fc7c32060e64feeea29364a7cd894413e0ba89ee200fc5e384f95b)
+    09d8b8a3d1e7fb05e44637e0a5f968f4a3b8ed244e29cea14e510806760ff093)
 
 # Sets <out_dir> to a TF-PSA-Crypto source tree at the pin, fetching the archive on first use. An
 # offline build finds it in the FetchContent cache, or sets

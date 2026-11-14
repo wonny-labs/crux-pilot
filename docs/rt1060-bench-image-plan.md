@@ -213,8 +213,10 @@ The west manifest repository is **`crux-pilot`** (`west.yml`, `self.path`), so `
 | `wolfssl` | `3c5eead44904df64e6a5a1f4ebdce377d35a849a` | `modules/crypto/wolfssl` |
 | `wolfssh` | `8221e4ee48c93da6cea3325a91de2ecc00ae5f56` | `modules/crypto/wolfssh` |
 | `wolfpsa` | `55ae0ec58cd2ef4c528f44e8466095550c16ca8a` | `modules/crypto/wolfpsa` |
-| `mbedtls` | `a3e190fe44c78d1ba67f55979e1257328cc7d0d8` | `modules/crypto/mbedtls` |
-| `tf-psa-crypto` | `dc575a2ddcc8cb16275d24c42a52eaf79ebe2231` | `modules/crypto/tf-psa-crypto` |
+| `mbedtls` | `098e120afb51877ed814bdc04443890ae12e0642` | `modules/crypto/mbedtls` |
+| `tf-psa-crypto` | `fa92349590a54959ee2efc21b668e5afdb144726` | `modules/crypto/tf-psa-crypto` |
+
+*Updated 14 November 2026.* `mbedtls` and `tf-psa-crypto` follow `west.yml` after the security pin move of [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (before it: `a3e190fe44c78d1ba67f55979e1257328cc7d0d8` and `dc575a2ddcc8cb16275d24c42a52eaf79ebe2231`). No bench image has been built or run at the new pair, and a result at the old pair does not carry over.
 
 A candidate `ImageProfile` with these ten and `capture='raw'` constructs under its own consistency rule; the same rule refuses a window of 600 s (the probe's section 6). Three facts about the freeze that this profile has to answer:
 
