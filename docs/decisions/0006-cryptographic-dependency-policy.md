@@ -1,8 +1,8 @@
 # ADR-0006: How Crux handles its cryptographic dependencies over time (proposal)
 
-Status: **Proposed**. Baseline: `origin/main` at `8a6fc5a59142963ebe49d6d0041ad29c952f47d4`. Author: Claude Code, model `claude-sonnet-5-5`. The owner approved writing this proposal, and only the proposal, in the Crux Pilot main session chat on 14 November 2026 at about 18:37 UTC (relayed by that session as the words "추천대로 승인할게", meaning "I approve as you recommended", for the item it recommended: a short crypto dependency policy, to be written after the phase 0 and System proposals and allowed to start now). The question behind it came from the owner through the Crux Controller session: is wolfSSL used, and what does Crux do about Mbed TLS support ending in 2027?
+Status: **Accepted** on 14 November 2026, as recommended: Q1 to Q8. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `8a6fc5a59142963ebe49d6d0041ad29c952f47d4`. Author: Claude Code, model `claude-sonnet-5-5`. The owner approved writing this proposal, and only the proposal, in the Crux Pilot main session chat on 14 November 2026 at about 18:37 UTC (relayed by that session as the words "추천대로 승인할게", meaning "I approve as you recommended", for the item it recommended: a short crypto dependency policy, to be written after the phase 0 and System proposals and allowed to start now). The question behind it came from the owner through the Crux Controller session: is wolfSSL used, and what does Crux do about Mbed TLS support ending in 2027?
 
-This record is documentation only. It adds no code, check, target or Kconfig symbol, changes no `west.yml` pin, changes no protected path and opens no GitHub issue. It adopts nothing. Every change it puts forward would be its own reviewed change, listed under [Follow-up changes](#follow-up-changes). The number 0006 is used because ADR-0005 is taken by the open Draft PR #404 (**Verified** with `gh pr list` on 14 November 2026).
+This record is documentation only. It adds no code, check, target or Kconfig symbol, changes no `west.yml` pin, changes no protected path and opens no GitHub issue. Accepting it decides the policy and nothing else: it adopts no pin move and no code. Every change it puts forward would be its own reviewed change, listed under [Follow-up changes](#follow-up-changes). The number 0006 is used because ADR-0005 is taken by the open Draft PR #404 (**Verified** with `gh pr list` on 14 November 2026).
 
 **Labels.** **Verified** means I read it at the baseline revision and cite `path:line`, or I read it from an upstream repository with `gh api` on 14 November 2026 and cite the URL. **Reported** means a named document says it and I did not re-check it. **Inference** is my reading. **Not verified** means no run or read exists. No build, `native_sim` run, `west` command or test ran for this record: see [What was run](#what-was-run).
 
@@ -217,6 +217,27 @@ The recommendation comes first in each row.
 | Q7 | Do the wolf pins follow tagged stable releases through the same review, with no coupling to Zephyr? | **Yes** | They are at the latest tags now (section 2.4), and the review applies equally. Their licence terms and the patch stay with the owner's open decision |
 | Q8 | Should the consumer rules of section 3 (what a product can and must do) go into `docs/product-composition.md`? | **Yes, as a short section after acceptance** | A product's own review and its choice to override a pin are the consumer's, and the guide is where consumers read. Alternative: leave it in this record only |
 
+### The owner's decisions
+
+The owner accepted this record as recommended, in the Crux Pilot main session chat on 14 November 2026 at about 19:10 UTC. The time is the one that session read from its shell (19:10:08Z) when it acted, moments after the owner's message, and the owner's time zone was not recorded. The owner's words, relayed by that session, answered its question "accept ADR-0006 as recommended (Q1-Q8)", and its second question whether, once the policy is accepted, the first pin move to the `v4.4-branch` revisions is started as its own PR after the dependency review (Q2):
+
+> 추천대로 승인할게
+
+This means "I approve as you recommended". Acceptance was recorded from the owner's words as that session relayed them, and the session read the single reply as accepting the recommendation of each of Q1 to Q8.
+
+| # | Decision |
+| --- | --- |
+| Q1 | Policy B: follow Zephyr's module revisions at each baseline, plus a defined security-fix path for the two Mbed TLS pins, with the conditions of [section 3](#3-policy-options) |
+| Q2 | The first pin move, to the `v4.4-branch` revisions (`098e120a`, `fa923495`), is started after acceptance, as its own PR, after the dependency review of the 4.1.1 and 1.1.1 advisories |
+| Q3 | The owner approves each of the first two pin moves. After those, reviewer PASS plus green CI is enough for a move within the same upstream line with unchanged results |
+| Q4 | A review is recorded within 14 days of a trigger, as a Crux target and not a promise to consumers |
+| Q5 | FatFs is the next dependency to get the review, after the crypto pair |
+| Q6 | The documented pin base check and the release notes line now. The generated crypto-line column later |
+| Q7 | The wolf pins follow tagged stable releases through the same review, with no coupling to Zephyr |
+| Q8 | The consumer rules of section 3 go into `docs/product-composition.md` as a short section |
+
+Accepting this record decides these questions. It changes no code, check, target, `west.yml` pin or protected path, and it authorises no hardware operation. **Each follow-up under [Follow-up changes](#follow-up-changes) is its own reviewed change and needs its own approval, including for every protected path that it touches** (for example the edit to `scripts/test-psa-crypto.sh`, which this acceptance does not approve) ([the convention](README.md#convention)). **The first pin move needs the owner's approval of the move itself, after the dependency review.** The body of this record keeps its proposal wording, as the convention says an accepted record is not rewritten.
+
 ## What was run
 
 On native macOS, in the worktree at `8a6fc5a5`: `git fetch`, reads of the files cited above, `grep`, `gh api` and `curl` against public GitHub and wolfSSL URLs (the release, compare, contents, tags and matching-refs endpoints, and the wolfSSL vulnerability page), `gh pr list` and `gh pr view` for #199 and #404. All upstream reads were on 14 November 2026 between about 18:38 and 18:50 UTC. Not run: `west`, the compatibility table generator, `scripts/test-psa-crypto.sh`, any CMake configure, any build, `native_sim`, any test, any hardware command. The documentation link check is recorded in the pull request.
@@ -229,4 +250,4 @@ On native macOS, in the worktree at `8a6fc5a5`: `git fetch`, reads of the files 
 | Skills and agents used | `ecc:architecture-decision-records` (record format, with this repository's convention taking precedence over its `docs/adr/` default), `ecc:search-first` (search of existing scripts, checks and decisions for what already covers the topic, with no install or dependency). `ecc:deep-research` was not used: it needs firecrawl or exa tools, and I used `gh api` and `curl` on public URLs instead |
 | Model | `claude-sonnet-5-5`, Claude Code. This is below what a policy record deserves. The independent review is Opus |
 | Independent review | The `reviewer` agent, verdict in the pull request |
-| Acceptance | None yet. The record is Proposed |
+| Acceptance | The owner, as recommended (Q1 to Q8), 14 November 2026 at about 19:10 UTC in the Crux Pilot main session chat: "추천대로 승인할게". Relayed by that session. See [the owner's decisions](#the-owners-decisions) |
