@@ -83,11 +83,14 @@ zephyr_pinned_revision() { # project name in Zephyr's own west.yml
 }
 
 # The review record that allows a security pin: a revision that west.yml may pin although Zephyr's manifest
-# at the pinned tag does not (ADR-0006, option B). Prints the record's path, or nothing for any other
-# revision. Adding a revision here is a protected change that needs the owner's approval, with its review.
-security_pin_review() { # module, revision
-    case "$1 $2" in
-        'mbedtls 098e120afb51877ed814bdc04443890ae12e0642' | 'tf-psa-crypto fa92349590a54959ee2efc21b668e5afdb144726')
+# at the pinned tag pins another one (ADR-0006, option B). The exception names the module, the revision and
+# the Zephyr revision it replaces, so it lapses when Zephyr's pin moves, and it never matches an empty one.
+# Prints the record's path, or nothing. Adding a line here is a protected change that needs the owner's
+# approval, with its review.
+security_pin_review() { # module, revision, Zephyr's revision
+    case "$1 $2 $3" in
+        'mbedtls 098e120afb51877ed814bdc04443890ae12e0642 a3e190fe44c78d1ba67f55979e1257328cc7d0d8' | \
+            'tf-psa-crypto fa92349590a54959ee2efc21b668e5afdb144726 dc575a2ddcc8cb16275d24c42a52eaf79ebe2231')
             printf 'docs/dependency-review-mbed-tls-4.1.1.md'
             ;;
     esac
@@ -98,19 +101,20 @@ security_pin_review() { # module, revision
 # pin of security_pin_review, which west.yml may hold in place of Zephyr's revision, and only while its
 # review record is in the repository. The Host archive, west.yml and the checkout must still agree.
 check_pins() {
-    local cmake_pin module pin actual review
+    local cmake_pin module pin zephyr_pin actual review
     cmake_pin="$(sed -n 's/^set(CRUX_TF_PSA_CRYPTO_REVISION \([0-9a-f]*\))$/\1/p' "$repo/cmake/CruxPsaCrypto.cmake")"
     [[ -n "$cmake_pin" ]] || fail 'no revision in cmake/CruxPsaCrypto.cmake'
     [[ "$cmake_pin" == "$(pinned_revision tf-psa-crypto)" ]] ||
         fail "cmake/CruxPsaCrypto.cmake pins $cmake_pin, and west.yml pins $(pinned_revision tf-psa-crypto)"
     for module in mbedtls tf-psa-crypto; do
         pin="$(pinned_revision "$module")"
-        if [[ "$pin" != "$(zephyr_pinned_revision "$module")" ]]; then
-            review="$(security_pin_review "$module" "$pin")"
+        zephyr_pin="$(zephyr_pinned_revision "$module" || true)"
+        if [[ "$pin" != "$zephyr_pin" ]]; then
+            review="$(security_pin_review "$module" "$pin" "$zephyr_pin")"
             [[ -n "$review" && -f "$repo/$review" ]] ||
-                fail "west.yml pins $module at $pin, and Zephyr's manifest at $(zephyr_pinned_revision "$module"). A security pin needs an entry in security_pin_review and its review record"
+                fail "west.yml pins $module at $pin, and Zephyr's manifest at ${zephyr_pin:-nothing}. A security pin needs a line in security_pin_review for both revisions, and its review record"
             printf 'security pin: %s %s, not Zephyr'"'"'s %s, reviewed in %s\n' \
-                "$module" "$pin" "$(zephyr_pinned_revision "$module")" "$review"
+                "$module" "$pin" "$zephyr_pin" "$review"
         fi
     done
     local checked=(mbedtls tf-psa-crypto)

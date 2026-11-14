@@ -343,7 +343,7 @@ flowchart TD
 
 ### Crypto library pins
 
-Crux pins `mbedtls` and `tf-psa-crypto` from Zephyr's forks, in the optional group `crux-secure-management`. A pin is an upstream release plus Zephyr's commits, and it follows Zephyr's own pin at the Zephyr tag unless a [dependency review](dependency-review.md) moves it. Since the pin move of 14 November 2026 they are the revisions of Zephyr's `v4.4-branch` (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1), not the revisions Zephyr's manifest pins at v4.4.2. The policy is [ADR-0006](decisions/0006-cryptographic-dependency-policy.md). `west crux-pins` reports the pin, not the library line or version. To see those, use the pin base check of the [guide](dependency-review.md#check-what-a-pin-is) and the release notes line that a pin move adds.
+Crux pins `mbedtls` and `tf-psa-crypto` from Zephyr's forks, in the optional group `crux-secure-management`. A pin is an upstream release plus Zephyr's commits, and it follows Zephyr's own pin at the Zephyr tag unless a [dependency review](dependency-review.md) moves it. Since the pin move of [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416) (approved 14 November 2026) they are the revisions of Zephyr's `v4.4-branch` (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1), not the revisions Zephyr's manifest pins at v4.4.2. The policy is [ADR-0006](decisions/0006-cryptographic-dependency-policy.md). `west crux-pins` reports the pin, not the library line or version. To see those, use the pin base check of the [guide](dependency-review.md#check-what-a-pin-is) and the release notes line that a pin move adds.
 
 A product **can**:
 
