@@ -1,8 +1,6 @@
 # ADR-0001: Application boundary and public API stability
 
-Status: **Accepted** on 12 November 2026, with D10 limited to phase 1. See [the owner's decision](#the-owners-decision). Proposed: 12 November 2026. Baseline: main `54cc83e`.
-
-Amended by [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) (2026-11-13).
+Status: **Accepted** on 12 November 2026, with D10 limited to phase 1. **Amended by [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md)** on 13 November 2026. See [the owner's decision](#the-owners-decision). Proposed: 12 November 2026. Baseline: main `54cc83e`.
 
 This record is documentation only. It changes no code, check, contract or protected path, and nothing in it binds until the owner accepts it. Each decision that it would put into effect needs its own change afterwards, listed under [Follow-up changes](#follow-up-changes). The facts and sources behind it are in the [research note](../research/app-boundary-and-api-stability.md).
 
