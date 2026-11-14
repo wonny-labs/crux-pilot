@@ -159,6 +159,28 @@ The design asks for a refusal status and a security event for a rejected file op
 
 Evidence: `case_each_direct_use_of_a_hidden_area_records_a_denial`, `case_what_the_service_records_for_an_area_used_as_a_file` and `case_a_refused_name_is_recorded_once_with_no_text`, `case_a_session_that_has_ended_is_recorded` and `case_a_session_that_expired_is_recorded_first_as_expired` on Host, and `wire_a_refused_name_is_recorded_with_no_text` on both servers, for `file.name_rejected`. The rows with no event are read from the code. The port reaches events only through the file service: its event port is private, and an identifier for the rows that have none would be a change to the file service and #182, which is outside the files of #194, so I did not add one. [#270](https://github.com/wonny-labs/crux-pilot/issues/270) lists them, as a shared change under G-A and #182.
 
+#### The decision for the refusals with no event (#270)
+
+On 2026-11-14 the owner accepted a direction in the working chat of the Crux secure management session ("추천대로 모두 진행해줘", "proceed with all as recommended", after a recommendation: no event with a recorded reason for a refusal that is an ordinary client's behaviour or that stops before the port, and one new rate-limited event for a session's bound of open files or listings). The table below applies that direction to each row of the issue. **It is a proposal for independent review, row by row.** It changes no code and adds no identifier; the identifier of row 6, its class and its rate behaviour are decided in the pull request that implements it, together with the security event contract.
+
+| # | Refusal (the issue's row) | Decision | Reason recorded |
+| --- | --- | --- | --- |
+| 1 | A path in an area that does not exist, including a refused name there | No event | No area exists to record it against, and the contract gives the same result as for a hidden area |
+| 2 | `REMOVE`, `RENAME` or `OPEN` of the root | No event | No area to record it against; the root is not an area, and no rule of an area was broken |
+| 3 | `RENAME` across areas the session can see | No event | An ordinary client's request, and `crux_file_service_rename` takes one area. No permission was crossed |
+| 4 | `OPEN` with flags that have no service mode, in an area the session can see | No event | An ordinary client's request, not a permission |
+| 5 | `OPEN` of an area the session can see, and `OPENDIR` of a file | No event | wolfSSH stops the first before the port, and no rule was broken in either |
+| 6 | Past a session's bound of open files or listings (`CRUX_SSH_SFTP_FILES_MAX`, `DIRS_MAX`), in an area the session can see | **One new rate-limited event** | The bound is per session, but a handle that a session holds keeps its listing, its reservation or its busy name from other clients, so the operator needs to see it. Rate limiting keeps one client from filling the event ring. Class, rate and name are set with the contract |
+| 7 | The service's pools, reservations and a busy name or listing (`ERR_NO_RESOURCES`, `ERR_BUSY`) | No event | A transient resource condition and not a refusal of a right. The contract gives it no event, and an event for each one could fill the ring. Row 6 only partly covers it: it fires at a session's own slot bound, and a session below that bound can still use up a small pool |
+| 8 | A limit or a sparse write (`ERR_LIMIT`, `ERR_OUT_OF_RANGE`) | No event | An ordinary client's request against a declared limit. The contract gives it no event |
+| 9 | A write to a read-only area, or a write mode the area does not offer | No event | The file service contract: the session holds what was checked, and the area's declaration is not a refusal of the session |
+| 10 | `MKDIR` and `RMDIR` in an area the session can see, with a name the rule accepts | No event | The operation does not exist, and a name the rule refuses already records `file.name_rejected` |
+| 11 | `SETSTAT` with a size or an owner | No event | wolfSSH stops it before the port. An event would need a wolfSSH patch, which is a separate decision that was not taken |
+| 12 | `SYMLINK`, `READLINK` and other requests with no handler | No event | No port call exists. The same separate decision |
+| 13 | A path of 256 bytes or more | No event | wolfSSH stops it before the port. The same separate decision |
+
+What the table leaves open: a wolfSSH patch for rows 11 to 13 (not decided), and whether the web adapter, which has no file routes yet ([#188](https://github.com/wonny-labs/crux-pilot/issues/188)), must follow the same decisions when it gets them (it must: the issue asks the two adapters to behave the same for what they share). The criterion of #270 "each row has a recorded decision" is met by this table once it is reviewed and merged; the criteria about a new identifier, its test and the adapters belong to the implementation of row 6.
+
 ### Long paths
 
 `WOLFSSH_MAX_FILENAME` is 256. Under that length a long name gets the normal refusal. From it, each handler does its own thing, and a handler that returns with no status leaves the server nothing to answer with, so the connection ends. Measured by `wire_a_long_path_depends_on_the_request`:
