@@ -1,0 +1,24 @@
+[
+  {
+    "step": "01-identity-only",
+    "commands": "q\n",
+    "state": "checks",
+    "monotonic": 127409.793079
+  },
+  {
+    "step": "01-identity-only",
+    "state": "done",
+    "monotonic": 127411.139743
+  },
+  {
+    "step": "02-candidate-integrated-normal",
+    "commands": "verifybin \"<artifacts>/normal-ec94fbe/build/zephyr/zephyr.bin\", 0x60000000\nIsHalted\nq\n",
+    "state": "checks",
+    "monotonic": 127411.140005
+  },
+  {
+    "step": "02-candidate-integrated-normal",
+    "state": "done",
+    "monotonic": 127416.046011
+  }
+]

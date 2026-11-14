@@ -1,0 +1,13 @@
+11:	chosen {
+12-		zephyr,entropy = &trng;                    /* in zephyr-wolf/dts/arm/nxp/imxrt/nxp_rt10xx.dtsi:23 */
+13-		zephyr,sram = &sdram0;                     /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk.dtsi:29 */
+14-		zephyr,itcm = &itcm;                       /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk.dtsi:30 */
+15-		zephyr,dtcm = &dtcm;                       /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk.dtsi:31 */
+16-		zephyr,uart-mcumgr = &lpuart1;             /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk.dtsi:32 */
+17-		zephyr,console = &lpuart1;                 /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk.dtsi:33 */
+18-		zephyr,shell-uart = &lpuart1;              /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk.dtsi:34 */
+19-		zephyr,canbus = &flexcan3;                 /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk.dtsi:35 */
+20-		zephyr,flash-controller = &ext_flash_ctrl; /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts:11 */
+21-		zephyr,flash = &is25wp064;                 /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts:12 */
+22-		zephyr,code-partition = &slot0_partition;  /* in zephyr-wolf/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts:13 */
+23-		zephyr,log-uart = &logging_uarts;          /* in crux-pilot/tests/zephyr/management_rt1060_compile/target.overlay:7 */

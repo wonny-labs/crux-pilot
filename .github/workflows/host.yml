@@ -41,12 +41,16 @@ jobs:
         run: ./scripts/test-access.sh
       - name: Validate the command line on Host
         run: ./scripts/test-cli.sh
+      - name: Validate the command line over SSH under ThreadSanitizer
+        run: ./tests/ssh/cli/test-thread-sanitizer.sh
       - name: Validate the credential store on Host
         run: ./scripts/test-credential.sh
       - name: Validate Security events on Host
         run: ./scripts/test-security-event.sh
       - name: Validate the status and configuration services on Host
         run: ./scripts/test-mgmt-services.sh
+      - name: Validate the web contract on Host
+        run: ./scripts/test-web.sh host
       - name: Validate independent execution consumers and public boundaries
         run: ./scripts/test-portable-execution.sh --host-only
       - name: Validate independent File consumers
@@ -59,6 +63,8 @@ jobs:
         run: ./scripts/test-messaging.sh --host-only
       - name: Check build provenance safeguards
         run: python3 -m unittest discover -s tests/build -v
+      - name: Test the power-cut wrapper with fake commands
+        run: python3 -m unittest discover -s tests/power_cut -v
       - name: Check format
         run: ./scripts/check-format.sh
       - name: Validate public Serial consumers

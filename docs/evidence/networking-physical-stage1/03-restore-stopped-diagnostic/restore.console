@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 352, in <module>
+    sys.exit(main())
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 345, in main
+    result = driver.restore(normal['binary'], lambda port: Observation(Path(args.evidence) / 'normal-capture', source, port, Receiver))
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 171, in restore
+    text = self.run('load-normal', 'loadfile "%s", 0x%X\nverifybin "%s", 0x%X\nq\n' % (normal_binary, BASE, normal_binary, BASE), images=[normal_binary])
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 139, in run
+    text = self.probe_command(commands, output)
+  File "<ws>/crux-pilot-2/tests/target/program_m5_image.py", line 281, in probe
+    return capture_m3.commander(runner.PROBE, commands, output)
+  File "<ws>/crux-pilot-2/tests/target/capture_m3.py", line 86, in commander
+    return _commander(probe, commands, output)
+  File "<ws>/crux-pilot-2/tests/target/capture_m3.py", line 80, in _commander
+    raise HardwareStop('Probe diagnostic; stop hardware changes')
+capture_m3.HardwareStop: Probe diagnostic; stop hardware changes
+exit 1

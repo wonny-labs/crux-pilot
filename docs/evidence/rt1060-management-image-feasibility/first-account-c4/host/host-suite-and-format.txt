@@ -1,0 +1,9 @@
+clang-format version 18.1.8
+FORMAT-OK
+== host: Access suite for the first account step (gcc, the flags of the CMake targets)
+bench_first_account: 156 checks, 0 failures
+host suite exit 0
+== the same suite under ASan and UBSan
+bench_first_account: 156 checks, 0 failures
+sanitized suite exit 0
+container exit 0

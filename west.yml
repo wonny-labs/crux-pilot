@@ -2,12 +2,16 @@ manifest:
   version: "1.2"
   # Stacks for the secure management work. They are off by default, so that an
   # ordinary workspace fetches no GPLv3 stack. See patches/zephyr/README.md.
-  group-filter: [-crux-secure-management]
+  # The crux-reliance group is off by default for the same reason: an ordinary
+  # workspace does not fetch the GPLv2 Reliance Edge source.
+  group-filter: [-crux-secure-management, -crux-reliance]
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
     - name: wolfssl
       url-base: https://github.com/wolfSSL
+    - name: tuxera
+      url-base: https://github.com/tuxera
   projects:
     - name: zephyr
       remote: zephyrproject-rtos
@@ -52,6 +56,12 @@ manifest:
       path: modules/crypto/wolfpsa
       groups:
         - crux-secure-management
+    - name: reliance-edge
+      remote: tuxera
+      revision: 6706984258c5bb61c778fe8ca2edd04b559efb78 # v3.0
+      path: modules/fs/reliance-edge
+      groups:
+        - crux-reliance
   self:
     path: crux-pilot
     west-commands: scripts/west-commands.yml

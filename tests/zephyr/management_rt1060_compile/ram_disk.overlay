@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The RAM disk of the RT1060-EVKB bench image (row C3, decision D2): the file backend of the first board run.
+ * 524,288 B (512 KiB) in the SDRAM, which holds all RAM of this image. It is the .bss of the RAM disk driver, so it is
+ * zero at every boot and nothing survives a reset. The size and its reasoning are in
+ * docs/rt1060-management-image-feasibility.md; tests/native/management_rt1060_ram_disk formats exactly this node on
+ * native_sim and fills it with the largest content the image's File service allows. The node is applied with
+ * every build of this directory and costs nothing unless CONFIG_DISK_DRIVER_RAM is on, which the CMake guard
+ * ties to the declared RAM disk form. */
+/ {
+    bench_ram_disk: ramdisk0 {
+        compatible = "zephyr,ram-disk";
+        disk-name = "RAM";
+        sector-size = <512>;
+        sector-count = <1024>;
+    };
+};

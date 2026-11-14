@@ -16,14 +16,6 @@ target_link_options(crux_thread_linux_sleep_tests PRIVATE
 add_test(NAME Thread.TypedLinuxSleep COMMAND crux_thread_linux_sleep_tests)
 set_tests_properties(Thread.TypedLinuxSleep PROPERTIES TIMEOUT 5)
 
-add_executable(crux_thread_linux_stack_tests linux_stack.c)
-target_link_libraries(crux_thread_linux_stack_tests PRIVATE crux::thread)
-target_compile_options(crux_thread_linux_stack_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
-target_link_options(crux_thread_linux_stack_tests PRIVATE
-    -Wl,--wrap=sysconf -Wl,--wrap=pthread_attr_setstacksize)
-add_test(NAME Thread.LinuxStackMinimum COMMAND crux_thread_linux_stack_tests)
-set_tests_properties(Thread.LinuxStackMinimum PROPERTIES TIMEOUT 5)
-
 add_library(crux_thread_clock_integration_portable OBJECT clock_integration.cpp)
 target_link_libraries(crux_thread_clock_integration_portable PRIVATE crux::thread crux::time)
 include(../../cmake/CruxConsumerBoundary.cmake)

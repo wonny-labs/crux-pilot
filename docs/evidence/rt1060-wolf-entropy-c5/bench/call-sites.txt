@@ -1,0 +1,44 @@
+== symbols
+60018204 T crux_entropy_boot_check
+80000d90 d entropy_mcux_config
+6007e4c8 r entropy_mcux_trng_api_funcs
+60060090 t entropy_mcux_trng_get_entropy
+600600a4 t entropy_mcux_trng_init
+6003a9d8 T wc_GenerateSeed
+6001c9e0 T z_impl_sys_csrand_get
+6001c93c T z_impl_sys_rand_get
+== functions that branch to a random function (any branch instruction, tail calls included)
+      1 <eth_nxp_enet_init>: -> <z_impl_sys_rand_get>
+      1 <find_available_port.constprop.0>: -> <z_impl_sys_rand_get>
+      1 <tcp_derive_rto>: -> <z_impl_sys_rand_get>
+      1 <tcp_init_isn>: -> <z_impl_sys_csrand_get>
+      1 <tcp_init_isn>: -> <z_impl_sys_rand_get>
+      1 <z_impl_sys_csrand_get>: -> <z_impl_sys_csrand_get+0x28>
+      1 <z_impl_sys_csrand_get>: -> <z_impl_sys_csrand_get+0x2c>
+      1 <z_impl_sys_csrand_get>: -> <z_impl_sys_csrand_get+0x2e>
+      1 <z_impl_sys_csrand_get>: -> <z_impl_sys_csrand_get+0x32>
+      1 <z_impl_sys_csrand_get>: -> <z_impl_sys_csrand_get+0x40>)
+      2 <z_impl_sys_csrand_get>: -> <z_impl_sys_csrand_get+0x44>)
+      2 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x3c>
+      1 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x40>
+      1 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x56>
+      2 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x5c>
+      1 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x82>
+      1 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x8c>
+      1 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x90>)
+      1 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x94>)
+      1 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x98>)
+      1 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0x9c>)
+      1 <z_impl_sys_rand_get>: -> <z_impl_sys_rand_get+0xa0>)
+== functions that branch to psa_generate_random
+      1 <crux_access_port_random>:
+      1 <crux_credential_port_random>:
+      1 <crux_entropy_boot_check>:
+      1 <crux_tls_certificate_port_random>:
+      1 <crux_web_session_port_random>:
+      1 <psa_generate_key>:
+     11 <psa_generate_random>:
+      1 <z_impl_sys_csrand_get>:
+== wc_GenerateSeed: every call or branch out of it (blx is an indirect call through the driver's function table)
+      1 bl	6007cb74 <z_impl_device_is_ready>
+      1 blx	r3

@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.20)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_service_priority)
+target_sources(app PRIVATE src/main.c)
+target_link_libraries(app PRIVATE crux::thread crux_service_priority_placement)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+# The scenario that sets every worker away from its default, with the numbers in placed.conf.
+if(CRUX_TEST_PLACED)
+    target_compile_definitions(app PRIVATE CRUX_TEST_PLACED=1)
+endif()

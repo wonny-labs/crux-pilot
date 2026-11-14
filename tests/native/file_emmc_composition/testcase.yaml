@@ -1,0 +1,10 @@
+common:
+  platform_allow: [native_sim/native, native_sim/native/64]
+  tags: [filesystem, crux]
+  timeout: 180
+tests:
+  crux.file.emmc_composition: {}
+  # A disk that fails its first init, which must be the first init in the process.
+  crux.file.emmc_composition.init_failure:
+    extra_configs:
+      - CONFIG_EMMC_COMPOSITION_TEST_INIT_FAILURE=y

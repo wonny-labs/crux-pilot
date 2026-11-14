@@ -73,6 +73,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-psa-crypto.sh target tf-psa-crypto
 
+      - name: Compile the web adapter for RT1060-EVKB on the Mbed TLS profile, without running it
+        working-directory: crux-pilot
+        run: scripts/test-web.sh target mbedtls
+
       - name: The PSA ports on TF-PSA-Crypto on Linux Host, with sanitizers and controls
         working-directory: crux-pilot
         run: scripts/test-native-composition.sh host
@@ -84,6 +88,14 @@ jobs:
       - name: The management composition, Mbed profile, on native_sim
         working-directory: crux-pilot
         run: scripts/test-native-composition.sh mbed
+
+      - name: The web adapter over HTTPS on the composition, Mbed profile, on native_sim
+        working-directory: crux-pilot
+        run: scripts/test-web.sh https mbedtls
+
+      - name: Login and sessions on the composition, Mbed profile, on native_sim over plain HTTP
+        working-directory: crux-pilot
+        run: scripts/test-web-session.sh native
 
       - name: Compile the PSA ports for RT1060-EVKB, without running them
         working-directory: crux-pilot
@@ -103,5 +115,8 @@ jobs:
             crux-pilot/build/native-composition/*/*.log
             crux-pilot/build/native-composition/*/*.txt
             crux-pilot/build/native-composition/*/*.json
+            crux-pilot/build/web/https-*-results*
+            crux-pilot/build/web-session/*.json
+            crux-pilot/build/web-session/*.log
           if-no-files-found: warn
           retention-days: 14

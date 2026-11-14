@@ -19,7 +19,7 @@ flowchart TB
         routes["Its own API routes"]
     end
     subgraph optional["Crux offers, and a product may ignore"]
-        examples["Example applications<br/>Preact in web/reference, Angular in samples/web/angular-minimal"]
+        examples["Example applications<br/>Preact in samples/web/preact, Angular in samples/web/angular"]
         client["TypeScript client and generated types"]
     end
     subgraph crux["Crux provides"]
@@ -68,7 +68,7 @@ How the earlier rows read after W13:
 
 | Row | Effect |
 | --- | --- |
-| W1 | The framework choice stands. "The reference interface" now means the Preact example, which is the larger of the two. The folder keeps its name, `web/reference`. |
+| W1 | The framework choice stands. "The reference interface" now means the Preact example, which is the larger of the two. The folder was `web/reference` and has been `samples/web/preact` since the owner's review of 8 November 2026. |
 | W2 | Angular is an example, and it stays in CI. |
 | W3 | Replaced by the Core and Advanced table below. All three screens stay. |
 | W4 | Stands. Sign-in and forced password change are core. |
@@ -110,8 +110,8 @@ tests underneath. Neither kind is a product promise, and a new API does not by i
 | Forced password change | Core | Accounts, #186 and #187 | Built | A notice only. The screen is in #243. |
 | Status | Core | Status, #180 and #187 | Built, as home | Built, as home |
 | Simple configuration update | Core | Configuration, #180 and #187 | In #243 | In #243 |
-| Network settings | Advanced | #213, after the HTTPS core | Built. The advanced label is in the documents only, not on the screen. | Not planned |
-| Reboot | Advanced | #214, optional and policy-controlled | Built. The advanced label is in the documents only, not on the screen. | Not planned |
+| Network settings | Advanced | #213, after the HTTPS core | Built. The advanced label is in the documents only, not on the screen. | Built, since #243 |
+| Reboot | Advanced | #214, optional and policy-controlled | Built. The advanced label is in the documents only, not on the screen. | Built, since #243 |
 | Browser console | Optional follow-up in M13 | Endpoint in #204 | No page | No page |
 
 The state above covers the mock only. The evidence for each flow is in the
@@ -121,7 +121,7 @@ The state above covers the mock only. The evidence for each flow is in the
 
 ```text
 Application UI             owned by the product, in any framework
-Example applications       web/reference (Preact), samples/web/angular-minimal (Angular)   M13
+Example applications       samples/web/preact (Preact), samples/web/angular (Angular)   M13
 TypeScript client          web/client, session, login polling, CSRF        M13
 API specification          OpenAPI file, shared by both sides              M11
 Asset packaging            folder to firmware data, headers, budgets       M11
@@ -215,7 +215,7 @@ been tested here yet.
 
 The strict setting is the default. Choosing the inline style setting weakens only style injection, which can still restyle a page to mislead a user, and a project should record that choice. A nonce would need server-side templating, which the web design excludes.
 
-**Example.** `samples/web/angular-minimal` holds sign-in and home using the generated types, and is built in its own CI job
+**Example.** `samples/web/angular` holds sign-in and home using the generated types, and is built in its own CI job
 with its own lockfile. #243 adds the rest of the core after the configuration API exists. It does not reach feature parity,
 and Angular versions move only when that example is updated. It
 also gives the first measured comparison with Preact: compressed size, file count, policy violations and production
@@ -232,6 +232,7 @@ W12 follows from this:
 - With that option, the server's `FNM_LEADING_DIR` flag lets any route also match deeper paths, so `/api/v1/status/x` reaches the status route, and a trailing `*` crosses `/`. The adapter therefore compares the whole path with the route table before it checks access, and answers `404` to anything else.
 - The wildcard pass takes the first match in section order, which is sorted by name, so `/api/v1/session` could capture `/api/v1/session/attempt/x`. The generator must place wildcard resources first, or the parent resource must accept the method.
 - The server always sends `Transfer-Encoding: chunked` on a dynamic HTTP/1.1 response, so no route uses `204`. A path with no registered resource gets the server's plain `404`, and a wrong method its plain `405`, neither with JSON or security headers.
+- #184 implemented and measured this model. See the [web contract](../web-contract.md), which also records two limits of `native_sim` found there: the host's C library reads the server's `fnmatch` flags differently, and the native socket offload has no `shutdown`, which the inactivity timer uses.
 - Hash routing removes the need for a deep-link fallback.
 - A `GET` completes in one server pass, while a `POST` or `PUT` whose body spans several reads holds its route until the body completes or the connection closes.
 - The client treats a `409` with no JSON body as busy and retries. A refused reboot therefore uses `423`, so that the two cannot be confused.

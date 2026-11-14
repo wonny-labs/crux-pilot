@@ -1,0 +1,15 @@
+CI run 42309978456, workflow psa-crypto, head 5e31a3b (with the correction), Zephyr v4.4.2.
+Excerpts of the steps "TF-PSA-Crypto on native_sim, with the entropy declaration" and
+"Compile TF-PSA-Crypto for RT1060-EVKB, without running it". Lines 3314-3319, 3343-3346 and 3713 of the run log.
+
+test_a_drifted_upstream_source_is_refused (test_prepare_entropy.GeneratedEntropySourceTests.test_a_drifted_upstream_source_is_refused) ... ok
+test_only_the_fallback_flag_changes (test_prepare_entropy.GeneratedEntropySourceTests.test_only_the_fallback_flag_changes) ... ok
+test_output_inside_the_zephyr_checkout_is_refused (test_prepare_entropy.GeneratedEntropySourceTests.test_output_inside_the_zephyr_checkout_is_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.005s
+crux.psa_entropy.fail_closed.failing_read ['passed']
+crux.psa_entropy.fail_closed.healthy_read ['passed']
+crux.psa_entropy.upstream_fallback.failing_read ['passed']
+PSA Crypto qualification (zephyr) finished.
+tf-psa-crypto: the corrected Mbed TLS entropy source is compiled

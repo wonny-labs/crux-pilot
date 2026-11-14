@@ -1,0 +1,12 @@
+2 reports (boot 1, quiet 1, idle 0)
+thread                      size  used max  unused min  unused %
+bench_report                2048       568        1480     72.3%
+http_server_tid             8192      3604        4588     56.0%
+idle                         320       140         180     56.2%
+main                       16384     14404        1980     12.1%
+ssh_listener                4096      1216        2880     70.3%
+ssh_worker                 16384     11204        5180     31.6%
+heap: peak 200896 B of 524288 B (38.3 percent, limit 80), in use at most 180000 B
+certificate: 00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF
+WARN main: lowest unused stack 1980 B of 16384 B (12.1 percent) is under 25 percent
+PASS

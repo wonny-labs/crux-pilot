@@ -1,0 +1,10 @@
+{
+  "status": "NORMAL_RESTORED_VERIFIED_STARTED",
+  "capture": {
+    "raw": "uart-rx.bin",
+    "boot_identity_seen": true,
+    "seconds": 15,
+    "acceptance": "offline replay required; this is a raw passive capture"
+  }
+}
+exit 0

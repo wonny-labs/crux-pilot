@@ -162,6 +162,7 @@ The proposals do not change these designs, apart from the user key table of the 
 | Order | Lock | Held across storage |
 | --- | --- | --- |
 | 1 | Access change lock | Yes, the save |
+| 1a | TLS certificate lock, #190 | Yes, the save of an install or regeneration. Taken after `crux_access_check`; under it run the store's operations, the Access session getters, which take the leaf state lock, and the event emit. Polled: nothing waits for it except a material release, for at most 100 ms. |
 | 2 | Credential store lock | Yes |
 | 3 | Configuration service lock | Yes, during `save` only. Others poll. |
 | 4 | File service lock | No |
@@ -172,6 +173,8 @@ The proposals do not change these designs, apart from the user key table of the 
 
 A service calls `crux_access_check` before taking its own lock. Account operations check permission under the change lock, as the access proposal says. Validators and status sources call no service. `crux_security_event_read` checks permission before the ring lock. Sync's unlock and give take a global metadata lock with no timeout, in every path here.
 
+> Note, 13 November 2026: after #391 Sync has no global metadata lock, so Sync's unlock and give no longer take one in any path above. See [Sync slot metadata](../thread-sync.md#sync-slot-metadata). The decision above is unchanged. Read the lock wording as written at the baseline.
+
 **Shared resources.** These are defaults that the integrated image must fit. Issue #197 measures them, and none is a promise.
 
 | Resource | Default | Claimed |
@@ -180,7 +183,7 @@ A service calls `crux_access_check` before taking its own lock. Account operatio
 | File directory handles | 2, `CONFIG_FS_FATFS_NUM_DIRS` 4 | File service |
 | File roots | 8 | 2 for the store, the rest for root 0 and areas |
 | Crux threads | 4, at a uniform 4096 B usable stack per slot on Zephyr | Console, web worker, event drain and up to 2 SSH sessions if those use Crux threads. **This exceeds the default**, so the integrated composition must raise it. The uniform stack is also unlikely to suit: the storage probe alone used 2,264 B of a 4,096 B main stack, and upstream's wolfSSH sample configures 32 KB. |
-| Crux mutexes | 8 | Access 2, store 1 or 2, configuration, file service, event ring, status snapshot, which can reach all 8 |
+| Crux mutexes | 8 | Access 2, store 1 or 2, configuration, file service, event ring, status snapshot, which can reach all 8. The TLS certificate module of #190 takes one more, so a composition with every service exceeds the default and must raise it. For #197. |
 | Crux semaphores | 8 | Event drain |
 | FatFs file objects | 4, shared | A future Settings File provider takes one outside the Crux File pool, so its count must rise then |
 | RAM, estimates | | Store image 16 KiB, event ring about 4.1 KB, one CLI context of at least 320 B per session |

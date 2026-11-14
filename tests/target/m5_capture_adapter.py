@@ -12,6 +12,7 @@ import signal
 import subprocess
 import sys
 import m3_clock as shared_clock
+from m5_bench import BENCH, only_process_owns
 import capture_m5_network as runner
 
 
@@ -54,15 +55,24 @@ class ProcessBackend:
         return code
 
 
-def parse_interface(text):
-    """Observed dedicated IPv4 address/carrier; ambiguous inventory is unknown."""
+def parse_interface(text,pending_ok=False):
+    """Observed dedicated IPv4 address/carrier; ambiguous inventory is unknown.
+
+    macOS shows the manual address only while the link is up and re-adds it a moment after the link returns, so
+    an active link without the address can be a transient state. It is accepted (as ``pending``) only when the
+    caller asks for it, for the bounded wait before a peer starts; every other use still needs the address."""
     addresses=re.findall(r'(?m)^[ \t]*inet ([0-9.]+) netmask (0x[0-9a-f]+)\b',text)
-    runner.oracle.require(addresses==[('192.168.77.1','0xffffff00')] and
-        re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$',text)==['00:0a:cd:41:89:cc'],
-        'NIC identity/static address mismatch')
     statuses=re.findall(r'(?m)^[ \t]*status:[ \t]*(\S+)[ \t]*$',text)
     runner.oracle.require(statuses in (['active'],['inactive']),'NIC carrier status missing/unknown/ambiguous')
-    return dict(source=addresses[0][0],active=statuses==['active'])
+    active=statuses==['active']
+    # macOS shows the manual address only while the link is up: the real link-down output of the dedicated adapter has no inet line.
+    pending=bool(pending_ok and active and addresses==[])
+    runner.oracle.require((addresses==[('192.168.77.1','0xffffff00')] or (not active and addresses==[]) or pending) and
+        re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$',text)==[BENCH['nic_mac']],
+        'NIC identity/static address mismatch')
+    observed=dict(source=addresses[0][0] if addresses else None,active=active)
+    if pending:observed['pending']=True
+    return observed
 
 
 def parse_direct_route(text,source):
@@ -84,7 +94,7 @@ def parse_direct_route(text,source):
     allowed={'UP','DONE','HOST','STATIC','CLONING','PRCLONING','LLINFO','WASCLONED','IFSCOPE','IFREF','PINNED'}
     runner.oracle.require(len(flags)==len(set(flags)) and set(flags)<=allowed and 'UP' in flags,
                          'Gateway/reject/blackhole/unknown or inactive route')
-    runner.oracle.require(source=='192.168.77.1' and lookup=='192.168.77.2' and interface=='en5','Isolated route source/destination/interface mismatch')
+    runner.oracle.require(source==BENCH['host'] and lookup==BENCH['target'] and interface==BENCH['nic_interface'],'Isolated route source/destination/interface mismatch')
     if 'HOST' in flags:
         runner.oracle.require(destination==lookup and mask in (None,'255.255.255.255'),'Unexpected direct host route')
     else:
@@ -94,14 +104,18 @@ def parse_direct_route(text,source):
                 source_basis='validated ifconfig IPv4 address')
 
 
+PEER_HOST_READY_WAIT=20.   # seconds: bounded wait for the host side (carrier and static address) before a peer binds
+PEER_GATE_RETRY=.2         # seconds between two read-only inventories of the host side
+
+
 class NICProbe:
     """Nonblocking dedicated-NIC inventory; process lifetime limited to one second."""
     def __init__(self,directory,clock=shared_clock.monotonic):
-        self.directory=directory;self.clock=clock;self.process=None;self.serial=0;self.route=False;self.interface_observation=None
+        self.directory=directory;self.clock=clock;self.process=None;self.serial=0;self.route=False;self.interface_observation=None;self.pending_ok=False
     def start(self,route=False):
         runner.oracle.require(self.process is None,'NIC inventory already running')
         self.serial+=1;self.route=route
-        command=['route','-n','get','192.168.77.2'] if route else ['ifconfig','en5']
+        command=['route','-n','get',BENCH['target']] if route else ['ifconfig',BENCH['nic_interface']]
         self.path=self.directory/('nic-'+str(self.serial)+'.txt');self.stream=self.path.open('xb')
         self.process=subprocess.Popen(command,stdout=self.stream,stderr=subprocess.STDOUT,start_new_session=True);self.deadline=self.clock()+1
     def poll(self):
@@ -120,8 +134,9 @@ class NICProbe:
             runner.oracle.require(observed is not None and observed['active'] and self.clock()-observed['at']<=2,
                                   'Fresh validated dedicated source observation required')
             return parse_direct_route(text,observed['source'])
-        observed=parse_interface(text);self.interface_observation=dict(observed,at=self.clock())
-        return dict(event='host_up' if observed['active'] else 'host_down',interface='en5')
+        observed=parse_interface(text,self.pending_ok);self.interface_observation=dict(observed,at=self.clock())
+        event='host_pending' if observed.get('pending') else ('host_up' if observed['active'] else 'host_down')
+        return dict(event=event,interface=BENCH['nic_interface'])
     def close(self):
         if self.process is not None:
             self.process.kill()
@@ -137,27 +152,32 @@ class M3UARTLease:
     has validated exact physical approval. The root-created mount guard is an
     external prerequisite and is never created/escalated by this runner.
     """
-    def __init__(self,guard_session,directory,uart='/dev/cu.usbmodem11302',*,image_binary=None,image_sha256=None):
+    def __init__(self,guard_session,directory,uart=BENCH['uart'],*,image_binary=None,image_sha256=None):
         self.session=guard_session;self.directory=Path(directory);self.uart=uart;self.image_binary=Path(image_binary).resolve() if image_binary else None;self.image_sha256=image_sha256;self.port=None;self.lock=None;self.count=0
     def verify(self,operation,remaining=90):
         import capture_m3_network as m3
         import capture_m3
         self.count+=1;label='lease-'+str(self.count)
-        m3.guard_check(self.session,self.directory,label,remaining)
+        m3.guard_check(self.session,self.directory,label,remaining,uart=self.uart)
         if self.port is None:
             capture_m3.check_owners(self.uart,self.directory/(label+'-owners.txt'))
-            runner.oracle.require(m3.check_route(self.directory,label),'Initial isolated NIC not active')
-            interface=m3.run_checked(['ifconfig','en5'],self.directory/(label+'-carrier.txt'))
+            runner.oracle.require(m3.check_route(self.directory,label,interface=BENCH['nic_interface'],mac=BENCH['nic_mac']),'Initial isolated NIC not active')
+            interface=m3.run_checked(['ifconfig',BENCH['nic_interface']],self.directory/(label+'-carrier.txt'))
             observed=parse_interface(interface)
             runner.oracle.require(observed['active'],'Initial carrier unknown/inactive')
             parse_direct_route((self.directory/(label+'-route.txt')).read_text(),observed['source'])
-            service=m3.run_checked(['networksetup','-getinfo','AX88179'],self.directory/(label+'-service.txt'))
-            runner.oracle.require('IP address: 192.168.77.1' in service and 'Subnet mask: 255.255.255.0' in service and 'Router: (null)' in service and 'Ethernet Address: 00:0a:cd:41:89:cc' in service,'Isolated service changed')
+            service=m3.run_checked(['networksetup','-getinfo',BENCH['service']],self.directory/(label+'-service.txt'))
+            lines=service.splitlines()
+            runner.oracle.require(all(line in lines for line in ('Manual Configuration','IP address: '+BENCH['host'],'Subnet mask: 255.255.255.0','Router: (null)','Ethernet Address: '+BENCH['nic_mac'])),'Isolated service changed')
         else:
             # The accepted owner is this process only; deny every other UART
             # owner and all debugger processes while this capture owns UART.
-            result=capture_m3.inventory(['lsof','-Fp',self.uart,self.uart.replace('/dev/cu.','/dev/tty.')],self.directory/(label+'-owners-timeout.json'))
-            runner.oracle.require(result.returncode==0 and not result.stderr and result.stdout.splitlines() and all(line=='p'+str(os.getpid()) for line in result.stdout.splitlines()),'Exclusive UART ownership changed')
+            # The port is opened through the cu node only and lsof exits 1 when any named file is not open: ask the nodes one by one.
+            held=capture_m3.inventory(['lsof','-Fp',self.uart],self.directory/(label+'-owners-timeout.json'))
+            (self.directory/(label+'-owners-cu.txt')).write_text('%d\n%s%s'%(held.returncode,held.stdout,held.stderr))
+            other=capture_m3.inventory(['lsof','-Fp',self.uart.replace('/dev/cu.','/dev/tty.')],self.directory/(label+'-owners-timeout.json'))
+            (self.directory/(label+'-owners-tty.txt')).write_text('%d\n%s%s'%(other.returncode,other.stdout,other.stderr))
+            runner.oracle.require(held.returncode==0 and not held.stderr and only_process_owns(held.stdout,os.getpid()) and other.returncode==1 and not other.stdout and not other.stderr,'Exclusive UART ownership changed')
             result=capture_m3.inventory(['ps','-axo','pid=,comm=,args='],self.directory/(label+'-probe-timeout.json'))
             runner.oracle.require(result.returncode==0 and not result.stderr and result.stdout.strip() and all(re.match(r'^\s*\d+\s+\S+',line) for line in result.stdout.splitlines()) and not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)',result.stdout),'Probe ownership changed')
     def __call__(self):
@@ -165,7 +185,7 @@ class M3UARTLease:
         import serial
         from serial.tools import list_ports
         import capture_m3
-        runner.oracle.require(self.uart=='/dev/cu.usbmodem11302','UART differs from accepted M3 inventory')
+        runner.oracle.require(self.uart==BENCH['uart'],'UART differs from the reviewed bench identity')
         self.verify('acquire_exclusive_probe_uart_and_nic')
         capture_m3.select_uart([dict(device=p.device,serial_number=p.serial_number,vid=p.vid,pid=p.pid) for p in list_ports.comports()],self.uart,runner.UART_USB)
         self.lock=(self.directory.parent/'evkb-602003106.lock').open('a')
@@ -219,13 +239,14 @@ class CaptureAdapter:
         runner.oracle.require(software_only or callable(manifest_check),'Live adapter requires exact immutable manifest verification')
         if manifest_check:manifest_check()
         if 'plan' in prepared:prepared=prepared['plan']
-        runner.oracle.require(boot in (1,2,3),'Invalid fresh boot number')
+        runner.oracle.require(boot in (1,2,3) and boot<=len(prepared['nonces']),'Invalid fresh boot number')
+        self.reduced=prepared.get('reduced')
         self.prepared=prepared;self.boot=boot;self.nonce=prepared['nonces'][boot-1];self.clock=clock;self.factory=uart_factory
         self.safety=getattr(uart_factory,'verify',None)
         runner.oracle.require(software_only or callable(self.safety),'Live adapter requires accepted M3 guard/ownership lease')
         self.directory=Path(directory);self.directory.mkdir(parents=True,exist_ok=False)
         self.backend=process_backend or ProcessBackend();self.process=None;self.phase=None;self.peer_path=None;self.tail={};self.pending=b'';self.line_offset=0;self.reset_offset=None;self.qualifying_started=False;self.boot_seen=False;self.closed=False
-        self.nic=nic_factory(self.directory,clock);self.nic_want=None;self.nic_due=0;self.nic_running=False
+        self.nic=nic_factory(self.directory,clock);self.peer_gate=None;self.gate_nic=None;self.nic_factory=nic_factory;self.nic_want=None;self.nic_due=0;self.nic_running=False
         self.operator_path=self.directory/'operator.jsonl';self.operator_path.touch()
         self.port=None;self.receiver=None
         try:
@@ -310,12 +331,14 @@ class CaptureAdapter:
         runner.oracle.require(0<=timeout<=.25,'Unbounded adapter poll')
         if self.receiver.failure:raise ValueError('Continuous UART reader failed') from self.receiver.failure
         result=self.target_events()
-        if self.peer_path:
+        self.advance_peer_gate()
+        if self.peer_path and self.process is not None:
             for row in self.lines(self.peer_path):
                 if row['event'] in ('ready','request'):result.append(dict(kind='peer_ready' if row['event']=='ready' else 'peer_request',monotonic=row['monotonic'],record=row))
             code=self.process.poll()
             runner.oracle.require(code is None or code==0,'Peer failed during capture')
         for row in self.lines(self.operator_path):
+            runner.oracle.require(self.reduced is None,'Reduced non-qualifying run has no cable operations; operator receipt refused')
             runner.oracle.require(set(row)=={'event','monotonic'} and row['event'] in ('cable_disconnect_receipt','cable_connect_receipt'),'Unexpected operator instruction')
             runner.oracle.require(row['monotonic']<=self.clock() and row['monotonic']>=0,'Invalid operator receipt clock')
             result.append(dict(kind='control',monotonic=row['monotonic'],record=row));self.emit('controls.jsonl',row)
@@ -343,11 +366,39 @@ class CaptureAdapter:
         self.emit('writes.jsonl',dict(line=line,monotonic=started))
         return started
     def prepare_peer(self,nonce,phase,count,mode):
-        runner.oracle.require(self.process is None and nonce==self.nonce,'Prior peer not reaped or wrong nonce')
+        """Arm the start of the peer of one phase. The peer binds the dedicated host address, which macOS removes while the link
+        is down (after the reset's link flap) and restores a moment after the link returns: the process therefore starts only
+        when read-only inventories show the dedicated NIC active with the static address, within a bounded wait."""
+        runner.oracle.require(self.process is None and self.peer_gate is None and nonce==self.nonce,'Prior peer not reaped or wrong nonce')
         self.phase=phase;self.peer_path=self.directory/('peer-'+str(phase)+'.jsonl')
+        if self.gate_nic is None:
+            gate_directory=self.directory/'peer-gate';gate_directory.mkdir(exist_ok=True)
+            self.gate_nic=self.nic_factory(gate_directory,self.clock);self.gate_nic.pending_ok=True
+        now=self.clock();self.peer_gate=dict(args=(nonce,phase,count,mode),started=now,deadline=now+PEER_HOST_READY_WAIT,due=now,running=False)
+        self.emit('peer-gate.jsonl',dict(event='gate_start',phase=phase,deadline_s=PEER_HOST_READY_WAIT))
+    def advance_peer_gate(self):
+        gate=self.peer_gate
+        if gate is None:return
+        if gate['running'] and self.gate_observation(gate,self.gate_nic.poll()):return
+        if self.clock()>=gate['deadline']:
+            self.emit('peer-gate.jsonl',dict(event='gate_timeout',waited=self.clock()-gate['started']))
+            raise ValueError('Host NIC not ready for the peer within the bounded wait; inconclusive, no retry')
+        if not gate['running'] and self.clock()>=gate['due']:
+            self.gate_nic.start(route=False);gate['running']=True
+            self.gate_observation(gate,self.gate_nic.poll())      # an inventory that finishes at once is read in the same poll
+    def gate_observation(self,gate,row):
+        if row is None:return False
+        gate['running']=False;gate['due']=self.clock()+PEER_GATE_RETRY
+        self.emit('peer-gate.jsonl',dict(event='host_observation',observed=row['event']))
+        if row['event']!='host_up':return False
+        nonce,phase,count,mode=gate['args']
         self.process=self.backend.start_peer(nonce,phase,count,mode,self.peer_path,self.directory/('peer-'+str(phase)+'-process.log'))
+        self.emit('peer-gate.jsonl',dict(event='peer_start',phase=phase,waited=self.clock()-gate['started']))
+        self.peer_gate=None
+        return True
     def stop_peer(self):
-        if self.process is None:return None
+        if self.process is None:
+            self.peer_gate=None;return None             # a peer that never started (host side not ready) has nothing to reap
         phase=self.phase;self.backend.stop_peer(self.process)
         runner.oracle.require(self.process.poll()==0,'Peer not reaped successfully')
         # Flush final peer records before releasing ports; file remains immutable.
@@ -365,6 +416,7 @@ class CaptureAdapter:
         if self.receiver is not None:actions.append(self.receiver.finish)
         if self.port is not None:actions.append(self.port.close)
         actions.append(self.nic.close)
+        if self.gate_nic is not None:actions.append(self.gate_nic.close)
         close=getattr(self.factory,'close',None)
         if close:actions.append(close)
         for action in actions:

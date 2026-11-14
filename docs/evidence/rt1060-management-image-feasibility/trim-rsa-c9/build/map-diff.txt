@@ -1,0 +1,29 @@
+Flash bytes in input sections: before 603226, after 567673, difference -35553
+objects: 360 before, 358 after; changed 20, gone 2, new 0
+
+  before    after     diff  object
+   17258     6606   -10652  lib..__modules__crypto__wolfssl__zephyr.a(sp_c32.c.obj)
+    6574        0    -6574  lib..__modules__crypto__wolfssl__zephyr.a(rsa.c.obj)  (gone)
+    7314     1070    -6244  lib..__modules__crypto__wolfssl__zephyr.a(sp_int.c.obj)
+   46852    42557    -4295  lib..__modules__crypto__wolfssl__zephyr.a(internal.c.obj)
+   28302    24944    -3358  lib..__modules__crypto__wolfssl__zephyr.a(asn.c.obj)
+    5181     4265     -916  lib..__modules__crypto__wolfpsa__zephyr.a(psa_key_storage.c.obj)
+     902       14     -888  lib..__modules__crypto__wolfpsa__zephyr.a(psa_rsa.c.obj)
+   18652    17980     -672  lib..__modules__crypto__wolfssl__zephyr.a(tls13.c.obj)
+   16217    15813     -404  lib..__modules__crypto__wolfssl__zephyr.a(ssl.c.obj)
+    2860     2548     -312  lib..__modules__crypto__wolfssl__zephyr.a(keys.c.obj)
+     634      398     -236  lib..__modules__crypto__wolfssl__zephyr.a(signature.c.obj)
+   17395    17166     -229  libapp.a(crux_ssh_sftp.c.obj)
+     251       84     -167  lib..__modules__crypto__wolfpsa__zephyr.a(psa_asymmetric.c.obj)
+   29379    29259     -120  libapp.a(internal.c.obj)
+   16481    16361     -120  lib..__modules__crypto__wolfssl__zephyr.a(tls.c.obj)
+    4738     4624     -114  lib..__modules__crypto__wolfssl__zephyr.a(ecc.c.obj)
+    1674     1570     -104  lib..__modules__crypto__wolfssl__zephyr.a(hash.c.obj)
+      96        0      -96  lib..__modules__crypto__wolfssl__zephyr.a(wolfmath.c.obj)  (gone)
+    1108     1060      -48  lib..__modules__crypto__wolfpsa__zephyr.a(psa_ecc.c.obj)
+    5148     5144       -4  libapp.a(crux_ssh_wolf_provider.c.obj)
+
+  before    after     diff  library or folder (groups that changed)
+  284477   251296   -33181  wolfssl.a
+   21224    19205    -2019  wolfpsa.a
+  144506   144153     -353  libapp.a

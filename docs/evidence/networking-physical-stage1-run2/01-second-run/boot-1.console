@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "<ws>/crux-pilot-4/tests/target/capture_m5_network.py", line 501, in <module>
+    if __name__=='__main__':main()
+  File "<ws>/crux-pilot-4/tests/target/capture_m5_network.py", line 493, in main
+    result=capture_approved_boot(args)
+  File "<ws>/crux-pilot-4/tests/target/capture_m5_network.py", line 456, in capture_approved_boot
+    run_boot(supervisor,adapter,m3_clock.monotonic)
+  File "<ws>/crux-pilot-4/tests/target/capture_m5_network.py", line 354, in run_boot
+    elif kind=='target':supervisor.target(row,now,received=received)
+  File "<ws>/crux-pilot-4/tests/target/capture_m5_network.py", line 193, in call
+    try:return method(self,*args,**kwargs)
+  File "<ws>/crux-pilot-4/tests/target/capture_m5_network.py", line 255, in target
+    oracle.validate_idle(self.rows,self.nonce,sequence,0,self.rows[0]['at'])
+  File "<ws>/crux-pilot-4/tests/target/m5_network_oracle.py", line 42, in validate_idle
+    require(returned<=times[0] and times[-1]-returned<=5000 and all(b-a>=1000 for a,b in zip(times,times[1:])),'Resource settling/idle sampling deadline failed')
+  File "<ws>/crux-pilot-4/tests/target/m5_network_oracle.py", line 11, in require
+    raise ValueError(message)
+ValueError: Resource settling/idle sampling deadline failed
+exit 1

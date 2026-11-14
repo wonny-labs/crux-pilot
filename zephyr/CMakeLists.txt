@@ -15,6 +15,13 @@ if(CONFIG_CRUX_PILOT_MODULE)
     add_library(crux::base ALIAS crux_base)
 endif()
 
+# The per-service priority placement of the services' workers (ADR-0002 P3). It exposes nothing by
+# itself: a composition links crux_service_priority_placement to the target that compiles a worker.
+if(CONFIG_CRUX_PILOT_MODULE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/service_priority"
+        "${CMAKE_CURRENT_BINARY_DIR}/service_priority")
+endif()
+
 if(CONFIG_CRUX_TIME OR CONFIG_CRUX_THREAD OR CONFIG_CRUX_SYNC OR CONFIG_CRUX_QUEUE OR CONFIG_CRUX_SYSTEM)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/interrupt"
         "${CMAKE_CURRENT_BINARY_DIR}/interrupt")
@@ -99,11 +106,66 @@ if(CONFIG_CRUX_SYSTEM)
 endif()
 
 if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
-   CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
+   CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR
+   CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK OR CONFIG_CRUX_FILE_RELIANCE_EDGE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/file")
     if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
-       CONFIG_CRUX_FILE_FATFS_RT1060)
+       CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR
+       CONFIG_CRUX_FILE_RELIANCE_EDGE)
         cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
+    endif()
+endif()
+
+if(CONFIG_CRUX_MMC_CACHE_FLUSH)
+    include("${CMAKE_CURRENT_LIST_DIR}/mmc_cache_flush.cmake")
+endif()
+
+if(CONFIG_CRUX_FS_RELIANCE_EDGE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/fs/reliance_edge"
+        "${CMAKE_CURRENT_BINARY_DIR}/fs_reliance_edge")
+endif()
+
+if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/configuration")
+    # The Settings File backend of the pinned Zephyr hides I/O faults. The provider is built with
+    # the corrected build-local copies of its sources, which the fixture of
+    # tests/native/configuration_settings_file also uses, so a product build reaches a file under
+    # tests/. CRUX_SETTINGS_FILE_CONTROL keeps the unpatched backend, for the fixture's negative
+    # control only.
+    if(CRUX_SETTINGS_FILE_CONTROL)
+        if(NOT CONFIG_BOARD_NATIVE_SIM)
+            message(FATAL_ERROR "CRUX_SETTINGS_FILE_CONTROL is a native_sim test fixture setting "
+                "and is refused on any other board")
+        endif()
+    else()
+        include("${CMAKE_CURRENT_LIST_DIR}/../tests/native/configuration_settings_file/candidate.cmake")
+    endif()
+endif()
+
+if(CONFIG_CRUX_WEB)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/web/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/web")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::web)
+endif()
+
+# SSH has no crux:: target and no public header, so the module builds nothing for it. It refuses what no
+# composition could make work, at configuration, and a composition then calls crux_ssh_wolf_settings() from
+# components/ssh/ports/zephyr/wolf_ssh_settings.cmake, which reads CONFIG_CRUX_SSH_CLI, CONFIG_CRUX_SSH_SFTP
+# and the sizes of the provider from the Kconfig symbols.
+if(CONFIG_CRUX_SSH)
+    # The design gives the Mbed profile no SSH provider, and two TLS stacks are not a supported image.
+    if(CONFIG_MBEDTLS OR CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
+        message(FATAL_ERROR "CONFIG_CRUX_SSH needs the Wolf profile. The Mbed profile has no SSH provider: "
+                            "see docs/plans/secure-management-design.md#provider-profiles")
+    endif()
+    if(NOT CONFIG_WOLFSSL OR NOT CONFIG_WOLFSSH)
+        message(FATAL_ERROR "CONFIG_CRUX_SSH needs CONFIG_WOLFSSL and CONFIG_WOLFSSH, from the "
+                            "crux-secure-management west group")
+    endif()
+    if(NOT CONFIG_WOLFSSH_SETTINGS_FILE STREQUAL "crux_wolfssh_settings.h")
+        message(FATAL_ERROR "CONFIG_CRUX_SSH needs CONFIG_WOLFSSH_SETTINGS_FILE=\"crux_wolfssh_settings.h\": "
+                            "add components/ssh/ports/zephyr/wolf-ssh.conf to EXTRA_CONF_FILE")
     endif()
 endif()

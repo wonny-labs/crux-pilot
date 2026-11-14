@@ -1,0 +1,2 @@
+3696fa027622189a2f32a4a751c9a3fe4e921749c8049ae2d066226a64826fab  /build/out/c10/zephyr/zephyr.bin
+191a7f21db421bea3d733283d88a723d62af740268e645ccad490acb457828e6  /build/out/c10/zephyr/zephyr.elf

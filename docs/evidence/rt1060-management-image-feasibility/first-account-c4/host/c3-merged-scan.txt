@@ -1,0 +1,3 @@
+$ scan of the tree merged with C3 (e1bcfbf1)
+no plaintext of the password, or an encoding of it, in 3 scanned tree(s) (image files may hold it)
+exit 0

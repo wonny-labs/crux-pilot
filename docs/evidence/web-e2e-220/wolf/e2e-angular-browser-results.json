@@ -1,0 +1,831 @@
+{
+ "revision": "37b8b50c619296db8e13f874dfb841cd7f18adf2",
+ "dirty": false,
+ "target": "native_sim",
+ "profile": "wolf",
+ "outcomes": {
+  "measured": 6,
+  "passed": 45,
+  "skipped": 27
+ },
+ "cases": [
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a delay shows the wait, holds the form during it and allows a later try",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a busy verifier is shown with the wait, and a later try works",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a held login route is retried without the user doing anything",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a lost attempt asks the user to sign in again and does not resend the password",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "an item named like a built-in JavaScript property keeps its name as its label",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a failed save says what is true of the running password",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a lost result where the device shows the change succeeded counts as done",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a lost result with the change still required never claims success",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a session that ended during the change returns to sign-in",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a field error for the wrong type is shown too",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "an update that the device refuses as not permitted says so, and changes nothing on screen",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "an update of a parameter that has gone says so",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a held route during an update is retried without the user doing anything",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a busy device on an update shows the wait and keeps the typed value",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a service that is not ready on an update is reported",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a save shows pending, then saved, with the token and no body",
+   "outcome": "skipped",
+   "reason": "needs a save that succeeds; this image has no Configuration provider (decision C6)"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a failed save says what is true, and the parameter stays unsaved",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a busy device on a save shows the wait",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a service that is not ready on a save is reported, and a later save works",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a device that answers busy while it saves is still waited for",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "the configuration list failing shows the error and a way to try again",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a second update while the first is in flight waits for it, and neither screen nor save stays stuck",
+   "outcome": "skipped",
+   "reason": "needs a save that succeeds; this image has no Configuration provider (decision C6)"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a save asked for while an update is in flight is not sent, and works afterwards",
+   "outcome": "skipped",
+   "reason": "needs a save that succeeds; this image has no Configuration provider (decision C6)"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "an update asked for while a save runs is not sent",
+   "outcome": "skipped",
+   "reason": "needs a save that succeeds; this image has no Configuration provider (decision C6)"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "after a save has completed, the next update and the next save both work",
+   "outcome": "skipped",
+   "reason": "needs a save that succeeds; this image has no Configuration provider (decision C6)"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a long Retry-After while a save runs does not hold the wait past a few seconds",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "leaving the screen stops the wait for a save, and nothing reads the list afterwards",
+   "outcome": "skipped",
+   "reason": "needs the mock control to force an answer; the real path is a case of its own where one exists"
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a visit with no session shows sign-in",
+   "outcome": "passed",
+   "ms": 4895
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a correct sign-in reaches home and shows the items",
+   "outcome": "passed",
+   "ms": 3735
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "the session cookie stays out of page scripts, and the token cookie stays readable",
+   "outcome": "passed",
+   "ms": 3678
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "the password reaches no browser storage, readable cookie or address",
+   "outcome": "passed",
+   "ms": 3702
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "every poll carries the required header",
+   "outcome": "passed",
+   "ms": 3655
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a wrong password shows a rejection with no reason, and allows another try",
+   "outcome": "passed",
+   "ms": 4046
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "an unknown account looks the same as a wrong password",
+   "outcome": "passed",
+   "ms": 3166
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "an expired session returns to sign-in with a notice, and signing in shows home again",
+   "outcome": "passed",
+   "ms": 37979
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "sign out ends the session with the CSRF token and returns to sign-in",
+   "outcome": "passed",
+   "ms": 3735
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a reload keeps the session, and the server sees only the root path",
+   "outcome": "passed",
+   "ms": 3750
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "home shows only what the session may read",
+   "outcome": "passed",
+   "ms": 3666
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a session that may read nothing sees an empty home, and no error",
+   "outcome": "passed",
+   "ms": 3655
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "one failed source shows as unavailable without hiding the rest",
+   "outcome": "passed",
+   "ms": 3726
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a project item that the interface does not know is shown by its name",
+   "outcome": "passed",
+   "ms": 3682
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a forced change holds the session on its screen whatever the route, and asks for nothing protected",
+   "outcome": "passed",
+   "ms": 4017
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a protected route cannot be used before the change is made",
+   "outcome": "passed",
+   "ms": 8950
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a forced change completes with the token, and the session goes to home with its permissions",
+   "outcome": "passed",
+   "ms": 4558
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a wrong current password is a field error on that field",
+   "outcome": "passed",
+   "ms": 4566
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a refused new password is a field error on the new password",
+   "outcome": "passed",
+   "ms": 4560
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "passwords that differ are refused before any request",
+   "outcome": "passed",
+   "ms": 3716
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "an expired session during a forced change returns to sign-in",
+   "outcome": "passed",
+   "ms": 36722
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "sign out works during a forced change",
+   "outcome": "passed",
+   "ms": 3777
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "configuration lists each parameter with its value, and never shows a sensitive one",
+   "outcome": "passed",
+   "ms": 4114
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "an update sends the token and the typed value, and shows the parameter as changed and not yet saved",
+   "outcome": "passed",
+   "ms": 4176
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a switch and a text parameter are updated in their own types",
+   "outcome": "passed",
+   "ms": 5097
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a value the device refuses shows its field error, keeps the old value and moves focus to the field",
+   "outcome": "passed",
+   "ms": 7459
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "text that is no whole number is refused before any request",
+   "outcome": "passed",
+   "ms": 4239
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a session that may read and not write sees the values and no way to change them",
+   "outcome": "passed",
+   "ms": 4113
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a session that may write and not read can update, cannot see the value, and is refused the save",
+   "outcome": "passed",
+   "ms": 4209
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a device with no Configuration provider says that retrying will not help",
+   "outcome": "passed",
+   "ms": 4349
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a session that expires during an update returns to sign-in, and signing in works again",
+   "outcome": "passed",
+   "ms": 37941
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a session that expires during a save returns to sign-in",
+   "outcome": "passed",
+   "ms": 36580
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "configuration with no session shows sign-in and asks for nothing",
+   "outcome": "passed",
+   "ms": 2679
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a session that may see no parameter gets an empty list and no error",
+   "outcome": "passed",
+   "ms": 3943
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a value read after the person started typing does not replace what was typed",
+   "outcome": "passed",
+   "ms": 4699
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "no value or password reaches browser storage or the address during configuration",
+   "outcome": "passed",
+   "ms": 4255
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a parameter flagged sensitive is never read or shown, whatever else its flags say",
+   "outcome": "passed",
+   "ms": 8441
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a value from the device is shown as text, never as markup",
+   "outcome": "passed",
+   "ms": 4721
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "assets as the browser received them",
+   "outcome": "measured",
+   "measured": {
+    "protocol": "TLS 1.3",
+    "subject": "localhost",
+    "assets": [
+     {
+      "path": "/",
+      "cache": "no-cache",
+      "encoding": "gzip"
+     },
+     {
+      "path": "/styles-AK5LBXAW.css",
+      "cache": "max-age=31536000, immutable",
+      "encoding": "gzip"
+     },
+     {
+      "path": "/main-W7U54RFG.js",
+      "cache": "max-age=31536000, immutable",
+      "encoding": "gzip"
+     },
+     {
+      "path": "/favicon.svg",
+      "cache": "no-cache",
+      "encoding": "gzip"
+     },
+     {
+      "path": "/favicon.svg",
+      "cache": "no-cache",
+      "encoding": "gzip"
+     }
+    ]
+   }
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "the page comes over TLS 1.3 with the declared certificate, and every asset carries its policy and cache header",
+   "outcome": "passed",
+   "ms": 4547
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a path the interface routes is not served: the route lives in the fragment",
+   "outcome": "passed",
+   "ms": 4692
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "cold load",
+   "outcome": "measured",
+   "measured": {
+    "budget": {
+     "assetMs": 3000,
+     "pageMs": 10000
+    },
+    "loads": [
+     {
+      "pageMs": 2591,
+      "navigation": {
+       "connect": 8.600000001490116,
+       "tls": 8.600000001490116,
+       "firstByte": 906.5,
+       "document": 919.6000000014901,
+       "domContentLoaded": 2205,
+       "load": 2208.60000000149
+      },
+      "assets": [
+       {
+        "path": "/styles-AK5LBXAW.css",
+        "status": 200,
+        "ms": 870.1000000014901,
+        "newConnection": false
+       },
+       {
+        "path": "/main-W7U54RFG.js",
+        "status": 200,
+        "ms": 951.6999999992549,
+        "newConnection": true
+       },
+       {
+        "path": "/favicon.svg",
+        "status": 200,
+        "ms": 3,
+        "newConnection": false
+       },
+       {
+        "path": "/favicon.svg",
+        "status": 200,
+        "ms": 46.400000002235174,
+        "newConnection": false
+       }
+      ]
+     },
+     {
+      "pageMs": 2351,
+      "navigation": {
+       "connect": 5.700000002980232,
+       "tls": 5.700000002980232,
+       "firstByte": 771.6000000014901,
+       "document": 781,
+       "domContentLoaded": 2064.300000000745,
+       "load": 2068.800000000745
+      },
+      "assets": [
+       {
+        "path": "/styles-AK5LBXAW.css",
+        "status": 200,
+        "ms": 875.6000000014901,
+        "newConnection": false
+       },
+       {
+        "path": "/main-W7U54RFG.js",
+        "status": 200,
+        "ms": 957.5,
+        "newConnection": true
+       },
+       {
+        "path": "/favicon.svg",
+        "status": 200,
+        "ms": 5.199999999254942,
+        "newConnection": false
+       },
+       {
+        "path": "/favicon.svg",
+        "status": 200,
+        "ms": 44.80000000074506,
+        "newConnection": false
+       }
+      ]
+     },
+     {
+      "pageMs": 2527,
+      "navigation": {
+       "connect": 0.5999999977648258,
+       "tls": 0.5999999977648258,
+       "firstByte": 949.6000000014901,
+       "document": 954,
+       "domContentLoaded": 2241.400000002235,
+       "load": 2244.900000002235
+      },
+      "assets": [
+       {
+        "path": "/styles-AK5LBXAW.css",
+        "status": 200,
+        "ms": 879,
+        "newConnection": false
+       },
+       {
+        "path": "/main-W7U54RFG.js",
+        "status": 200,
+        "ms": 960.5999999977648,
+        "newConnection": true
+       },
+       {
+        "path": "/favicon.svg",
+        "status": 200,
+        "ms": 11.599999997764826,
+        "newConnection": false
+       },
+       {
+        "path": "/favicon.svg",
+        "status": 200,
+        "ms": 10.400000002235174,
+        "newConnection": false
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a cold load fits its declared budget",
+   "outcome": "passed",
+   "ms": 9774
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "load beside a stalled handshake",
+   "outcome": "measured",
+   "measured": {
+    "beforeMs": 2493,
+    "duringMs": 3545,
+    "boundMs": 6993,
+    "assets": [
+     {
+      "path": "/styles-AK5LBXAW.css",
+      "status": 200,
+      "ms": 894.5,
+      "newConnection": false
+     },
+     {
+      "path": "/main-W7U54RFG.js",
+      "status": 200,
+      "ms": 976.6999999992549,
+      "newConnection": true
+     },
+     {
+      "path": "/favicon.svg",
+      "status": 200,
+      "ms": 7.100000001490116,
+      "newConnection": false
+     },
+     {
+      "path": "/favicon.svg",
+      "status": 200,
+      "ms": 47.399999998509884,
+      "newConnection": false
+     }
+    ]
+   }
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a stalled handshake delays a load by at most the TLS connect timeout",
+   "outcome": "passed",
+   "ms": 7752
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "load while three idle connections hold the slots",
+   "outcome": "measured",
+   "measured": {
+    "beforeMs": 2520,
+    "duringMs": 1164,
+    "boundMs": 8020,
+    "assets": [
+     {
+      "path": "/styles-AK5LBXAW.css",
+      "status": 200,
+      "ms": 20.100000001490116,
+      "newConnection": false
+     },
+     {
+      "path": "/main-W7U54RFG.js",
+      "status": 200,
+      "ms": 89.69999999925494,
+      "newConnection": false
+     },
+     {
+      "path": "/favicon.svg",
+      "status": 200,
+      "ms": 4.5,
+      "newConnection": false
+     },
+     {
+      "path": "/favicon.svg",
+      "status": 200,
+      "ms": 42.30000000074506,
+      "newConnection": false
+     }
+    ]
+   }
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "with every client slot held by an idle connection, a load waits and is served",
+   "outcome": "passed",
+   "ms": 7878
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "held route",
+   "outcome": "measured",
+   "measured": {
+    "putStatuses": [
+     409,
+     200
+    ]
+   }
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a route another client holds answers the real 409, and the example retries it",
+   "outcome": "passed",
+   "ms": 9294
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "full login table",
+   "outcome": "measured",
+   "measured": {
+    "heldStatuses": [
+     202,
+     202,
+     202,
+     202
+    ],
+    "browserAnswers": [
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 503,
+      "retryAfter": "1"
+     },
+     {
+      "status": 202,
+      "retryAfter": null
+     }
+    ],
+    "laterTries": 11,
+    "freedAfterMs": 17455
+   }
+  },
+  {
+   "suite": "angular",
+   "target": "native_sim",
+   "case": "a full login table answers the real 503 busy, which the example shows, and a later sign-in works",
+   "outcome": "passed",
+   "ms": 24627
+  }
+ ]
+}

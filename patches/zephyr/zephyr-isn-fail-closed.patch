@@ -1,0 +1,206 @@
+diff --git a/subsys/net/ip/tcp.c b/subsys/net/ip/tcp.c
+index 7f14e55..606b205 100644
+--- a/subsys/net/ip/tcp.c
++++ b/subsys/net/ip/tcp.c
+@@ -2364,10 +2364,37 @@ static uint32_t seq_scale(uint32_t seq)
+ 
+ static uint8_t unique_key[16]; /* MD5 128 bits as described in RFC6528 */
+ 
+-static uint32_t tcpv6_init_isn(struct net_in6_addr *saddr,
+-			       struct net_in6_addr *daddr,
+-			       uint16_t sport,
+-			       uint16_t dport)
++/* Crux: the key is read from sys_csrand_get() on first use. A failed read must not leave an all-zero key in use for
++ * the rest of the boot: it is returned, nothing is marked as read, and the next call reads again. The read goes to a
++ * local buffer, so that a failed read never leaves a partly written key in use.
++ */
++static int tcp_isn_key_get(void)
++{
++	static bool once;
++	uint8_t key[sizeof(unique_key)];
++	int ret;
++
++	if (once) {
++		return 0;
++	}
++
++	ret = sys_csrand_get(key, sizeof(key));
++	if (ret < 0) {
++		NET_ERR("Cannot read the key of the initial sequence number: %d", ret);
++		return ret;
++	}
++
++	memcpy(unique_key, key, sizeof(unique_key));
++	once = true;
++
++	return 0;
++}
++
++static int tcpv6_init_isn(struct net_in6_addr *saddr,
++			  struct net_in6_addr *daddr,
++			  uint16_t sport,
++			  uint16_t dport,
++			  uint32_t *isn)
+ {
+ 	struct {
+ 		uint8_t key[sizeof(unique_key)];
+@@ -2382,27 +2409,33 @@ static uint32_t tcpv6_init_isn(struct net_in6_addr *saddr,
+ 		.dport = dport
+ 	};
+ 
+-	uint8_t hash[16];
++	/* Crux: a SHA-256 digest is 32 bytes. PSA refuses a 16-byte buffer with PSA_ERROR_BUFFER_TOO_SMALL, which
++	 * was ignored, so the hash was never produced (Mbed TLS leaves '!' in the buffer, wolfPSA leaves it
++	 * as it was) and the key was never used.
++	 */
++	uint8_t hash[PSA_HASH_LENGTH(PSA_ALG_SHA_256)];
+ 	size_t hash_len;
+-	static bool once;
+-
+-	if (!once) {
+-		sys_csrand_get(unique_key, sizeof(unique_key));
+-		once = true;
+-	}
++	psa_status_t status;
+ 
+ 	memcpy(buf.key, unique_key, sizeof(buf.key));
+ 
+-	psa_hash_compute(PSA_ALG_SHA_256, (const unsigned char *)&buf, sizeof(buf),
+-			 hash, sizeof(hash), &hash_len);
++	status = psa_hash_compute(PSA_ALG_SHA_256, (const unsigned char *)&buf, sizeof(buf),
++				  hash, sizeof(hash), &hash_len);
++	if (status != PSA_SUCCESS) {
++		NET_ERR("Cannot hash the initial sequence number: %d", (int)status);
++		return -EIO;
++	}
+ 
+-	return seq_scale(UNALIGNED_GET((uint32_t *)&hash[0]));
++	*isn = seq_scale(UNALIGNED_GET((uint32_t *)&hash[0]));
++
++	return 0;
+ }
+ 
+-static uint32_t tcpv4_init_isn(struct net_in_addr *saddr,
+-			       struct net_in_addr *daddr,
+-			       uint16_t sport,
+-			       uint16_t dport)
++static int tcpv4_init_isn(struct net_in_addr *saddr,
++			  struct net_in_addr *daddr,
++			  uint16_t sport,
++			  uint16_t dport,
++			  uint32_t *isn)
+ {
+ 	struct {
+ 		uint8_t key[sizeof(unique_key)];
+@@ -2417,50 +2450,65 @@ static uint32_t tcpv4_init_isn(struct net_in_addr *saddr,
+ 		.dport = dport
+ 	};
+ 
+-	uint8_t hash[16];
++	/* Crux: as in tcpv6_init_isn(). */
++	uint8_t hash[PSA_HASH_LENGTH(PSA_ALG_SHA_256)];
+ 	size_t hash_len;
+-	static bool once;
+-
+-	if (!once) {
+-		sys_csrand_get(unique_key, sizeof(unique_key));
+-		once = true;
+-	}
++	psa_status_t status;
+ 
+ 	memcpy(buf.key, unique_key, sizeof(unique_key));
+ 
++	status = psa_hash_compute(PSA_ALG_SHA_256, (const unsigned char *)&buf, sizeof(buf),
++				  hash, sizeof(hash), &hash_len);
++	if (status != PSA_SUCCESS) {
++		NET_ERR("Cannot hash the initial sequence number: %d", (int)status);
++		return -EIO;
++	}
+ 
+-	psa_hash_compute(PSA_ALG_SHA_256, (const unsigned char *)&buf, sizeof(buf),
+-			 hash, sizeof(hash), &hash_len);
++	*isn = seq_scale(UNALIGNED_GET((uint32_t *)&hash[0]));
+ 
+-	return seq_scale(UNALIGNED_GET((uint32_t *)&hash[0]));
++	return 0;
+ }
+ 
+ #else
+ 
+-#define tcpv6_init_isn(...) (0UL)
+-#define tcpv4_init_isn(...) (0UL)
++#define tcp_isn_key_get() (0)
++#define tcpv6_init_isn(...) (0)
++#define tcpv4_init_isn(...) (0)
+ 
+ #endif /* CONFIG_NET_TCP_ISN_RFC6528 */
+ 
+-static uint32_t tcp_init_isn(struct net_sockaddr *saddr, struct net_sockaddr *daddr)
++/* Crux: returns a negative error when no initial sequence number can be made, and the caller refuses the
++ * connection. The sequence number is not written then.
++ */
++static int tcp_init_isn(struct net_sockaddr *saddr, struct net_sockaddr *daddr, uint32_t *isn)
+ {
+ 	if (IS_ENABLED(CONFIG_NET_TCP_ISN_RFC6528)) {
++		int ret = tcp_isn_key_get();
++
++		if (ret < 0) {
++			return ret;
++		}
++
+ 		if (IS_ENABLED(CONFIG_NET_IPV6) &&
+ 		    saddr->sa_family == NET_AF_INET6) {
+ 			return tcpv6_init_isn(&net_sin6(saddr)->sin6_addr,
+ 					      &net_sin6(daddr)->sin6_addr,
+ 					      net_sin6(saddr)->sin6_port,
+-					      net_sin6(daddr)->sin6_port);
++					      net_sin6(daddr)->sin6_port,
++					      isn);
+ 		} else if (IS_ENABLED(CONFIG_NET_IPV4) &&
+ 			   saddr->sa_family == NET_AF_INET) {
+ 			return tcpv4_init_isn(&net_sin(saddr)->sin_addr,
+ 					      &net_sin(daddr)->sin_addr,
+ 					      net_sin(saddr)->sin_port,
+-					      net_sin(daddr)->sin_port);
++					      net_sin(daddr)->sin_port,
++					      isn);
+ 		}
+ 	}
+ 
+-	return sys_rand32_get();
++	*isn = sys_rand32_get();
++
++	return 0;
+ }
+ 
+ /* Create a new tcp connection, as a part of it, create and register
+@@ -2551,7 +2599,14 @@ static struct tcp *tcp_conn_new(struct net_pkt *pkt)
+ 
+ 	if (!(IS_ENABLED(CONFIG_NET_TEST_PROTOCOL) ||
+ 	      IS_ENABLED(CONFIG_NET_TEST))) {
+-		conn->seq = tcp_init_isn(&local_addr, &context->remote);
++		ret = tcp_init_isn(&local_addr, &context->remote, &conn->seq);
++		if (ret < 0) {
++			/* Crux: refused as a failed bind is, with a RST to the peer. */
++			NET_ERR("[%p] No initial sequence number (%d), connection refused", conn, ret);
++			net_context_put(context);
++			conn = NULL;
++			goto err;
++		}
+ 	}
+ 
+ 	conn->isn = conn->seq;
+@@ -4033,7 +4088,12 @@ int net_tcp_connect(struct net_context *context,
+ 
+ 	if (!(IS_ENABLED(CONFIG_NET_TEST_PROTOCOL) ||
+ 	      IS_ENABLED(CONFIG_NET_TEST))) {
+-		conn->seq = tcp_init_isn(&conn->src.sa, &conn->dst.sa);
++		ret = tcp_init_isn(&conn->src.sa, &conn->dst.sa, &conn->seq);
++		if (ret < 0) {
++			/* Crux: no SYN is sent, and the caller gets the error. */
++			NET_ERR("[%p] No initial sequence number (%d), connect refused", conn, ret);
++			goto out;
++		}
+ 	}
+ 
+ 	NET_DBG("[%p] src: %s, dst: %s", conn,

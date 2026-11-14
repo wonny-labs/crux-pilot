@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config CRUX_FS_RELIANCE_EDGE
+    bool "Reliance Edge file system in the Zephyr VFS"
+    depends on CRUX_PILOT_MODULE && FILE_SYSTEM && DISK_ACCESS
+    help
+      Register Reliance Edge as an external Zephyr file system on a disk_access
+      disk. It needs the Reliance Edge source from the optional west group
+      crux-reliance, or a tree named by CRUX_RELIANCE_EDGE_DIR. A mount never
+      formats; the composition initialises the disk and owns mount order and
+      recovery. The public source is GPLv2, so an image that links it is for
+      testing and is not distributed.
+
+if CRUX_FS_RELIANCE_EDGE
+
+config CRUX_FS_RELIANCE_EDGE_FORMAT
+    bool "Compile the Reliance Edge formatter"
+    depends on FILE_SYSTEM_MKFS
+    default n
+    help
+      Allow fs_mkfs to format a disk with this file system. Off by default,
+      so that a composition image cannot format a medium by accident.
+
+config CRUX_FS_RELIANCE_EDGE_BUFFER_COUNT
+    int "Block buffers"
+    default 12
+    range 1 255
+    help
+      Number of block-sized buffers in the file system's cache.
+
+config CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT
+    int "Open file and directory handles"
+    default 8
+    range 1 4096
+    help
+      Files and directories that can be open at the same time, together.
+
+config CRUX_FS_RELIANCE_EDGE_TASK_COUNT
+    int "Threads that may use the file system"
+    default 8
+    range 2 255
+    help
+      The adapter gives each thread an identifier the first time it uses the
+      file system and has no hook for thread exit, so this bounds the threads
+      that ever use it. A thread beyond the bound gets -ENOMEM from every
+      operation except close and closedir, which such threads perform one at
+      a time through one spare identifier. Reliance Edge's own task table has
+      this many entries plus the spare one.
+
+config CRUX_FS_RELIANCE_EDGE_SECTOR_OFFSET
+    int "First sector of the volume"
+    default 0
+    range 0 2147483647
+    help
+      Sector of the disk where the volume starts. The formatted medium and the
+      image that mounts it must use the same value.
+
+config CRUX_FS_RELIANCE_EDGE_SECTOR_COUNT
+    int "Sectors in the volume (0: the rest of the disk)"
+    default 0
+    range 0 2147483647
+    help
+      0 takes the sector size and count from the disk. Any other value fixes
+      the volume at this many 512-byte sectors from the offset.
+
+endif # CRUX_FS_RELIANCE_EDGE

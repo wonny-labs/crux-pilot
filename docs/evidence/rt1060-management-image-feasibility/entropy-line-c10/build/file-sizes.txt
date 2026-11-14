@@ -1,0 +1,2 @@
+-rwxr-xr-x 1 root root  562232 Nov  9 18:41 /build/out/c10/zephyr/zephyr.bin
+-rwxr-xr-x 1 root root 9643980 Nov  9 18:41 /build/out/c10/zephyr/zephyr.elf

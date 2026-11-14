@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+cmake_minimum_required(VERSION 3.20.0)
+get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
+include(${CRUX_ROOT}/tests/support/emmc_sim/emmc_sim.cmake)
+list(APPEND DTS_ROOT "${CRUX_ROOT}/tests/support/emmc_sim")
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_file_emmc_composition C)
+if(NOT CONFIG_BOARD_NATIVE_SIM)
+  message(FATAL_ERROR "This fixture operates the eMMC simulator on native_sim only")
+endif()
+target_sources(app PRIVATE main.c ${CRUX_ROOT}/samples/storage_emmc/emmc_storage.c)
+target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
+target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_emmc
+  ${CRUX_ROOT}/zephyr/fs/reliance_edge)
+crux_emmc_sim_add(app)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)

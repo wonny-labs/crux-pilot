@@ -1,0 +1,5 @@
+zephyr.bin sha256 31e3b8f3d04c3dbae58df27c923d8def106f86ffe81161314e1e04ca5e16ccce, 120384 bytes
+zephyr.elf sha256 dce9b2768c56fd62098a892a386238b51d70e204398991b5c060f0ce8fbb8b0e
+crux worktree 3e0a5d7280e42df4415ca1f685ba3ad4b61775b4
+crux worktree status now: '' (at build time: not recorded)
+JLinkExe /Applications/SEGGER/JLink_V986a/JLinkExe

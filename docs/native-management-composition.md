@@ -1,6 +1,8 @@
 # `native_sim` management composition
 
-Status: for review under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), in a Draft PR. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
+Status: merged in [PR #263](https://github.com/wonny-labs/crux-pilot/pull/263), the first part of [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), which stays open. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
+
+The second part of #242, every other management service composed on these providers behind HTTPS, is in [Every management service on `native_sim`](native-composition-242.md).
 
 Nothing here is physical evidence. `native_sim` results use the host's TCP stack, and the simulator's clock, memory and entropy. They say nothing about a device. [Real here means](psa-crypto-design.md#what-real-means-on-native_sim) that the protocol and the algorithms run for real, and it does not mean that any secret is safe.
 
@@ -21,7 +23,7 @@ Nothing here is physical evidence. `native_sim` results use the host's TCP stack
 | Configuration save | **No provider**, `configuration_no_provider`, by decision C6 until #16. A save returns `ERR_STORE` with `NOT_SUPPORTED`. | `native_sim` |
 | Logging | The Crux provider on an **emulated UART**: a line counts as delivered when `crux_log_write` returns `CRUX_OK`, and nothing reads the wire | `native_sim` |
 | Reset causes, watchdog | Real System on `native_sim`. `system.watchdog_state` reads `not_supported`. | `native_sim` |
-| HTTPS listener, login routes, TLS certificate from the store | **Not built here**: #185, #186, #190 | |
+| HTTPS listener, login routes, TLS certificate from the store | **Not built here**: #185, #186 and #190 are in other documents, and [the services image](native-composition-242.md) composes them | |
 | Access and credential suites on the real ports | **Run on Host, on TF-PSA-Crypto**: 10 suites, [below](#the-existing-suites-on-the-real-ports). Not on wolfPSA, and not on `native_sim`. | Host |
 | A race in a provider | **Untested and untestable here**: a `native_sim` thread that does not sleep is never preempted | |
 | Anything on RT1060-EVKB beyond the ports compiling | **Not run.** No board was touched. | |
@@ -134,7 +136,7 @@ Connection limits, timing and memory here come from the host's stack and the sim
 
 | # | Limit | Profile | Seen as |
 | --- | --- | --- | --- |
-| 1 | **A TCP close with no `close_notify` is invisible to `poll`.** A host socket reports a peer's FIN as `POLLIN` alone, where Zephyr's native sockets add `POLLHUP`. `mbedtls_ssl_read` turns the end of the stream into a length of 0, which the TLS layer reads as "a partial record, try again". So `zsock_poll` with no timeout returns 0, at once and every time, for as long as that client stays. | Mbed | `raw_poll_after_abrupt_close`: the server never saw the close, and the image's CPU share rose from about 0.02 to between 0.55 and 0.86 across runs, locally and in CI. In a debugging trace, not retained, the simulated clock also stopped while this ran, because a `native_sim` thread that never sleeps stops it. A `recv` finds the end of the stream at once, which is how the probe's server gets past it: `abrupt_closes` passes. |
+| 1 | **A TCP close with no `close_notify` is invisible to `poll`.** A host socket reports a peer's FIN as `POLLIN` alone, where Zephyr's native sockets add `POLLHUP`. `mbedtls_ssl_read` turns the end of the stream into a length of 0, which the TLS layer reads as "a partial record, try again". So `zsock_poll` with no timeout returns 0, at once and every time, for as long as that client stays. | Mbed | `raw_poll_after_abrupt_close`: the server never saw the close, and the image's CPU share rose from about 0.02 to between 0.55 and about 0.9 across runs, locally and in CI. In a debugging trace, not retained, the simulated clock also stopped while this ran, because a `native_sim` thread that never sleeps stops it. A `recv` finds the end of the stream at once, which is how the probe's server gets past it: `abrupt_closes` passes. |
 | 2 | wolfSSL peeks instead, and reports it | Wolf | The same step: the close is seen, and CPU stays at 0.01 to 0.03 |
 | 3 | The handshake runs inside `accept`, on the caller's thread, for non-blocking sockets too. A client that connects and says nothing holds a one-thread server for `NET_SOCKETS_TLS_CONNECT_TIMEOUT`, default 10 s. | Both | `stalled_client`: a second client waited 9.6 s and 9.5 s, and then worked |
 | 4 | A 120,000 B Mbed TLS heap held 3 connections at a 16 KiB record size. **The fourth `accept` fails with `EINVAL`**, not `ENOMEM`. The socket layer maps a failed certificate parse to it, which fits a full heap, and heap use was not measured. Held connections keep working, and later ones work once these close. | Mbed | `concurrent_connections`, and `PROBE accept ... errno=22` |
@@ -212,7 +214,7 @@ The mapping is [the design's](psa-crypto-design.md#what-each-port-calls), and th
 | Mutation, each tried once | Caught by |
 | --- | --- |
 | The core reuses a zero nonce | 3 of these credential suites, and the composition's check that the two slots' nonces differ |
-| The stored cost is 1 PBKDF2 iteration | `test_07_stored_verifier_is_real` in the composition, which also recomputes the stored verifier. Not by these suites. |
+| The stored cost is 1 PBKDF2 iteration, by the stored cost alone | `test_07_stored_verifier_is_real` in the composition, which also recomputes the stored verifier. Not by these suites. The mutation of the account's own field, `account->iterations = 1u`, is caught by them, at `tests/access/security.c:82`. |
 | Seal ignores its additional data | `credential_conformance_fake` here |
 | Seal keeps its key slot | `ports_leave_no_key_slot`, on TF-PSA-Crypto on `native_sim` only |
 
@@ -240,7 +242,7 @@ sequenceDiagram
 | Check, on `native_sim/native/64` | Mbed profile | Wolf profile |
 | --- | --- | --- |
 | Builds, with the TLS stack and the PSA provider in one image | Yes | Yes, on the patched copy |
-| No fake linked: 25 listed ports and contracts, each exactly from its real source under the repository, read from the image with `nm -l`. PSA from its module, and no other test code. This reads names and sources, and it shows nothing about what they do. | Yes | Yes |
+| No fake linked: 25 listed ports and contracts, each exactly from its real source under the repository, read from the image with `nm -l`. PSA from its module, and no other test code: the composition's own directory and the declared certificate are exempt from that test-code rule, since they are what the image is. This reads names and sources, and it shows nothing about what they do. | Yes | Yes |
 | Device keys generated at start | P-256 | P-256 and Ed25519 |
 | Ed25519 asked for | `ERR_ENTROPY`, and no record | Generated |
 
@@ -312,16 +314,9 @@ Each is a statement about `native_sim`, and none is device evidence.
 | 8 | Provider tests | `tests/psa_ports`, the composition, and [the existing suites](#the-existing-suites-on-the-real-ports) on Host |
 | 9 | The Mbed profile's limits | [Locks](#locks-on-the-mbed-profile). No Ed25519, as shown. Slots: `ports_leave_no_key_slot` shows that the providers hold none between calls, on TF-PSA-Crypto on `native_sim`, and it cannot see a leak on Host or wolfPSA. How many TLS takes from the 16 was not measured. |
 
-## What later issues can use
+## What later issues used
 
-| Issue | What it has now | What it must still do |
-| --- | --- | --- |
-| #184, HTTP adapter | `tests/native/management_composition/composition`: `crux_native_management_start`, sessions from `crux_native_management_login`, and real status and configuration services behind the adapter's routes. Link with `composition.cmake`. | Its own routes. The composition starts no listener. |
-| #185, HTTPS | The [probe's result](#what-185-needs-to-know), both profile configurations, the patched tree for a test, the declared certificate through `crux_native_management_tls_test_credentials`, and the core locks | Decide how a product applies the Wolf patch. Declare versions and suites. Test an abrupt client close on the Mbed profile. |
-| #186, login and sessions | Real PBKDF2 verifiers, the real session table, and a PSA provider to draw attempt identifiers and tokens from | Entropy stays test-only here, so a token's strength is not shown |
-| #190, certificate model | `crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_TLS_KEY, P256)` generates and persists a key at start, and survives a restart. The event port is real. | Connect a stored key and certificate to the TLS credentials. The composition's TLS still uses the declared certificate, not this key. |
-| #192, SSH provider | On the Wolf profile: a persisted Ed25519 host key, one wolfCrypt with the wolfSSH definitions beside the TLS backend and wolfPSA, and real Access for keys and passwords | wolfSSH is not in this image, so it has not been built with these. |
-| #187, #193, #220 | The same services on real ports | |
+#184, #185, #186, #187, #190 and #220 built on this composition and have merged. #192 and #193 reached it only through the integrated image of #197. Their results are in [web contract](web-contract.md), [HTTPS composition](https-composition.md), [web session](web-session.md), [TLS certificate](tls-certificate.md), [the services image](native-composition-242.md), [the integrated image](ssh-integrated-image.md) and [the end-to-end record](e2e-native-220.md).
 
 ## Decisions for review
 

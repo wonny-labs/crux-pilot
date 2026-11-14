@@ -1,0 +1,14 @@
+mutation: a changed line in the copy of crux_native_management.c
+  -> FAIL: test_vehicle_copies_are_the_native_files_with_only_the_declared_edits (tests.build.test_management_target_lists.ManagementTargetLists) FAILED (failures=1) 
+mutation: a source removed from the vehicle's list
+  -> FAIL: test_component_sources_match_the_native_composition (tests.build.test_management_target_lists.ManagementTargetLists) FAILED (failures=1) 
+mutation: the refusal switch turned off
+  -> FAIL: test_the_refusal_in_main_stays_until_a_reviewed_change_removes_it (tests.build.test_management_bench_declaration.BenchDeclaration) FAILED (failures=1) 
+mutation: SSH bind address emptied in target.conf
+  -> FAIL: test_target_conf_carries_the_declaration (tests.build.test_management_bench_declaration.BenchDeclaration) FAILED (failures=1) 
+mutation: the declared address changed
+  -> FAIL: test_network_is_one_consistent_bench (tests.build.test_management_bench_declaration.BenchDeclaration) FAIL: test_target_conf_carries_the_declaration (tests.build.test_management_bench_declaration.BenchDeclaration) FAIL: test_the_certificate_names_the_bench_address (tests.build.test_management_bench_declaration.BenchDeclaration) FAILED (failures=3) 
+mutation: the public password text added to a bench source
+  -> FAIL: test_the_public_test_password_and_the_native_declaration_are_not_in_the_bench_image (tests.build.test_management_bench_declaration.BenchDeclaration) FAILED (failures=1) 
+mutation: restored files
+  -> OK 

@@ -1,0 +1,38 @@
+*** Booting Zephyr OS build v4.4.2 ***
+Running TESTSUITE ram_disk_size
+===================================================================
+START - test_a_blank_ram_disk_is_not_formatted_by_the_mount
+[00:00:00.000,000] [1;31m<err> fs: fs mount error (-19)[0m
+ PASS - test_a_blank_ram_disk_is_not_formatted_by_the_mount in 0.000 seconds
+===================================================================
+START - test_geometry_is_the_one_of_the_overlay
+RAMDISK geometry: 1024 sectors of 512 B = 524288 B
+ PASS - test_geometry_is_the_one_of_the_overlay in 0.000 seconds
+===================================================================
+START - test_one_more_file_than_the_disk_has_room_for_fails_cleanly
+RAMDISK filled to refusal with rc -28
+ PASS - test_one_more_file_than_the_disk_has_room_for_fails_cleanly in 0.000 seconds
+===================================================================
+START - test_the_area_at_its_limit_four_files_of_the_largest_size_and_the_store_fit
+RAMDISK area as 4 files of 64 KiB, then both slots: disk 524288 B, cluster 512 B, data clusters 987 (505344 B), free before 505344 B, free after 208896 B (39 % of the disk)
+ PASS - test_the_area_at_its_limit_four_files_of_the_largest_size_and_the_store_fit in 0.000 seconds
+===================================================================
+START - test_the_area_at_its_limit_with_the_most_entries_and_the_store_fit
+RAMDISK area as 16 entries of 63-character names at the worst slack, then both slots: disk 524288 B, cluster 512 B, data clusters 987 (505344 B), free before 505344 B, free after 205824 B (39 % of the disk)
+ PASS - test_the_area_at_its_limit_with_the_most_entries_and_the_store_fit in 0.000 seconds
+===================================================================
+TESTSUITE ram_disk_size succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [ram_disk_size]: pass = 5, fail = 0, skip = 0, total = 5 duration = 0.000 seconds
+ - PASS - [ram_disk_size.test_a_blank_ram_disk_is_not_formatted_by_the_mount] duration = 0.000 seconds
+ - PASS - [ram_disk_size.test_geometry_is_the_one_of_the_overlay] duration = 0.000 seconds
+ - PASS - [ram_disk_size.test_one_more_file_than_the_disk_has_room_for_fails_cleanly] duration = 0.000 seconds
+ - PASS - [ram_disk_size.test_the_area_at_its_limit_four_files_of_the_largest_size_and_the_store_fit] duration = 0.000 seconds
+ - PASS - [ram_disk_size.test_the_area_at_its_limit_with_the_most_entries_and_the_store_fit] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

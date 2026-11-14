@@ -46,3 +46,13 @@ if(CRUX_BUILD_SERIAL AND CRUX_BUILD_THREAD)
         PRIVATE crux::thread)
     target_compile_options(crux_cli_console PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
+
+# The provider of crux_cli_port_event over the security events (Issue #242), which a composition
+# links by name. An object target, so that a final link always takes it, and a second provider of the
+# port is a duplicate symbol. The record never carries the line.
+if(CRUX_BUILD_SECURITY_EVENT)
+    add_library(crux_cli_security_events OBJECT src/cli_security_events.c)
+    target_include_directories(crux_cli_security_events PRIVATE src)
+    target_link_libraries(crux_cli_security_events PRIVATE crux_cli_api crux_security_event_api)
+    target_compile_options(crux_cli_security_events PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()

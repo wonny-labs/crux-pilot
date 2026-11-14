@@ -1,0 +1,9 @@
+B6 offline checks of the third run, 2026-11-08, transcript of the results (host, frozen checkout 94a4a7da879f, venv Python; not produced by a repository tool)
+
+1. python3 tests/target/capture_m5_network.py uart-replay <copy of 01-third-run/boot-1 with uart-rx.bin.raw renamed back to uart-rx.bin> -> exit 0, 160 records, last record READY seq=7 (the raw M5 boot of phases 1 to 6 replays; the supervisor's own run ended REDUCED_BOOT_PROTOCOL_COMPLETE_NON_QUALIFYING).
+
+2. Normal-image boot capture of the final restore (01-third-run/restore/normal-capture/lines.json) through the accepted integrated-normal oracles
+   (capture_m3_integrated.initial_checkpoint_rows(rows, 'ec94fbec22cd', 0, False), m3_integrated_oracle.default_state, m3_integrated_oracle.idle_resources):
+   397 rows: initial_checkpoint_rows rows=78, default_state PASS, idle_resources PASS
+
+3. Phase summary computed from 01-third-run/boot-1/uart-rx.bin.raw and the peer files by a throw-away script (not a repository tool): 161 UART lines (M5_BOOT 1, ARM 1, READY 7, LINK 2, IDLE 87, DONE 6, BEGIN 28, END 28); phase 2 20 END rows with result 0 (TCP 4 to 17 ms, UDP 1 to 7 ms); phase 3 two END rows with result -116 after 2000 ms; phase 4 two with result 0; phase 5 TCP -104 and UDP 0; phase 6 two with result 0; every END row has close_error 0 and owned 0; peers: phase 2 20 requests and 20 exchanges all answered, phase 3 2 and 2 unanswered, phase 4 2 and 2 answered, phase 5 2 and 2 with one answered (the UDP echo), phase 6 2 and 2 answered; peer-gate.jsonl: phase 2 two host_pending observations then host_up and the peer start after 0.544 s, phases 3 to 6 host_up at the first observation (waits 0.028 to 0.038 s).

@@ -431,6 +431,21 @@ class SessionOnlyList(unittest.TestCase):
                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             self.assertEqual(result.returncode, 1, result.stdout)
 
+    def test_a_template_source_counts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "components/cli").mkdir(parents=True)
+            (root / "templates/product/app/src").mkdir(parents=True)
+            (root / "components/cli/session-only-commands.txt").write_text("", encoding="utf-8")
+            (root / "templates/product/app/src/commands.c").write_text(
+                'CRUX_CLI_COMMAND("open", "any", CRUX_CLI_SESSION_ONLY, 0, 0, 1, f, NULL),\n',
+                encoding="utf-8")
+            result = subprocess.run(["python3", str(REPO / "scripts/check-cli-session-commands.py"),
+                                     "--root", str(root)], check=False, text=True,
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn("session-only command not reviewed: open", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

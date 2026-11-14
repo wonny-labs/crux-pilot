@@ -44,7 +44,7 @@ FORBIDDEN_TOKEN = re.compile(
 ACCESS_TOKEN = re.compile(r"\b(?:crux_access\w*|CRUX_ACCESS\w*)\b")
 INCLUDE = re.compile(r'^\s*#\s*include\s*[<"]([^>"\n]+)[>"]', re.MULTILINE)
 # Places that a project or a portable consumer builds from. A project never includes the interface.
-CONSUMER_ROOTS = ("samples", "applications", "runtime", "tests/external_application")
+CONSUMER_ROOTS = ("samples", "templates", "applications", "runtime", "tests/external_application")
 SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".hxx", ".inc"}
 SSH_WOLF_MARKERS = ("crux-secure-management", "ssh_wolf_probe", "test-ssh-wolf-settings")
 
@@ -130,6 +130,8 @@ def stack_errors(root):
     manifest = root / "west.yml"
     if manifest.is_file() and "-crux-secure-management" not in manifest.read_text(encoding="utf-8"):
         errors.append("west.yml: the secure management group must stay off by default")
+    if manifest.is_file() and "-crux-reliance" not in manifest.read_text(encoding="utf-8"):
+        errors.append("west.yml: the Reliance Edge group must stay off by default")
     workflows = root / ".github/workflows"
     if workflows.is_dir():
         for path in sorted(workflows.iterdir()):

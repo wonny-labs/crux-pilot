@@ -1,0 +1,13 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The watchdog that Crux System looks up, as tests/system_consumer does for this board. */
+/ { aliases { crux-watchdog0 = &wdog0; }; };
+
+/* Crux Logging on LPUART1, the board's debug UART, as tests/logging_consumer does for this board. */
+/ {
+    chosen { zephyr,log-uart = &logging_uarts; };
+    logging_uarts: logging-uarts {
+        compatible = "zephyr,log-uart";
+        uarts = <&lpuart1>;
+    };
+};
+&lpuart1 { status = "okay"; current-speed = <115200>; parity = "none"; };

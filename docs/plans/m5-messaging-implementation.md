@@ -1,5 +1,7 @@
 # Issue #26 implementation plan
 
+Status: historical record. Implementation plan for Issue #26 (Queue and Monotonic) in the M5 milestone of Issues #25–#30, not the Time Pilot M5; first implemented in PR #41 and kept as a record. Issue #26 itself is still open, so see the Issue for current scope.
+
 Historical implementation plan for Issue #26. Its signed-ms Monotonic surface
 is superseded by the [typed Time contract](../time-contract.md) and
 [Thread sleep contract](../thread-sync.md); original design steps remain below.

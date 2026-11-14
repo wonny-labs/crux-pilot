@@ -1,0 +1,46 @@
+== 1. geometry, the shared M3 check (boot header, ELF sections against the BIN, gap fill)
+pass: bin_bytes=562232, symbols read=5764
+symbol z_main_stack: {'address': 2148272000, 'bytes': 16448}
+
+== 2. what the existing profiles say about this image
+m5_image.check_image: refuses: M5 image configuration differs
+s2_image.check_image: refuses: S2 image configuration differs
+
+== 3. the M5 constants against the resolved bench configuration
+M5 required lines: 28, met by the bench: 17
+  different value:
+    CONFIG_MAIN_STACK_SIZE=4096 (bench: 16384)
+    CONFIG_NET_MAX_CONTEXTS=4 (bench: 32)
+    CONFIG_NET_MAX_CONN=4 (bench: 32)
+    CONFIG_NET_PKT_RX_COUNT=16 (bench: 192)
+    CONFIG_NET_PKT_TX_COUNT=16 (bench: 32)
+    CONFIG_NET_BUF_RX_COUNT=32 (bench: 1024)
+    CONFIG_NET_BUF_TX_COUNT=32 (bench: 768)
+  not set at all:
+    CONFIG_PRINTK_SYNC=y (bench: not set)
+    CONFIG_CRUX_SOCKETS=y (bench: not set)
+    CONFIG_CONSOLE_GETCHAR=y (bench: not set)
+    CONFIG_CONSOLE_SUBSYS=y (bench: not set)
+M5 forbidden features set to y in the bench configuration: FILE_SYSTEM, DISK_ACCESS, WATCHDOG, LOG
+M5 forbidden features not set: FLASH, FLASH_MAP, NVS, SETTINGS, SHELL, NET_IPV6, NET_DHCPV4, BOOTLOADER_MCUBOOT
+
+== 4. the manifest the build wrote, against the resolved configuration
+manifest settings: 65, equal to .config (an n may be absent from it): all
+
+== 5. stack objects of the linked image
+800b5600   8256 B _k_thread_stack_http_server_tid
+800b7640   1664 B enet_rx_stack
+800a29c0   4160 B listener_stack
+800b4340   2112 B logging_stack
+800b3b00   2112 B report_stack
+800b4b80   1600 B rx_stack
+800c47c0   1664 B sys_work_q_stack
+800b51c0   1088 B work_q_stack
+800a3a00  65792 B worker_stacks
+800b7cc0  33024 B worker_stacks
+800bfdc0   2112 B z_interrupt_stacks
+800c0780  16448 B z_main_stack
+
+== 6. a candidate profile, never registered (only its own consistency rule is run)
+constructed: name=crux-mgmt-bench-rt1060-evkb-b pinned=10 capture=raw/300 s
+capture_seconds=600: refused: Inconsistent image profile crux-mgmt-bench-rt1060-evkb-b: capture raw needs a window of 1 to 300 whole seconds

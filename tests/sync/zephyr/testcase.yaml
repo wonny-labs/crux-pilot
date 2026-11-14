@@ -1,0 +1,19 @@
+tests:
+  crux.sync.priority:
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    tags:
+      - sync
+    harness: ztest
+  crux.sync.priority.all_mutex_slots:
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    tags:
+      - sync
+    harness: ztest
+    extra_configs:
+      - CONFIG_CRUX_SYNC_MUTEX_COUNT=64

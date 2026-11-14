@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<ws>/crux-pilot-3/tests/target/capture_m5_network.py", line 501, in <module>
+    if __name__=='__main__':main()
+  File "<ws>/crux-pilot-3/tests/target/capture_m5_network.py", line 493, in main
+    result=capture_approved_boot(args)
+  File "<ws>/crux-pilot-3/tests/target/capture_m5_network.py", line 456, in capture_approved_boot
+    run_boot(supervisor,adapter,m3_clock.monotonic)
+  File "<ws>/crux-pilot-3/tests/target/capture_m5_network.py", line 350, in run_boot
+    for event in adapter.poll(.25):
+  File "<ws>/crux-pilot-3/tests/target/m5_capture_adapter.py", line 326, in poll
+    runner.oracle.require(code is None or code==0,'Peer failed during capture')
+  File "<ws>/crux-pilot-3/tests/target/m5_network_oracle.py", line 11, in require
+    raise ValueError(message)
+ValueError: Peer failed during capture
+exit 1

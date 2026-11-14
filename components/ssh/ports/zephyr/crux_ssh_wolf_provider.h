@@ -34,12 +34,26 @@ const crux_ssh_provider_t *crux_ssh_wolf_provider(void);
  *
  * @retval CRUX_OK Written, and terminated.
  * @retval CRUX_ERR_INVALID_ARGUMENT A pointer is NULL, the buffer is too small, or the key is of an
- * unknown type or the wrong length.
+ * unknown type, the wrong length, or for P-256 its public part is not an uncompressed point.
  * @retval CRUX_ERR_IO The hash failed.
  */
 crux_status_t crux_ssh_wolf_host_key_fingerprint(crux_ssh_key_type_t type, const uint8_t *host_key,
                                                  size_t host_key_length, char *fingerprint,
                                                  size_t size);
+
+#if defined(CONFIG_CRUX_SSH_STACK_REPORT)
+/**
+ * Measurement aid, only with CONFIG_CRUX_SSH_STACK_REPORT: the figure of the worker that ended with
+ * the least stack unused, over every worker that has ended since boot. The threads that are still
+ * running are read through the kernel's thread list, under the names "ssh_worker" and
+ * "ssh_listener".
+ *
+ * @param[out] size Usable stack of a worker, in bytes.
+ * @param[out] unused_min Fewest bytes any ended worker left untouched.
+ * @return false until a worker has ended, and then nothing is written.
+ */
+bool crux_ssh_wolf_worker_stack_ended(size_t *size, size_t *unused_min);
+#endif
 
 #ifdef CRUX_SSH_WOLF_TESTING
 /* Test images only. What a test client cannot do from the far end of a real socket, and the

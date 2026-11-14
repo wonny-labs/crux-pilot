@@ -27,6 +27,38 @@ accepted controller scenarios, not evidence that the entire reference applicatio
 already satisfies the future portable consumer boundary. Native access there must
 not become a template for new firmware application or common runtime modules.
 
+## Three layers and ports (ADR-0001)
+
+**Source and status.** This section restates [ADR-0001](decisions/0001-application-boundary-and-api-stability.md),
+Decisions 1 and 2, which the owner accepted on 12 November 2026 (D1 to D3). It refines the dependency policy above
+and changes none of its rules or checks. It prescribes no directory layout and adds no check. The two checks of this
+policy run on Crux's own trees as before. A product's own checks, an include check and a Host build of the domain, are
+the product's. The product template carries an example of the include check, for its domain, and does not carry a Host build script.
+
+**Frozen interfaces.** Thread, Sync, Queue and Serial are frozen for new product code (approved 13 November 2026; see [Choosing an API](choosing-an-api.md)). The freeze adds no check to this policy, and existing consumers, the `crux::queue_linux` composition target and their probes stay valid. The product template's check (`templates/product/check_domain_includes.py`) rejects `crux/thread.h`, `crux/sync.h`, `crux/queue.h`, `crux/serial.h`, every `<zephyr/...>` header and the composition interfaces `crux/NAME_zephyr.h` and `crux/NAME_linux.h` in a product's domain. Other native headers are caught only by the Host build of the domain. New product code must not use these four headers in its domain, although the rules above allow public `<crux/NAME.h>` headers. D10's Build B is exempt ([ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) P2).
+
+The ADR names three layers for product code. Each maps onto a role of the dependency policy:
+
+| ADR layer | Role in the dependency policy | May use | Must not use |
+| --- | --- | --- | --- |
+| Domain | Firmware application and common runtime-porting modules (portable application logic) | ISO C, public `<crux/NAME.h>` headers and `crux::` usage targets, qualified standard profiles such as Sockets, and the product's own port headers | Zephyr, board, vendor or Crux private headers, Crux composition interfaces, Devicetree identifiers |
+| Adapters and platform composition (product-owned) | The part of "project composition" that the product owns | Any Zephyr API, Devicetree, driver or subsystem, Crux public headers, and Crux composition interfaces | Crux private headers and `ports/` include paths |
+| Crux platform services | Portable Crux contracts and shared mechanisms, and Crux-controlled native providers | Inside providers, Zephyr, as today | Product knowledge |
+
+- A **port** is a header that the product owns, written in the product's terms and holding no Zephyr type. The domain calls
+  ports, and an adapter implements them with Zephyr, which is ports and adapters. Crux publishes no product ports, and a
+  port becomes a Crux capability only under [Extending Crux](architecture.md#extending-crux).
+- Zephyr appears only in the declared places: product adapters and platform composition, Crux providers, the Zephyr folders
+  of Crux samples, and tests, plus Crux composition interfaces where a binding needs a Zephyr type. It does not appear in a
+  product's domain or in Crux public headers. The table of places is in the
+  [architecture](architecture.md#three-layers-for-a-product-adr-0001).
+- A composition interface is the one formal route from composition code into a Crux provider. Its rules are in
+  [Composition interface rules](composition-interfaces.md). Private headers and `ports/` include paths are not an
+  alternative: a product never uses them.
+- The ADR recommends that a product enforce the zones with a lexical include check and a Host build of the domain. The lexical
+  check has the limits stated under [Verification and limits](#verification-and-limits). The Host build is a real compile check,
+  since a Zephyr header does not exist there, and it does not replace review.
+
 ## Standard APIs and owned interfaces
 
 ISO C headers such as `stdint.h`, `stdbool.h`, `stddef.h`, `string.h`, `errno.h`
@@ -68,6 +100,8 @@ header and an application do not include `<psa/crypto.h>`: they reach cryptograp
 | Signature verification | `psa_verify_hash` | ECDSA P-256 with SHA-256 | Image check. Generated keys in tests. |
 
 Used only to test the above, and not qualified for a consumer: `psa_sign_hash`, `psa_sign_message`, `psa_verify_message`, `psa_get_key_attributes` and its getters, and `psa_key_derivation_verify_bytes`, which TF-PSA-Crypto does not implement.
+
+The [TLS certificate ports](tls-certificate.md) of Issue #190 call `psa_sign_hash` with ECDSA P-256 and SHA-256 on an imported volatile key. That use is **not qualified** by #142: it ran in #142's tests on both providers, and as a consumer only on TF-PSA-Crypto on Linux Host, in `tests/tls_certificate/psa`.
 
 Limits that go with this subset:
 
@@ -210,6 +244,16 @@ composition target and its backing implementation, including application aliases
 and transitive wrappers. This does not inspect all provider-private requirements
 or restrict the supported public capability facades. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.
+
+The Zephyr File root binding follows the same pattern. `crux::file_zephyr` (header
+`<crux/file_zephyr.h>`) is a composition interface for a product's platform composition, the code
+that also mounts the file system. It is not a portable usage target, and application code must not
+link it. It names Zephyr on purpose, and `crux::file_zephyr` is rejected by the native-free consumer
+check through the `zephyr` token in its name and through its port include root under
+`components/file/ports/zephyr`. The negative test `tests/build/test_file_zephyr_boundary.py` shows
+that for a direct link, a transitive wrapper and the usage check. The check does not restrict `crux::file`, which stays the portable File target.
+[File root binding](file-composition-interface.md) states the role and its limits, and the general
+[composition interface rules](composition-interfaces.md) of ADR-0001 cover it, and rules 3, 4 and 6 also cover `crux::queue_linux`.
 
 ### System consumer boundary
 

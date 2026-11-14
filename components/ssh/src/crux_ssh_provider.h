@@ -69,6 +69,10 @@ typedef struct {
     crux_ssh_key_type_t host_key_type;
     const uint8_t *host_key; /**< Private key in the form Issue #192 documents. Required. */
     size_t host_key_length;
+    /** Dotted IPv4 text of the one local address to listen on, or NULL for every IPv4 address.
+     * The address must already be on an interface, and a text that is not an IPv4 address makes
+     * start() fail, so that a mistyped address never widens the listener. */
+    const char *bind_address;
 } crux_ssh_config_t;
 
 /**
@@ -83,10 +87,13 @@ typedef struct {
  * refused without a callback. An authentication request after a successful login ends the
  * connection without a callback.
  *
+ * Keys. A key reaches key_check only if its algorithm name is one of the types above and its blob
+ * is exactly that type's form, with nothing after it: crux_ssh_wire_user_key() is the check.
+ *
  * Attempts. Every refused attempt counts towards max_auth_attempts: a bad name, a key of any type
- * other than those above, a refused key with or without a signature, a failed signature, a refusal
- * from key_verified and a wrong password. An accepted attempt and the opening `none` request, which
- * every client sends to learn the methods, do not count.
+ * other than those above or with a malformed blob, a refused key with or without a signature, a
+ * failed signature, a refusal from key_verified and a wrong password. An accepted attempt and the
+ * opening `none` request, which every client sends to learn the methods, do not count.
  *
  * Requests. The provider accepts `pty-req` and `window-change` with no callback, and only those two
  * besides shell, exec and the `sftp` subsystem below. It refuses every other request and channel

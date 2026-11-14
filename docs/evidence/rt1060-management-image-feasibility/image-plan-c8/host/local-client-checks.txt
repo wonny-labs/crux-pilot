@@ -1,0 +1,42 @@
+Host-only checks of the client commands of the plan, against a local `openssl s_server` (TLS 1.3 only, a throwaway P-256
+certificate with CN "crux rt1060 bench", the SANs IP:127.0.0.1 and DNS:crux-bench, port 18443, started and stopped by the
+author, never on the bench link). No board, no bench address. What they show is what the host's own tools do, so that the
+plan's commands are not guesses. They say nothing about the bench image's listener.
+
+$ openssl version
+LibreSSL 3.3.6
+$ ssh -V
+OpenSSH_9.9p2, LibreSSL 3.3.6
+$ curl --version | head -1
+curl 8.7.1 (x86_64-apple-darwin24.0) libcurl/8.7.1 (SecureTransport) LibreSSL/3.3.6 zlib/1.2.12 nghttp2/1.64.0
+
+$ curl -sS --cacert c.pem https://127.0.0.1:18443/ -o /dev/null -w '%{http_code} verify=%{ssl_verify_result}\n'
+200 verify=0
+    (the system curl completes a TLS 1.3 handshake, and trusts the leaf as the one anchor it was given)
+
+$ CURL_SSL_BACKEND=libressl curl -sS --cacert c.pem https://127.0.0.1:18443/ ...
+curl: (35) A bad protocol version was encountered
+    (the other backend of this curl build does not do TLS 1.3 here: the plan uses the default backend and never sets CURL_SSL_BACKEND)
+
+$ curl -sS --cacert c2.pem https://127.0.0.1:18443/ ...        (c2.pem: another self-signed certificate)
+curl: (60) SSL certificate problem: self signed certificate     exit 60
+    (a wrong --cacert is refused: the trust really comes from the file)
+
+$ curl -sS --cacert c.pem https://localhost:18443/ ...         (the name is not in the certificate)
+curl: (60) SSL: no alternative certificate subject name matches target host name 'localhost'
+    (the name or address in the URL is checked against the SANs: the plan uses the address 192.168.77.2, which the bench certificate names)
+
+$ echo | openssl s_client -connect 127.0.0.1:18443 -servername crux-bench -groups P-256 -tls1_3
+Server Temp Key: ECDH, P-256, 256 bits
+    Protocol  : TLSv1.3
+    (this host's openssl accepts -groups and -tls1_3. It prints "Verify return code" lines and "verify error:num=18:self signed certificate" without -CAfile.)
+
+A second run of the same local server (a new throwaway certificate):
+$ echo | openssl s_client -connect 127.0.0.1:18443 -servername crux-bench -groups X25519 -tls1_3 -CAfile c.pem -verify_return_error
+Server Temp Key: ECDH, X25519, 253 bits / Protocol  : TLSv1.3 / Verify return code: 0 (ok)
+$ echo | openssl s_client ... -groups P-256 -tls1_3 -CAfile c.pem -verify_return_error
+Server Temp Key: ECDH, P-256, 256 bits / Protocol  : TLSv1.3 / Verify return code: 0 (ok)
+$ echo | openssl s_client -connect 127.0.0.1:18443 -servername crux-bench -CAfile c2.pem -verify_return_error      (the client that rejects the certificate)
+verify error:num=18:self signed certificate / Verify return code: 18 (self signed certificate)
+
+Not tried here: SSH and SFTP (no local server was started: that needs a daemon), the askpass route for a password.

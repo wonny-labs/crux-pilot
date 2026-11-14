@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "clock": "clock_gettime(CLOCK_MONOTONIC)",
+  "serial": "02290000325182c300000000000000000000000097969905",
+  "disk": "/dev/disk4",
+  "boot_session_uuid": "F82B3DD7-39D8-448F-947E-C8D5B901935D\n",
+  "executable": "<ws>/crux-pilot/tests/target/m5_mount_guard.py",
+  "sha256": "0baad87914ef73f908a60e3fdbcb951e4993a402ee034baec431a578a39e616c",
+  "interpreter": "/Library/Developer/CommandLineTools/usr/bin/python3",
+  "interpreter_sha256": "5c5950c62eee5fd227a67e4bdfcde81c9add59799bba0949635f3d5ba9661c26",
+  "deadline": 135455.113346,
+  "lifetime": 14400,
+  "pid": 14581,
+  "process_identity": "14581 /Library/Develop Sun Nov  8 06:41:05 2026    \n",
+  "log": "/var/tmp/crux-guard/guard-2.log",
+  "evidence": "armed_replug_veto",
+  "mode": "arm",
+  "vendor_id": 3368,
+  "product_id": 516,
+  "uart": "/dev/cu.usbmodem11402"
+}

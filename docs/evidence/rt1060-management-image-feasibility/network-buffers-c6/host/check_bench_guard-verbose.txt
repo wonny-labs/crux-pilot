@@ -1,0 +1,251 @@
+  refused  CMake control: the microSD state of the declaration, with the card's provider and driver: accepted
+  refused  CMake control: every pool and the arena exactly at its need: accepted
+  refused  CMake control: 256 B data buffers with the counts exactly at their need for that size: accepted
+  refused  CMake control: 64 B data buffers with the counts exactly at their need for that size: accepted
+  refused  CMake control: a declaration of a 130 percent margin and a 60 percent paper peak, exactly at its needs: accepted
+  refused  CMake control: 6 SSH connections, 5 HTTPS clients, a web backlog of 8 and an SSH window of 32768 B, exactly at their need: accepted
+  refused  CMake control: 2 SSH connections, 1 HTTPS clients, a web backlog of 1 and an SSH window of 8192 B, exactly at their need: accepted
+  refused  CMake no declaration: This build is not a declared RT1060-EVKB bench image: set CRUX_MANAGEMENT_BENCH_IMAGE only in the bench image, tests/zephyr/management_rt1060_compile
+  refused  CMake a native test image's declaration only: This build is not a declared RT1060-EVKB bench image: set CRUX_MANAGEMENT_BENCH_IMAGE only in the bench image, tests/zephyr/management_rt1060_compile
+  refused  CMake native_sim: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
+  refused  CMake another board: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
+  refused  CMake another target of this board: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
+  refused  CMake revision A: The bench image is restricted to mimxrt1060_evk@B//qspi: the test forms are accepted on this board and no other
+  refused  CMake no Kconfig declaration: The Kconfig declaration CONFIG_CRUX_MANAGEMENT_BENCH_IMAGE is not set
+  refused  CMake a test random generator: The bench image draws its random values from the PSA provider over the TRNG driver: CONFIG_ENTROPY_MCUX_TRNG is required, and a test random generator and fake entropy are refused
+  refused  CMake fake entropy: The bench image draws its random values from the PSA provider over the TRNG driver: CONFIG_ENTROPY_MCUX_TRNG is required, and a test random generator and fake entropy are refused
+  refused  CMake no TRNG driver: The bench image draws its random values from the PSA provider over the TRNG driver: CONFIG_ENTROPY_MCUX_TRNG is required, and a test random generator and fake entropy are refused
+  refused  CMake no wolfPSA: The bench image needs the Wolf profile: CONFIG_WOLFPSA, and no Mbed TLS
+  refused  CMake the Mbed profile: The bench image needs the Wolf profile: CONFIG_WOLFPSA, and no Mbed TLS
+  refused  CMake the Mbed PSA provider: The bench image needs the Wolf profile: CONFIG_WOLFPSA, and no Mbed TLS
+  refused  CMake RSA in wolfCrypt: The bench image has no RSA (D11): CONFIG_WOLFSSL_RSA is refused, so that wolfCrypt is built with NO_RSA
+  refused  CMake a wolfSSL settings file: The bench image takes wolfSSL's settings from the module's Kconfig options only: a settings file would hide whether RSA is built
+  refused  CMake no SSH: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake no command line: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake no SFTP: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake no web: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake plain HTTP: The bench image is HTTPS only, and SSH with CLI and SFTP
+  refused  CMake no Crux Logging: The security events write to Crux Logging: CONFIG_CRUX_LOGGING is required
+  refused  CMake DHCP: The bench image has the static bench address 192.168.77.2 only: DHCP, IPv6 and automatic address configuration are refused
+  refused  CMake IPv6: The bench image has the static bench address 192.168.77.2 only: DHCP, IPv6 and automatic address configuration are refused
+  refused  CMake automatic address configuration: The bench image has the static bench address 192.168.77.2 only: DHCP, IPv6 and automatic address configuration are refused
+  refused  CMake HTTPS on every address: The HTTPS listener must listen on the bench address only: CONFIG_CRUX_WEB_BIND_ADDRESS="192.168.77.2"
+  refused  CMake HTTPS on 0.0.0.0: The HTTPS listener must listen on the bench address only: CONFIG_CRUX_WEB_BIND_ADDRESS="192.168.77.2"
+  refused  CMake HTTPS on another address: The HTTPS listener must listen on the bench address only: CONFIG_CRUX_WEB_BIND_ADDRESS="192.168.77.2"
+  refused  CMake SSH on every address: The SSH listener must listen on the bench address only: CONFIG_CRUX_SSH_BIND_ADDRESS="192.168.77.2"
+  refused  CMake SSH on 0.0.0.0: The SSH listener must listen on the bench address only: CONFIG_CRUX_SSH_BIND_ADDRESS="192.168.77.2"
+  refused  CMake SSH on the peer's address: The SSH listener must listen on the bench address only: CONFIG_CRUX_SSH_BIND_ADDRESS="192.168.77.2"
+  refused  CMake another HTTPS port: The listener ports are the declared ones: HTTPS 443, SSH 22
+  refused  CMake another SSH port: The listener ports are the declared ones: HTTPS 443, SSH 22
+  refused  CMake a time source: The bench image has no time source (D7): CONFIG_RTC is refused
+  refused  CMake mkfs on mount: A mount never formats a card: CONFIG_FS_FATFS_MOUNT_MKFS is refused
+  refused  CMake an unknown bench test form: CONFIG_CRUX_BENCH_INVENTED_FORM is a bench test form that bench_declaration.json does not list
+  refused  CMake no RAM disk provider: The RAM disk form needs the RAM disk File provider and the RAM disk driver: CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK and CONFIG_DISK_DRIVER_RAM
+  refused  CMake no RAM disk driver: The RAM disk form needs the RAM disk File provider and the RAM disk driver: CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK and CONFIG_DISK_DRIVER_RAM
+  refused  CMake the SD card driver in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk driver are refused
+  refused  CMake the USDHC host in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk driver are refused
+  refused  CMake the microSD provider in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk driver are refused
+  refused  CMake a flash disk in the RAM disk image: The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk driver are refused
+  refused  CMake both file forms declared selected and set: The bench image has exactly one file backend: the RAM disk and the microSD card forms are both set
+  refused  CMake no file form declared selected and none set: The bench image needs a file backend: exactly one of the RAM disk and the microSD card forms
+  refused  CMake the microSD form declared selected, with no microSD provider: The microSD form needs the microSD File provider and the SD card driver: CONFIG_CRUX_FILE_FATFS_RT1060 and CONFIG_DISK_DRIVER_SDMMC
+  refused  CMake the microSD form declared selected, with no SD card driver: The microSD form needs the microSD File provider and the SD card driver: CONFIG_CRUX_FILE_FATFS_RT1060 and CONFIG_DISK_DRIVER_SDMMC
+  refused  CMake the microSD form declared selected, with the RAM disk provider: The microSD image has no RAM disk: the RAM disk provider and driver are refused
+  refused  CMake the microSD form declared selected, with the RAM disk driver: The microSD image has no RAM disk: the RAM disk provider and driver are refused
+  refused  CMake NET_BUF_DATA_SIZE not set: CONFIG_NET_BUF_DATA_SIZE is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_BUF_DATA_SIZE not a number: CONFIG_NET_BUF_DATA_SIZE is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_BUF_RX_COUNT not set: CONFIG_NET_BUF_RX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_BUF_RX_COUNT not a number: CONFIG_NET_BUF_RX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_BUF_TX_COUNT not set: CONFIG_NET_BUF_TX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_BUF_TX_COUNT not a number: CONFIG_NET_BUF_TX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_PKT_RX_COUNT not set: CONFIG_NET_PKT_RX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_PKT_RX_COUNT not a number: CONFIG_NET_PKT_RX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_PKT_TX_COUNT not set: CONFIG_NET_PKT_TX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_PKT_TX_COUNT not a number: CONFIG_NET_PKT_TX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_TCP_MAX_RECV_WINDOW_SIZE not set: CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_TCP_MAX_RECV_WINDOW_SIZE not a number: CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_TCP_MAX_SEND_WINDOW_SIZE not set: CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake NET_TCP_MAX_SEND_WINDOW_SIZE not a number: CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake ETH_NXP_ENET_RX_BUFFERS not set: CONFIG_ETH_NXP_ENET_RX_BUFFERS is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake ETH_NXP_ENET_RX_BUFFERS not a number: CONFIG_ETH_NXP_ENET_RX_BUFFERS is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake CRUX_SSH_MAX_CONNECTIONS not set: CONFIG_CRUX_SSH_MAX_CONNECTIONS is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake CRUX_SSH_MAX_CONNECTIONS not a number: CONFIG_CRUX_SSH_MAX_CONNECTIONS is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake HTTP_SERVER_MAX_CLIENTS not set: CONFIG_HTTP_SERVER_MAX_CLIENTS is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake HTTP_SERVER_MAX_CLIENTS not a number: CONFIG_HTTP_SERVER_MAX_CLIENTS is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake CRUX_WEB_BACKLOG not set: CONFIG_CRUX_WEB_BACKLOG is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake CRUX_WEB_BACKLOG not a number: CONFIG_CRUX_WEB_BACKLOG is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake CRUX_SSH_WINDOW_BYTES not set: CONFIG_CRUX_SSH_WINDOW_BYTES is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake CRUX_SSH_WINDOW_BYTES not a number: CONFIG_CRUX_SSH_WINDOW_BYTES is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake COMMON_LIBC_MALLOC_ARENA_SIZE not set: CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake COMMON_LIBC_MALLOC_ARENA_SIZE not a number: CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake the receive window left to Zephyr (0): The TCP receive window must be the declared 5840 B (4 segments of 1460 B), and not the value Zephyr derives from the buffer counts: CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE is 0
+  refused  CMake a receive window one byte over the declared: The TCP receive window must be the declared 5840 B (4 segments of 1460 B), and not the value Zephyr derives from the buffer counts: CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE is 5841
+  refused  CMake a receive window one byte under the declared: The TCP receive window must be the declared 5840 B (4 segments of 1460 B), and not the value Zephyr derives from the buffer counts: CONFIG_NET_TCP_MAX_RECV_WINDOW_SIZE is 5839
+  refused  CMake the send window left to Zephyr (0): The TCP send window must be the declared 5840 B (4 segments of 1460 B), and not the value Zephyr derives from the buffer counts: CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE is 0
+  refused  CMake a send window of 8 segments: The TCP send window must be the declared 5840 B (4 segments of 1460 B), and not the value Zephyr derives from the buffer counts: CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE is 11680
+  refused  CMake a driver ring one frame short of the window and its spare frames: The Ethernet driver's receive ring of 5 frames must hold the declared window (4 segments) and 2 spare frames: at least 6
+  refused  CMake the receive data buffers one under the need (914): CONFIG_NET_BUF_RX_COUNT 914 is under the 915 receive data buffers that the declared load needs
+  refused  CMake the transmit data buffers one under the need (516): CONFIG_NET_BUF_TX_COUNT 516 is under the 517 transmit data buffers that the declared load needs
+  refused  CMake the receive packets one under the need (172): CONFIG_NET_PKT_RX_COUNT 172 is under the 173 receive packets that the declared load needs
+  refused  CMake the transmit packets one under the need (17): CONFIG_NET_PKT_TX_COUNT 17 is under the 18 transmit packets that the declared load needs
+  refused  CMake the arena one under the need (694207): CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE 694207 is under the 694208 B in which the declared sessions' paper peak of 347104 B stays under 50 percent
+  refused  CMake a 130 percent margin and a 60 percent paper peak, NET_BUF_RX_COUNT one under its need: CONFIG_NET_BUF_RX_COUNT 951 is under the 952 receive data buffers that the declared load needs
+  refused  CMake a 130 percent margin and a 60 percent paper peak, NET_BUF_TX_COUNT one under its need: CONFIG_NET_BUF_TX_COUNT 536 is under the 537 transmit data buffers that the declared load needs
+  refused  CMake a 130 percent margin and a 60 percent paper peak, NET_PKT_RX_COUNT one under its need: CONFIG_NET_PKT_RX_COUNT 179 is under the 180 receive packets that the declared load needs
+  refused  CMake a 130 percent margin and a 60 percent paper peak, NET_PKT_TX_COUNT one under its need: CONFIG_NET_PKT_TX_COUNT 18 is under the 19 transmit packets that the declared load needs
+  refused  CMake a 130 percent margin and a 60 percent paper peak, COMMON_LIBC_MALLOC_ARENA_SIZE one under its need: CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE 578506 is under the 578507 B in which the declared sessions' paper peak of 347104 B stays under 60 percent
+  refused  CMake a count with letters after its digits: CONFIG_NET_BUF_RX_COUNT is not set to a number: the buffer and heap rule of row C6 reads it
+  refused  CMake eight SSH connections, the pools as they are: CONFIG_NET_BUF_RX_COUNT 1024 is under the 1215 receive data buffers that the declared load needs
+  refused  CMake eight HTTPS clients, the pools as they are: CONFIG_NET_BUF_RX_COUNT 1024 is under the 1290 receive data buffers that the declared load needs
+  refused  CMake a web listener backlog of 8, the pools as they are: CONFIG_NET_BUF_RX_COUNT 1024 is under the 1215 receive data buffers that the declared load needs
+  refused  CMake a 128 KiB SSH window, the arena as it is: CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE 1048576 is under the 2463680 B in which the declared sessions' paper peak of 1231840 B stays under 50 percent
+  refused  CMake a data buffer of 64 B, the counts as they are: CONFIG_NET_BUF_RX_COUNT 1024 is under the 1665 receive data buffers that the declared load needs
+  refused  CMake the test form test_host_key not set: The test form test_host_key (D5) is declared selected, and CONFIG_CRUX_BENCH_TEST_HOST_KEY is not set
+  refused  CMake the test form no_time_source not set: The test form no_time_source (D7) is declared selected, and CONFIG_CRUX_BENCH_NO_TIME_SOURCE is not set
+  refused  CMake the test form ram_disk not set: The test form ram_disk (D2) is declared selected, and CONFIG_CRUX_BENCH_FILE_RAM_DISK is not set
+  refused  CMake the reserved test form microsd_card set: The test form microsd_card (D2) is reserved and nothing implements it: CONFIG_CRUX_BENCH_FILE_MICROSD is refused until its row changes the declaration
+  refused  CMake the test form first_account_file not set: The test form first_account_file (D3) is declared selected, and CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE is not set
+  refused  CMake no build-local Zephyr copy: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch (scripts/prepare-wolf-tls-zephyr.sh): .crux-wolf-tls is missing
+  refused  CMake a marker without the patched file: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch (scripts/prepare-wolf-tls-zephyr.sh): .crux-wolf-tls is missing
+  refused  CMake a Zephyr copy on another pin: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch that the declaration names (zephyr-tls-4.4.1.patch on dccb09599635bdff17633fa7e9dab014b91dce90)
+  refused  CMake a Zephyr copy with another patch: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch that the declaration names (zephyr-tls-4.4.1.patch on dccb09599635bdff17633fa7e9dab014b91dce90)
+  refused  CMake a manifest with no checked first account file: was not checked before the manifest
+  refused  C     no CMake declaration: "A bench test form reaches a build that CMake did not declare as the RT1060-EVKB bench image"
+  refused  C     no Kconfig declaration: "A bench test form reaches a build whose Kconfig does not declare the RT1060-EVKB bench image"
+  refused  C     native_sim: "The bench image is restricted to RT1060-EVKB revision B, QSPI"
+  refused  C     another board: "The bench image is restricted to RT1060-EVKB revision B, QSPI"
+  refused  C     another revision: "The bench image is restricted to RT1060-EVKB revision B, QSPI"
+  refused  C     a test random generator: "The bench image draws its random values from the PSA provider over the TRNG driver"
+  refused  C     fake entropy: "The bench image draws its random values from the PSA provider over the TRNG driver"
+  refused  C     no TRNG driver: "The bench image draws its random values from the PSA provider over the TRNG driver"
+  refused  C     no bench address: "The bench declaration did not reach the compiler: address, netmask and image identity"
+  refused  C     no bench netmask: "The bench declaration did not reach the compiler: address, netmask and image identity"
+  refused  C     no image identity: "The bench declaration did not reach the compiler: address, netmask and image identity"
+  refused  C     no HTTPS bind address: "The bench image sets both listener bind addresses"
+  refused  C     no SSH bind address: "The bench image sets both listener bind addresses"
+  refused  C     HTTPS on every address: static assertion failed due to requirement '__builtin_strcmp("", "192.168.77.2") == 0': The HTTPS listener must listen on the bench address only
+  refused  C     HTTPS on another address: static assertion failed due to requirement '__builtin_strcmp("192.168.77.3", "192.168.77.2") == 0': The HTTPS listener must listen on the bench address only
+  refused  C     SSH on every address: static assertion failed due to requirement '__builtin_strcmp("", "192.168.77.2") == 0': The SSH listener must listen on the bench address only
+  refused  C     SSH on 0.0.0.0: static assertion failed due to requirement '__builtin_strcmp("0.0.0.0", "192.168.77.2") == 0': The SSH listener must listen on the bench address only
+  refused  C     RSA in wolfCrypt: "The bench image has no RSA (D11): CONFIG_WOLFSSL_RSA is refused"
+  refused  C     a wolfSSL settings file: "The bench image takes wolfSSL's settings from the module's Kconfig options only"
+  refused  C     mkfs on mount: "A mount never formats a card: CONFIG_FS_FATFS_MOUNT_MKFS is refused in the bench image"
+  refused  C     both file forms: "The bench image has exactly one file backend, and both of its forms are set"
+  refused  C     the RAM disk form without its provider: "The RAM disk form needs the RAM disk File provider and the RAM disk driver"
+  refused  C     the RAM disk form without its driver: "The RAM disk form needs the RAM disk File provider and the RAM disk driver"
+  refused  C     the SD card driver in the RAM disk image: "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
+  refused  C     the USDHC host in the RAM disk image: "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
+  refused  C     the microSD provider in the RAM disk image: "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
+  refused  C     a flash disk in the RAM disk image: "The RAM disk image has no card: the microSD provider, the SD card driver, the USDHC host and the flash disk are refused"
+  refused  C     the microSD form without its provider: "The microSD form needs the microSD File provider and the SD card driver"
+  refused  C     the microSD form without the SD card driver: "The microSD form needs the microSD File provider and the SD card driver"
+  refused  C     the microSD form with the RAM disk provider: "The microSD image has no RAM disk: the RAM disk provider and driver are refused"
+  refused  C     the microSD form with the RAM disk driver: "The microSD image has no RAM disk: the RAM disk provider and driver are refused"
+  refused  C     ssh_target.c without its form symbol: declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY
+  refused  C     bench_first_account.c without its form symbol: declared only with CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE
+  killed   bench_guard.cmake: the refusal at line 128 only logs
+  killed   bench_guard.cmake: the refusal at line 136 only logs
+  killed   bench_guard.cmake: the refusal at line 141 only logs
+  killed   bench_guard.cmake: the refusal at line 145 only logs
+  killed   bench_guard.cmake: the refusal at line 151 only logs
+  killed   bench_guard.cmake: the refusal at line 155 only logs
+  killed   bench_guard.cmake: the refusal at line 158 only logs
+  killed   bench_guard.cmake: the refusal at line 164 only logs
+  killed   bench_guard.cmake: the refusal at line 168 only logs
+  killed   bench_guard.cmake: the refusal at line 173 only logs
+  killed   bench_guard.cmake: the refusal at line 177 only logs
+  killed   bench_guard.cmake: the refusal at line 181 only logs
+  killed   bench_guard.cmake: the refusal at line 186 only logs
+  killed   bench_guard.cmake: the refusal at line 191 only logs
+  killed   bench_guard.cmake: the refusal at line 194 only logs
+  killed   bench_guard.cmake: the refusal at line 206 only logs
+  killed   bench_guard.cmake: the refusal at line 210 only logs
+  killed   bench_guard.cmake: the refusal at line 218 only logs
+  killed   bench_guard.cmake: the refusal at line 225 only logs
+  killed   bench_guard.cmake: the refusal at line 229 only logs
+  killed   bench_guard.cmake: the refusal at line 234 only logs
+  killed   bench_guard.cmake: the refusal at line 239 only logs
+  killed   bench_guard.cmake: the refusal at line 244 only logs
+  killed   bench_guard.cmake: the refusal at line 248 only logs
+  killed   bench_guard.cmake: the refusal at line 255 only logs
+  killed   bench_guard.cmake: the refusal at line 263 only logs
+  killed   bench_guard.cmake: the refusal at line 273 only logs
+  killed   bench_guard.cmake: the refusal at line 279 only logs
+  killed   bench_guard.cmake: the refusal at line 285 only logs
+  killed   bench_guard.cmake: the refusal at line 291 only logs
+  killed   bench_guard.cmake: the refusal at line 296 only logs
+  killed   bench_guard.cmake: the refusal at line 300 only logs
+  killed   bench_guard.cmake: the refusal at line 304 only logs
+  killed   bench_guard.cmake: the refusal at line 308 only logs
+  killed   bench_guard.cmake: the refusal at line 312 only logs
+  killed   bench_guard.cmake: the refusal at line 383 only logs
+  killed   bench_guard.cmake, row C6 rule: the receive buffers take no margin
+  killed   bench_guard.cmake, row C6 rule: the receive buffers leave out the driver's ring
+  killed   bench_guard.cmake, row C6 rule: the receive buffers are not rounded up
+  killed   bench_guard.cmake, row C6 rule: the web backlog is left out of the connections
+  killed   bench_guard.cmake, row C6 rule: a connection holds full frames only, never the typical segments
+  killed   bench_guard.cmake, row C6 rule: a connection holds as many packets as full frames only
+  killed   bench_guard.cmake, row C6 rule: a frame is 12 buffers whatever the buffer size
+  killed   bench_guard.cmake, row C6 rule: a typical segment is 5 buffers whatever the buffer size
+  killed   bench_guard.cmake, row C6 rule: the transmit buffers leave out the senders' segments
+  killed   bench_guard.cmake, row C6 rule: the senders' header buffer is not counted
+  killed   bench_guard.cmake, row C6 rule: the transmit packets count one packet per sender
+  killed   bench_guard.cmake, row C6 rule: the transmit buffers leave out the queued windows
+  killed   bench_guard.cmake, row C6 rule: the HTTP server thread is not a sender
+  killed   bench_guard.cmake, row C6 rule: the receive packets leave out the ring
+  killed   bench_guard.cmake, row C6 rule: the transmit packets take no margin
+  killed   bench_guard.cmake, row C6 rule: the ring needs no spare frames
+  killed   bench_guard.cmake, row C6 rule: the window is one segment
+  killed   bench_guard.cmake, row C6 rule: an SSH connection never costs less than the floor is ignored
+  killed   bench_guard.cmake, row C6 rule: an SSH connection costs the floor whatever its window
+  killed   bench_guard.cmake, row C6 rule: a TLS connection holds one record buffer
+  killed   bench_guard.cmake, row C6 rule: the handshake is not counted
+  killed   bench_guard.cmake, row C6 rule: the other users are not counted
+  killed   bench_guard.cmake, row C6 rule: the arena is the paper peak itself
+  killed   bench_guard.cmake, row C6 rule: the arena is not rounded up
+  killed   bench_guard.cmake, row C6 rule: the receive buffers are refused only above their need
+  killed   bench_guard.cmake, row C6 rule: the transmit buffers are refused only above their need
+  killed   bench_guard.cmake, row C6 rule: the receive packets are refused only above their need
+  killed   bench_guard.cmake, row C6 rule: the transmit packets are refused only above their need
+  killed   bench_guard.cmake, row C6 rule: the arena is refused only above its need
+  killed   bench_guard.cmake, row C6 rule: the ring is refused only above its need
+  killed   bench_guard.cmake, row C6 rule: a pool over its need is refused
+  killed   bench_guard.cmake, row C6 rule: a number is accepted with letters after it
+  killed   bench_guard.h: the #error at line 16 only warns
+  killed   bench_guard.h: the #error at line 19 only warns
+  killed   bench_guard.h: the #error at line 24 only warns
+  killed   bench_guard.h: the #error at line 28 only warns
+  killed   bench_guard.h: the #error at line 33 only warns
+  killed   bench_guard.h: the #error at line 36 only warns
+  killed   bench_guard.h: the #error at line 39 only warns
+  killed   bench_guard.h: the #error at line 45 only warns
+  killed   bench_guard.h: the #error at line 56 only warns
+  killed   bench_guard.h: the #error at line 59 only warns
+  killed   bench_guard.h: the #error at line 63 only warns
+  killed   bench_guard.h: the #error at line 67 only warns
+  killed   bench_guard.h: the #error at line 73 only warns
+  killed   bench_guard.h: the #error at line 76 only warns
+  killed   bench_guard.h: static assertion 1 always holds
+  killed   bench_guard.h: static assertion 2 always holds
+  killed   bench_first_account.c: the include of bench_guard.h is removed
+  killed   bench_medium.c: the include of bench_guard.h is removed
+  killed   bench_medium_fs.c: the include of bench_guard.h is removed
+  killed   bench_report.c: the include of bench_guard.h is removed
+  killed   main.c: the include of bench_guard.h is removed
+  killed   mgmt_services.c: the include of bench_guard.h is removed
+  killed   mgmt_start.c: the include of bench_guard.h is removed
+  killed   ssh_target.c: the include of bench_guard.h is removed
+  killed   ssh_target.c: the test host key form #error 1 only warns
+  killed   bench_first_account.c: the first account form #error 1 only warns
+  killed   bench_first_account.c: the first account form #error 2 only warns
+  killed   Kconfig.bench: line 10 (depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION = "B") is removed
+  killed   Kconfig.bench: line 11 (depends on ENTROPY_MCUX_TRNG && !TEST_RANDOM_GENERATOR && !FAKE_ENTROPY_NATIVE_SIM) is removed
+  killed   Kconfig.bench: line 12 (depends on !NET_DHCPV4 && !NET_IPV6) is removed
+  killed   Kconfig.bench: line 13 (depends on !WOLFSSL_RSA) is removed
+  killed   Kconfig.bench: line 14 (depends on !WOLFSSL_HAS_SETTINGS_FILE) is removed
+  killed   Kconfig.bench: line 36 (depends on !RTC) is removed
+  killed   Kconfig.bench: line 42 (depends on DISK_DRIVER_RAM && !DISK_DRIVER_SDMMC) is removed
+  killed   Kconfig.bench: line 51 (depends on DISK_DRIVER_SDMMC && !DISK_DRIVER_RAM) is removed
+  killed   Kconfig.bench: the block that puts the test forms under the declaration is removed
+CMake: ok; C: ok; Kconfig: ok; mutants: 104 of 104 killed
+control ok: the bench image refuses every build that is not the declared RT1060-EVKB bench, in CMake, in C and in Kconfig

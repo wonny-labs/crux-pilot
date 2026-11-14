@@ -1,0 +1,2 @@
+8dac8b4f3d99b2a97ec1f49b50761508ff9a0acb2c8a566aedbd16d32b252a8d  /build/after/zephyr/zephyr.bin
+b2aab475bb25d632cf686ca2ee9955a55bc73f9104677f141303d26b36514561  /build/after/zephyr/zephyr.elf

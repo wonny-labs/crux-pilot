@@ -20,6 +20,9 @@ set(CRUX_ZEPHYR_BASELINE "4.4.2")
 # Zephyr's cmake/modules/version.cmake sets the three variables before module
 # CMakeLists.txt files run.
 function(crux_check_zephyr_baseline)
+    # Read the option on every path. A build that matches the baseline never needs its value, and
+    # CMake would then report -DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON as a variable that no code used.
+    set(require_verified "${CRUX_REQUIRE_VERIFIED_ZEPHYR}")
     if(DEFINED KERNEL_VERSION_MAJOR AND DEFINED KERNEL_VERSION_MINOR AND DEFINED KERNEL_PATCHLEVEL)
         set(used "${KERNEL_VERSION_MAJOR}.${KERNEL_VERSION_MINOR}.${KERNEL_PATCHLEVEL}")
         if(used STREQUAL CRUX_ZEPHYR_BASELINE)
@@ -31,7 +34,7 @@ function(crux_check_zephyr_baseline)
             "Crux cannot read the Zephyr version: KERNEL_VERSION_MAJOR, KERNEL_VERSION_MINOR "
             "or KERNEL_PATCHLEVEL is not set. Crux was verified on Zephyr ${CRUX_ZEPHYR_BASELINE}.")
     endif()
-    if(CRUX_REQUIRE_VERIFIED_ZEPHYR)
+    if(require_verified)
         message(FATAL_ERROR
             "${finding} CRUX_REQUIRE_VERIFIED_ZEPHYR is ON, so the build stops. Use the Zephyr "
             "revision that Crux pins, or clear the option to build without Crux evidence.")
