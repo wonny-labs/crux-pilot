@@ -162,5 +162,99 @@ class SourceParityTest(unittest.TestCase):
             self.assertLessEqual(set(port_sources(component)), allowed, component)
 
 
+# Slice 2: the Configuration service and the status service. Two visible symbols that need Access, and
+# one hidden symbol for the Configuration core that both read: the character rule and, until a provider
+# exists for a target (#16), the no-provider port.
+SLICE2_VISIBLE = {
+    "CRUX_CONFIG_SERVICE": {"CRUX_CONFIGURATION_CORE", "CRUX_THREAD", "CRUX_SYNC", "CRUX_TIME"},
+    "CRUX_MGMT_STATUS": {"CRUX_CONFIGURATION_CORE", "CRUX_SYNC", "CRUX_TIME"},
+}
+SLICE2_HIDDEN = ("CRUX_CONFIGURATION_CORE",)
+SLICE2_SYMBOLS = (*SLICE2_VISIBLE, *SLICE2_HIDDEN)
+# symbol, component, the CMake directory under it relative to the component, and the Host sources that
+# the module deliberately leaves out: the variants that omit what the module links.
+SLICE2_DIRECTORIES = {
+    "CRUX_CONFIG_SERVICE": ("config_service", "ports/zephyr", set()),
+    "CRUX_MGMT_STATUS": ("mgmt_status", "ports/zephyr",
+                         {"src/source_no_credential.c", "src/source_no_security_events.c"}),
+    "CRUX_CONFIGURATION_CORE": ("configuration", "ports/zephyr/core", set()),
+}
+
+
+def listed_sources(component, directory):
+    """Return the .c paths of a port directory, relative to the component."""
+    base = REPO / "components" / component / directory
+    text = (base / "CMakeLists.txt").read_text()
+    return {str((base / path).resolve().relative_to(REPO / "components" / component))
+            for path in re.findall(r"^\s*([\w./-]+\.c)\s*\)?\s*$", text, re.MULTILINE)}
+
+
+def host_c_files(component):
+    """Return every portable source that the Host CMake of a component names."""
+    text = (REPO / "components" / component / "CMakeLists.txt").read_text()
+    return set(re.findall(r"(?<![\w/.-])((?:src|access_store|ports/\w+)/[\w./-]+\.c)", text))
+
+
+class Slice2KconfigTest(unittest.TestCase):
+    def test_the_symbols_exist_and_are_off_by_default(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE2_SYMBOLS:
+            self.assertTrue(symbol in blocks, symbol)
+            self.assertIsNone(re.search(r"(?m)^\s+default\s+y\b", blocks[symbol]), symbol)
+
+    def test_every_symbol_says_experimental(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE2_SYMBOLS:
+            self.assertRegex(blocks[symbol], r"Experimental", symbol)
+
+    def test_the_services_have_a_prompt_and_the_core_has_none(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE2_VISIBLE:
+            self.assertRegex(blocks[symbol], r"(?m)^\s+bool\s+\"", symbol)
+        for symbol in SLICE2_HIDDEN:
+            self.assertRegex(blocks[symbol], r"(?m)^\s+bool\s*$", symbol)
+
+    def test_each_service_needs_access_and_selects_what_it_uses(self):
+        blocks = kconfig_blocks()
+        for symbol, selects in SLICE2_VISIBLE.items():
+            self.assertRegex(blocks[symbol], r"depends on [^\n]*\bCRUX_ACCESS\b", symbol)
+            for needed in selects:
+                self.assertRegex(blocks[symbol], rf"(?m)^\s+select\s+{needed}\b", f"{symbol} {needed}")
+
+    def test_no_wolf_symbol_is_named(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE2_SYMBOLS:
+            self.assertNotRegex(blocks[symbol].upper(), r"WOLF", symbol)
+
+
+class Slice2CMakeTest(unittest.TestCase):
+    def test_each_directory_is_added_once_and_only_under_its_symbol(self):
+        text = MODULE_CMAKE.read_text()
+        for symbol, (component, directory, _skipped) in SLICE2_DIRECTORIES.items():
+            guarded = re.search(rf"if\(CONFIG_{symbol}\)(.*?)\nendif\(\)", text, re.DOTALL)
+            self.assertIsNotNone(guarded, f"no if(CONFIG_{symbol}) block")
+            path = f"components/{component}/{directory}"
+            self.assertEqual(text.count(f'/../{path}"'), 1, path)
+            self.assertIn(f'/../{path}"', guarded.group(1), path)
+
+    def test_the_module_compiles_the_host_sources_of_each_component(self):
+        for symbol, (component, directory, skipped) in SLICE2_DIRECTORIES.items():
+            if symbol == "CRUX_CONFIGURATION_CORE":
+                expected = host_c_files(component)
+            else:
+                expected = host_c_files(component) - skipped
+            self.assertEqual(listed_sources(component, directory), expected, symbol)
+
+    def test_no_new_directory_names_a_wolf_target_or_a_crux_alias(self):
+        for symbol, (component, directory, _skipped) in SLICE2_DIRECTORIES.items():
+            text = (REPO / "components" / component / directory / "CMakeLists.txt").read_text()
+            self.assertNotRegex(text.upper(), r"WOLF", symbol)
+            self.assertNotRegex(text, r"add_library\(crux::", symbol)
+
+    def test_the_configuration_core_is_left_to_the_settings_file_selection_when_it_is_on(self):
+        text = (REPO / "components/configuration/ports/zephyr/core/CMakeLists.txt").read_text()
+        self.assertIn("CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE", text)
+
+
 if __name__ == "__main__":
     unittest.main()

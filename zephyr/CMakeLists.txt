@@ -190,6 +190,30 @@ if(CONFIG_CRUX_ACCESS)
         "${CMAKE_CURRENT_BINARY_DIR}/security_event")
 endif()
 
+# ADR-0004 phase 0, slice 2: the Configuration core, the Configuration service and the status service.
+# Each is off by default and added only under its symbol. The core defers to the Settings File selection
+# when that is on (components/configuration/ports/zephyr/core/CMakeLists.txt).
+if(CONFIG_CRUX_CONFIGURATION_CORE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr/core"
+        "${CMAKE_CURRENT_BINARY_DIR}/configuration_core")
+endif()
+if(CONFIG_CRUX_CONFIG_SERVICE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/config_service/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/config_service")
+endif()
+if(CONFIG_CRUX_MGMT_STATUS)
+    if(NOT TARGET crux::system)
+        message(FATAL_ERROR "CONFIG_CRUX_MGMT_STATUS needs CONFIG_CRUX_SYSTEM: the status service reads "
+                            "the System contract")
+    endif()
+    if(NOT TARGET crux::netif)
+        message(FATAL_ERROR "CONFIG_CRUX_MGMT_STATUS needs CONFIG_CRUX_NETIF: the status service reads "
+                            "the network interface")
+    endif()
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/mgmt_status/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/mgmt_status")
+endif()
+
 # SSH has no crux:: target and no public header, so the module builds nothing for it. It refuses what no
 # composition could make work, at configuration, and a composition then calls crux_ssh_wolf_settings() from
 # components/ssh/ports/zephyr/wolf_ssh_settings.cmake, which reads CONFIG_CRUX_SSH_CLI, CONFIG_CRUX_SSH_SFTP
