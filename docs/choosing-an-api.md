@@ -27,7 +27,7 @@ Do not use `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` or `<crux/serial
 
 - **Frozen means:** no new features and no real-time extension. It adds no promise and removes none. The contracts, tests and evidence stay as they are, and existing users keep working.
 - **Why:** threads and locks decide scheduling, through priorities, inheritance and pools. Two kinds of them in one image is a design problem. Time, Logging, File, Configuration and System carry policy or serve both of today's product consumers, and none of them decides scheduling, so they stay public contracts.
-- **Direction (P9 result of ADR-0002, O4):** Crux's services keep a narrow Crux Thread and Sync inside, and Thread and Sync are to become internal to Crux. That switch is a later, separate change that needs the owner's approval. Queue and Serial are decided separately. Until then nothing is removed, and the freeze stays.
+- **Direction ([ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md), the P9 result, O4):** Crux's services keep a narrow Crux Thread and Sync inside, and Thread and Sync are to become internal to Crux. That switch is a later, separate change that needs the owner's approval. Queue and Serial are decided separately. Until then nothing is removed, and the freeze stays.
 - **Checked in the template:** `templates/product/check_domain_includes.py` rejects these four headers, every `<zephyr/...>` header and the Crux composition interfaces in a product's domain, and the template's tests run it. Nothing checks the rest of the product's code, and Crux's own trees and D10's Build B are exempt.
 
 ## Coexistence in one image
