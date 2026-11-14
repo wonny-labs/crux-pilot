@@ -227,6 +227,19 @@ config CRUX_SYSTEM
       Explicit native WATCHDOG/HWINFO/REBOOT composition required. No auto-arm,
       auto-clear, application health assessment, stop or reconfiguration.
 
+config CRUX_SYSTEM_NATIVE_SIM_WATCHDOG
+    bool "Experimental: simulated Crux System watchdog, native_sim tests only"
+    depends on CRUX_SYSTEM
+    select NATIVE_SIM_REBOOT if BOARD_NATIVE_SIM
+    help
+      Experimental (ADR-0001 Decision 4) and for native_sim tests only; not hardware evidence.
+      Builds a private simulated watchdog device and binds it as the System watchdog, so a
+      native_sim test sees a feed cycle and a missed feed. A missed feed prints one line and
+      restarts the simulated process, which then reads the reset cause SOFTWARE, never WATCHDOG.
+      Selects NATIVE_SIM_REBOOT for that restart. No board dependency is declared on purpose:
+      the component stops the configure step with an error on any board but native_sim, which
+      a hidden symbol could not do. Off by default; no public header, target or function is added.
+
 config CRUX_FILE_SIMULATOR
     bool "Crux File VFS simulator candidate"
     depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && FLASH_SIMULATOR && FILE_SYSTEM

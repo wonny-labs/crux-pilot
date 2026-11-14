@@ -26,7 +26,8 @@ void system_port_unlock(void)
 
 bool crux_watchdog_is_emulated(void)
 {
-    return false;
+    /* True only when the simulated device of native_sim tests is the bound watchdog. */
+    return IS_ENABLED(CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG);
 }
 
 crux_status_t crux_watchdog_validate_timeout(uint32_t timeout_ms)

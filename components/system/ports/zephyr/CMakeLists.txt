@@ -6,6 +6,8 @@ if(NOT CRUX_SYSTEM_PROVIDER STREQUAL "zephyr")
     message(FATAL_ERROR "Crux System unsupported provider: ${CRUX_SYSTEM_PROVIDER}")
 endif()
 
+include("${CMAKE_CURRENT_LIST_DIR}/native_sim_watchdog.cmake")
+
 foreach(required WATCHDOG HWINFO REBOOT)
     if(NOT CONFIG_${required})
         message(FATAL_ERROR "Crux System requires CONFIG_${required}=y")
@@ -29,6 +31,9 @@ target_include_directories(crux_system_zephyr PRIVATE ../../src .)
 target_link_libraries(crux_system_zephyr PRIVATE crux_system_api zephyr_interface)
 zephyr_append_cmake_library(crux_system_zephyr)
 target_compile_options(crux_system_zephyr PRIVATE -Wall -Wextra -Werror)
+if(CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG)
+    target_sources(crux_system_zephyr PRIVATE system_sim_watchdog.c)
+endif()
 
 set_property(TARGET crux_system_zephyr PROPERTY INTERFACE_CRUX_SYSTEM_PROVIDER zephyr)
 set_property(TARGET crux_system_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_SYSTEM_PROVIDER)
