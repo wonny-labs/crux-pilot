@@ -9,6 +9,13 @@ add_compile_definitions(CRUX_INTERNAL_BUILD)
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxManagementShell.cmake")
 crux_check_management_shell()
 
+# CONFIG_CRUX_ACCESS needs hwinfo for the credential store's device ID. This is checked here, before the
+# System selection's own check of the same symbol, so that the refusal names the symbol that was set.
+if(CONFIG_CRUX_ACCESS AND NOT CONFIG_HWINFO)
+    message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_HWINFO: the credential store's device ID "
+                        "comes from it")
+endif()
+
 if(CONFIG_CRUX_PILOT_MODULE)
     include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxZephyrBaseline.cmake")
     crux_check_zephyr_baseline()
@@ -178,16 +185,36 @@ if(CONFIG_CRUX_ACCESS)
         message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_CRUX_LOGGING: the security events "
                             "write their records through it")
     endif()
-    if(NOT CONFIG_HWINFO)
-        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_HWINFO: the credential store's device ID "
-                            "comes from it")
-    endif()
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/access/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/access")
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/credential/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/credential")
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/security_event/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/security_event")
+endif()
+
+# ADR-0004 phase 0, slice 2: the Configuration core, the Configuration service and the status service.
+# Each is off by default and added only under its symbol. The core defers to the Settings File selection
+# when that is on (components/configuration/ports/zephyr/core/CMakeLists.txt).
+if(CONFIG_CRUX_CONFIGURATION_CORE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr/core"
+        "${CMAKE_CURRENT_BINARY_DIR}/configuration_core")
+endif()
+if(CONFIG_CRUX_CONFIG_SERVICE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/config_service/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/config_service")
+endif()
+if(CONFIG_CRUX_MGMT_STATUS)
+    if(NOT TARGET crux::system)
+        message(FATAL_ERROR "CONFIG_CRUX_MGMT_STATUS needs CONFIG_CRUX_SYSTEM: the status service reads "
+                            "the System contract")
+    endif()
+    if(NOT TARGET crux::netif)
+        message(FATAL_ERROR "CONFIG_CRUX_MGMT_STATUS needs CONFIG_CRUX_NETIF: the status service reads "
+                            "the network interface")
+    endif()
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/mgmt_status/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/mgmt_status")
 endif()
 
 # SSH has no crux:: target and no public header, so the module builds nothing for it. It refuses what no

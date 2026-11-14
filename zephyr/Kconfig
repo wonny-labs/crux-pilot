@@ -472,6 +472,50 @@ config CRUX_SECURITY_EVENT
       Experimental. The security events of CONFIG_CRUX_ACCESS, selected by it. It has no prompt
       because the events cannot be linked without Access and the credential store.
 
+# ADR-0004 phase 0, slice 2: the Configuration service and the status service. Each needs Access and so
+# selects nothing of it. Each selects the Crux symbols that it links itself (ADR-0004 C6): both use Sync,
+# and the status service also reads Time.
+config CRUX_CONFIG_SERVICE
+    bool "Crux Configuration service (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    select CRUX_CONFIGURATION_CORE
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image
+      that leaves it off.
+
+      Builds the Configuration service core and the provider of its event port over the security
+      events, and the Configuration core beneath it. It starts nothing and adds no crux:: target and
+      no public header: the application lists its parameters and calls crux_config_service_start().
+      Without CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE there is no save provider, a save returns
+      CRUX_CONFIG_SERVICE_ERR_STORE with CRUX_CONFIG_ERR_NOT_SUPPORTED in the report's failed_result
+      (the "no provider" port of components/configuration), and the service still reads and updates
+      parameters in memory.
+
+config CRUX_MGMT_STATUS
+    bool "Crux status service (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    select CRUX_CONFIGURATION_CORE
+    select CRUX_SYNC
+    select CRUX_TIME
+    help
+      Experimental tier (ADR-0001 Decision 4): may change in any release, and the release notes list
+      the change. Off by default, and nothing changes in an image that leaves it off.
+
+      Builds the status service core and the sources of its items: System, Time, the network
+      interface, the credential store and the security events. It needs Crux System and Crux Netif,
+      and the configuration refuses an image without them by name. It starts nothing and adds no
+      crux:: target and no public header: the application calls crux_mgmt_status_start().
+
+config CRUX_CONFIGURATION_CORE
+    bool
+    depends on CRUX_PILOT_MODULE
+    help
+      Experimental. The Configuration core of CONFIG_CRUX_CONFIG_SERVICE and CONFIG_CRUX_MGMT_STATUS,
+      selected by them, with no prompt. With CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE it is that
+      selection's copy that is linked, and this builds nothing.
+
 menuconfig CRUX_SSH
     bool "Crux SSH management service on the wolfSSH provider"
     depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4 && NET_SOCKETS && MULTITHREADING
