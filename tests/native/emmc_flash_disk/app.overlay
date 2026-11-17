@@ -1,0 +1,38 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/ {
+    emmc_sim0: emmc_sim {
+        compatible = "crux,emmc-sim";
+        status = "okay";
+
+        mmc {
+            compatible = "zephyr,mmc-disk";
+            disk-name = "MMC";
+            bus-width = <4>;
+            status = "okay";
+        };
+    };
+
+    /* Two 32 KiB slots at the start of the user area, then room for the tests below them. */
+    mmcflash: flash_disk {
+        compatible = "crux,flash-disk";
+        disk-name = "MMC";
+        write-block-size = <512>;
+        erase-block-size = <4096>;
+        status = "okay";
+
+        partitions {
+            compatible = "fixed-partitions";
+            #address-cells = <1>;
+            #size-cells = <1>;
+
+            emmc_slot0: partition@0 {
+                label = "emmc-slot-0";
+                reg = <0x00000000 0x00008000>;
+            };
+            emmc_slot1: partition@8000 {
+                label = "emmc-slot-1";
+                reg = <0x00008000 0x00008000>;
+            };
+        };
+    };
+};

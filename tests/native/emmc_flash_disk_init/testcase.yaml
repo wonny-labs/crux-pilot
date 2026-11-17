@@ -1,0 +1,6 @@
+common:
+  platform_allow: [native_sim/native, native_sim/native/64]
+  tags: [storage, crux]
+  timeout: 120
+tests:
+  crux.emmc.flash_disk.init_partition_beyond_disk: {}

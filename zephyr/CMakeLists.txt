@@ -138,6 +138,11 @@ if(CONFIG_CRUX_FS_RELIANCE_EDGE)
         "${CMAKE_CURRENT_BINARY_DIR}/fs_reliance_edge")
 endif()
 
+if(CONFIG_CRUX_FLASH_DISK)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/drivers/flash"
+        "${CMAKE_CURRENT_BINARY_DIR}/drivers_flash")
+endif()
+
 if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/configuration")

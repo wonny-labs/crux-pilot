@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config CRUX_FLASH_DISK
+	bool "Flash-API device over an MMC disk (prototype)"
+	default n
+	depends on CRUX_PILOT_MODULE && DT_HAS_CRUX_FLASH_DISK_ENABLED && DISK_ACCESS && DISK_DRIVER_MMC
+	select FLASH_HAS_DRIVER_ENABLED
+	select FLASH_HAS_PAGE_LAYOUT
+	select FLASH_HAS_EXPLICIT_ERASE
+	help
+	  Expose a disk_access disk as flash_read, flash_write and flash_erase, so that MCUboot's
+	  port can read and write image slots in the eMMC user area through the flash map. Off by
+	  default. A prototype: see docs/boot-emmc-backend-prototype.md. It needs the MMC disk driver,
+	  because the flush that makes a returned write durable is known to work only there, with
+	  CONFIG_CRUX_MMC_CACHE_FLUSH=y (nothing checks that disk-name names the MMC disk): without it a disk sync does not flush the eMMC cache and the
+	  order of the trailer writes is not kept.
+
+if CRUX_FLASH_DISK
+
+config CRUX_FLASH_DISK_READ_ONLY
+	bool "Refuse write and erase"
+	help
+	  The device reads and refuses flash_write and flash_erase with -ENOTSUP, and needs no cache
+	  flush. MCUboot's RAM load without revert is not read only at the pinned revision: it
+	  scrambles a slot with an invalid image through erases whose result it ignores, so on this
+	  device such a slot stays and is validated again on every boot.
+
+config CRUX_FLASH_DISK_FLUSH_CONTROL
+	bool "Test fixtures only: do not flush after write and erase"
+	depends on BOARD_NATIVE_SIM && !CRUX_FLASH_DISK_READ_ONLY
+	help
+	  A deliberate defect for a control: a returned write or erase may still be held in the
+	  device cache, which is what the flush prevents. It is a native_sim setting and cannot be
+	  selected on a board.
+
+config CRUX_FLASH_DISK_BUFFER_SECTORS
+	int "Sectors in the bounce buffer"
+	default 8
+	range 1 128
+	help
+	  RAM used for transfers whose address or offset is not aligned for the disk layer, in
+	  sectors of 512 bytes. Writes and erases move this many sectors in one command at most.
+
+config CRUX_FLASH_DISK_DIRECT_SECTORS
+	int "Sectors in one direct read"
+	default 128
+	range 1 4096
+	help
+	  A read whose offset and destination are aligned goes straight into the destination, in
+	  commands of at most this many sectors, so that loading a whole image is not a copy
+	  through the bounce buffer.
+
+config CRUX_FLASH_DISK_INIT_PRIORITY
+	int "Init priority"
+	default 95
+	help
+	  After the disk driver (CONFIG_SD_INIT_PRIORITY), because init initialises the disk.
+
+endif # CRUX_FLASH_DISK

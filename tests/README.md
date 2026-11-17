@@ -666,6 +666,23 @@ that the correction refuses a drifted source and output inside Zephyr. `scripts/
 runs all of these and requires the executed cases of each scenario. It is not in the Zephyr CI
 workflow.
 
+`tests/native/emmc_flash_disk` runs the prototype flash-API driver over the MMC disk
+(`zephyr/drivers/flash/flash_disk.c`, off by default) against the same simulator, in four profiles
+(`cached`, `nocache`, `read_only`, and `flush_control`, a control in which the driver does not flush):
+parameters and page layout, the flash map's view of two slots, reads at any offset, length and
+destination, write round trips from any source address, refusal of misaligned or out-of-range writes and
+erases with no command issued, erase writing `0xFF` over whole pages, one flush for each write or erase call
+before it returns, a failed command or flush failing the call, and the read-only refusals.
+`test_build_guards.py` needs `ZEPHYR_BASE` and `cmake`: it checks that the build refuses a writing driver
+on an MMC disk without `CONFIG_CRUX_MMC_CACHE_FLUSH`, a partition that is off a page, and a write block
+other than one sector. `tests/native/emmc_flash_replay` runs the update steps of RAM load with revert
+through the flash map and the driver and reads the simulator's trace back; `run_driver_replay.py` checks
+that the trace equals the write path of the [trailer replay record](../docs/evidence/boot-emmc/trailer-replay/README.md),
+replays power cuts over it with that record's models and requires P1 to P6, and requires a build without
+the flush to lose an acknowledged confirm. `test_driver_replay.py` tests the harness without a build.
+None of these is in a script or a workflow: see the
+[prototype document](../docs/boot-emmc-backend-prototype.md). Results are about the model, not about an eMMC.
+
 `tests/native/emmc_powercut` replays power cuts on FatFs. One program, built as `fat-fix` (with the
 correction) and `fat-nofix` (without it), provisions a baseline on the no-cache profile, runs three
 workloads with a trace mark after each acknowledged step (W1 appends records, W2 replaces a file

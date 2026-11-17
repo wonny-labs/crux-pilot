@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  A Zephyr flash-API device over a disk_access disk, such as the MMC disk of an eMMC, so that a
+  flash map and MCUboot can read and write image slots in the user area. Give it a
+  fixed-partitions child that holds the slots. It turns flash_read, flash_write and flash_erase
+  into 512-byte sector transfers on the disk and flushes the device cache before a write or
+  erase returns. A write block is one sector, and erase is emulated by writing 0xFF, so the
+  device reports an erase value of 0xFF whatever an erased medium reads.
+
+  This is a prototype. The slots must lie outside any file system on the same disk.
+
+compatible: "crux,flash-disk"
+
+include: base.yaml
+
+properties:
+  disk-name:
+    type: string
+    required: true
+    description: |
+      The disk_access name of the disk, for example the disk-name of the zephyr,mmc-disk node.
+
+  write-block-size:
+    type: int
+    default: 512
+    enum:
+      - 512
+    description: |
+      Write alignment and size in bytes. Only one sector is supported: a smaller block would be a
+      read-modify-write of a sector, which is not atomic and puts neighbouring data at risk.
+
+  erase-block-size:
+    type: int
+    default: 4096
+    description: |
+      Page size in bytes: the alignment and size of an erase, and the page of the layout that the
+      flash map reports. A multiple of the write block. A page of the size of a native sector of
+      the device keeps every erase aligned to it. Every partition must start and end on a page.
