@@ -290,6 +290,17 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-boot-composition.sh
 
+      # The RT1170-EVK counterpart of the step above, in its own step so that an RT1170 failure does
+      # not hide an RT1060 result. Build only, with the same public test key. No image or signed
+      # binary is uploaded; the top-level sysbuild logs and configuration are, through the existing
+      # upload globs. It runs after the RT1060 step above, whose comment calls it the last runtime
+      # check: that still holds in intent, because this step also needs the crux-boot group and
+      # runs after it.
+      - name: Build, sign and check the MCUboot RAM load composition for the RT1170-EVK (software-only)
+        if: matrix.shard == 'runtime'
+        working-directory: crux-pilot
+        run: scripts/test-boot-composition-rt1170.sh
+
       # Avoid repeated glob traversals through large Twister build trees.
       - name: Collect Twister evidence
         if: always()

@@ -1,0 +1,59 @@
+/* RT1170-EVK boot composition (MCUboot overlay). STARTING VALUES from the RT1170 design
+ * note "RT1170-EVK boot composition: memory-map choices", approved as recommended by the project
+ * owner on 15 November 2026 and to be corrected by the first CI build. They are Inference, and
+ * the composition is still Not verified by build. The CI step exists (runtime shard of the
+ * Zephyr workflow) but no build of these files has passed yet, and its first run may fail on the
+ * memory map. Mirrors the RT1060-EVK Rev B file of the same name. Same retained-region node in
+ * MCUboot and application.
+ * Not verified: that 0x2033ff00 is free of any other use in the application at v4.4.2.
+ * Caution, Not verified: the Zephyr v4.4.0 board document lists sdram0 at 0x80030000 and ocram2
+ * at 0x200C0000 and says only the first 16 KiB of ocram2 has the memory attributes needed for
+ * shared memory, while the devicetree files followed here give 0x80000000 and 0x202c0000; the
+ * document may describe the dual-core view or be out of date, so the first build must settle it
+ * and a different retained-region location may be needed. */
+/ {
+	retained_sram: sram@2033ff00 {
+		compatible = "zephyr,memory-region", "mmio-sram";
+		reg = <0x2033ff00 0x100>;
+		ranges = <0x0 0x2033ff00 0x100>;
+		zephyr,memory-region = "RetainedMem";
+		status = "okay";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		retainedmem {
+			compatible = "zephyr,retained-ram";
+			status = "okay";
+			ranges;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			boot_info0: boot_info@0 {
+				compatible = "zephyr,retention";
+				status = "okay";
+				reg = <0x0 0x100>;
+			};
+		};
+	};
+
+	chosen {
+		zephyr,bootloader-info = &boot_info0;
+	};
+};
+
+/* Retained region must not be part of any image's RAM: trim OCRAM2 by 256 B in both images.
+ * ocram2 is ocram@202c0000, 512 KiB (0x80000), in dts/arm/nxp/imxrt/nxp_rt1170.dtsi, so the
+ * trimmed region ends at 0x2033ff00 where the retained region begins. The RT1060 overlay
+ * redefines the node the same way. Not verified: that a reg override of this node is accepted
+ * unchanged at v4.4.2. */
+&ocram2 {
+	reg = <0x202c0000 0x7ff00>;
+};
+
+/* MCUboot's own RAM is OCRAM2, as on the RT1060, because MCUboot loads the image into the SDRAM,
+ * which is the board's default RAM. mcuboot.conf points the executable window back at the SDRAM. */
+/ {
+	chosen {
+		zephyr,sram = &ocram2;
+	};
+};
