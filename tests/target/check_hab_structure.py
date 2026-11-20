@@ -3,6 +3,7 @@
 """Check the HAB boot structures of a first-stage image. A developer tool, not a Crux interface.
 
   check <file> --medium {nor,sd,emmc} --csf {present,absent} [--dcd {present,absent}]
+        [--layout {image,container}]
 
 It reads the IVT, the boot data, the DCD pointer and header and the CSF pointer and header of an
 image file and says whether they are consistent with what the caller declares. It reads one file and
@@ -17,7 +18,8 @@ tests/target/inspect_boot_image.py (which reads MCUboot's image format and share
 tool) and does not edit it.
 
 The layouts below come from sources of different strength. docs/boot-hab-status.md records the
-label of each statement. None of it was compared against a real image or a vendor tool here.
+label of each statement. Apart from the check against SPSDK 3.13.0 output from synthetic input in
+tests/build/test_hab_signing.py, none of it was compared against a real image or a vendor tool.
 
 * Repository records (Verified by public vendor document, a third-party copy of the RT1060 reference
   manual, as recorded in docs/evidence/boot-bootloader-update/b-nxp-rom-fuses-hab.md and
@@ -62,7 +64,8 @@ SIGNATURE_NOTE = (
 EPILOG = (
     f"{SIGNATURE_NOTE}\n"
     "The layouts are the author's reading of public descriptions and the repository's records (see "
-    "docs/boot-hab-status.md); they are not checked against a real image or a vendor tool.\n"
+    "docs/boot-hab-status.md); they are checked only against SPSDK 3.13.0 output from synthetic input "
+    "(tests/build/test_hab_signing.py), not against a vendor reference image or the boot ROM.\n"
     "Exit status: 0 consistent, 1 inconsistent, 2 usage error."
 )
 
@@ -78,17 +81,32 @@ def _struct_header(data, offset):
     return data[offset], struct.unpack_from(">H", data, offset + 1)[0], data[offset + 3]
 
 
-def check_hab_structure(data, medium, csf, dcd=None):
-    """Check the HAB structures in data against the declared medium, CSF and (optionally) DCD."""
+LAYOUTS = ("image", "container")
+
+
+def check_hab_structure(data, medium, csf, dcd=None, layout="image"):
+    """Check the HAB structures in data against the declared medium, CSF and (optionally) DCD.
+
+    layout "image" means data is a device image whose IVT sits at the medium's offset. layout
+    "container" means data is a bare HAB container whose IVT is at file offset 0, as `nxpimage hab
+    export` writes it (observed with SPSDK 3.13.0): the bytes before the IVT offset of the medium are
+    not in the file, but the boot data length and the pointers still count them.
+    """
     if medium not in IVT_OFFSETS:
         raise ValueError(f"unknown medium {medium!r}; expected one of {sorted(IVT_OFFSETS)}")
     if csf not in ("present", "absent"):
         raise ValueError(f"csf must be 'present' or 'absent', not {csf!r}")
+    if layout not in LAYOUTS:
+        raise ValueError(f"unknown layout {layout!r}; expected one of {list(LAYOUTS)}")
     if dcd not in (None, "present", "absent"):
         raise ValueError(f"dcd must be 'present' or 'absent' when given, not {dcd!r}")
     data = bytes(data)
     size = len(data)
     ivt_offset = IVT_OFFSETS[medium]
+    # Where the IVT is in the file, and how many device-image bytes precede the file.
+    file_ivt = ivt_offset if layout == "image" else 0
+    prefix = ivt_offset - file_ivt
+    device_size = size + prefix
     checks = []
 
     def add(name, status, detail):
@@ -97,6 +115,7 @@ def check_hab_structure(data, medium, csf, dcd=None):
     report = {
         "kind": "hab-structure",
         "medium": medium,
+        "layout": layout,
         "file_size": size,
         "expected_ivt_offset": ivt_offset,
         "declared": {"csf": csf, "dcd": dcd},
@@ -119,7 +138,9 @@ def check_hab_structure(data, medium, csf, dcd=None):
         return report
 
     # FlexSPI configuration block (NOR only).
-    if medium == "nor":
+    if layout == "container":
+        add("fcb", "info", "not examined: a bare container does not hold the bytes before the IVT offset")
+    elif medium == "nor":
         if data[:len(FCB_TAG)] == FCB_TAG:
             add("fcb", "ok", f"the FlexSPI configuration block tag {FCB_TAG.decode()} is at offset 0")
         else:
@@ -130,25 +151,26 @@ def check_hab_structure(data, medium, csf, dcd=None):
                            "configuration block")
 
     # IVT position and header.
-    tag_ok = ivt_offset + IVT_SIZE <= size and data[ivt_offset] == IVT_TAG
+    tag_ok = file_ivt + IVT_SIZE <= size and data[file_ivt] == IVT_TAG
     if not tag_ok:
         hints = []
-        for other in sorted(set(IVT_OFFSETS.values())):
-            if other != ivt_offset and other + IVT_SIZE <= size and data[other] == IVT_TAG \
+        for other in sorted(set(IVT_OFFSETS.values())) if layout == "image" else ():
+            if other != file_ivt and other + IVT_SIZE <= size and data[other] == IVT_TAG \
                     and data[other + 1:other + 3] == bytes([0x00, IVT_SIZE]):
                 hints.append(_hex(other))
-        if size < ivt_offset + IVT_SIZE:
-            why = f"the file is {size} bytes, too short for an IVT at {_hex(ivt_offset)}"
+        if size < file_ivt + IVT_SIZE:
+            why = f"the file is {size} bytes, too short for an IVT at {_hex(file_ivt)}"
         else:
-            why = f"no IVT tag {_hex(IVT_TAG)} at offset {_hex(ivt_offset)} (found {_hex(data[ivt_offset])})"
+            why = f"no IVT tag {_hex(IVT_TAG)} at offset {_hex(file_ivt)} (found {_hex(data[file_ivt])})"
         if hints:
             why += (f"; an IVT-like header is at {', '.join(hints)}, which is the offset of another medium "
                     f"(this medium, {medium}, expects {_hex(ivt_offset)})")
         add("ivt", "fail", why)
         return finish()
-    add("ivt", "ok", f"IVT tag {_hex(IVT_TAG)} at the expected offset {_hex(ivt_offset)} for {medium}")
+    add("ivt", "ok", f"IVT tag {_hex(IVT_TAG)} at the expected offset {_hex(file_ivt)} "
+                     f"({layout} layout, {medium}; device IVT offset {_hex(ivt_offset)})")
 
-    _, length, version = _struct_header(data, ivt_offset)
+    _, length, version = _struct_header(data, file_ivt)
     problems = []
     if length != IVT_SIZE:
         problems.append(f"length {length}, expected {IVT_SIZE}")
@@ -160,8 +182,8 @@ def check_hab_structure(data, medium, csf, dcd=None):
         add("ivt_header", "ok", f"IVT header length {length}, version {_hex(version)}")
 
     entry, reserved1, dcd_ptr, boot_data_ptr, self_ptr, csf_ptr, reserved2 = struct.unpack_from(
-        "<IIIIIII", data, ivt_offset + STRUCT_HEADER_SIZE)
-    report["ivt"] = {"offset": ivt_offset, "length": length, "version": version, "entry": entry,
+        "<IIIIIII", data, file_ivt + STRUCT_HEADER_SIZE)
+    report["ivt"] = {"offset": file_ivt, "device_offset": ivt_offset, "length": length, "version": version, "entry": entry,
                      "dcd_ptr": dcd_ptr, "boot_data_ptr": boot_data_ptr, "self_ptr": self_ptr,
                      "csf_ptr": csf_ptr}
 
@@ -174,7 +196,7 @@ def check_hab_structure(data, medium, csf, dcd=None):
     else:
         add("reserved", "ok", "reserved IVT words are zero")
 
-    base = self_ptr - ivt_offset
+    base = self_ptr - file_ivt  # the address of file offset 0
 
     def to_offset(pointer, span):
         """File offset of an absolute pointer, or (None, reason)."""
@@ -186,8 +208,8 @@ def check_hab_structure(data, medium, csf, dcd=None):
                           f"{span} bytes in a {size}-byte file")
         return offset, None
 
-    regions = [("ivt", ivt_offset, ivt_offset + IVT_SIZE)]
-    if medium == "nor":
+    regions = [("ivt", file_ivt, file_ivt + IVT_SIZE)]
+    if medium == "nor" and layout == "image":
         regions.append(("fcb", 0, FCB_SIZE))
 
     # Boot data and self pointer.
@@ -206,9 +228,10 @@ def check_hab_structure(data, medium, csf, dcd=None):
             regions.append(("boot_data", bd_offset, bd_offset + BOOT_DATA_SIZE))
             if length_bd == 0:
                 bd_problems.append("the boot data length is zero")
-            elif length_bd > size:
-                bd_problems.append(f"the boot data length {_hex(length_bd)} is larger than the file "
-                                   f"({_hex(size)})")
+            elif length_bd > device_size:
+                bd_problems.append(f"the boot data length {_hex(length_bd)} is larger than the image "
+                                   f"({_hex(device_size)} bytes, counting the {_hex(prefix)} bytes before a bare "
+                                   "container)")
             elif length_bd < ivt_offset + IVT_SIZE + BOOT_DATA_SIZE:
                 bd_problems.append(f"the boot data length {_hex(length_bd)} does not cover the IVT and "
                                    f"boot data ({_hex(ivt_offset + IVT_SIZE + BOOT_DATA_SIZE)} bytes)")
@@ -241,12 +264,12 @@ def check_hab_structure(data, medium, csf, dcd=None):
         add("entry_range", "warn", f"the entry pointer {_hex(entry)} is outside the image range "
                                    f"[{_hex(start)}, {_hex(start + length_bd)}); a RAM-loaded image may "
                                    "legitimately differ")
-    if length_bd and 0 < length_bd <= size:
-        if length_bd == size:
-            add("image_length", "ok", f"the boot data length equals the file size ({size} bytes)")
+    if length_bd and 0 < length_bd <= device_size:
+        if length_bd == device_size:
+            add("image_length", "ok", f"the boot data length equals the image size ({device_size} bytes)")
         else:
-            add("image_length", "info", f"the file is {size - length_bd} bytes longer than the boot data "
-                                        f"length {_hex(length_bd)}")
+            add("image_length", "info", f"the image is {device_size - length_bd} bytes longer than the boot "
+                                        f"data length {_hex(length_bd)}")
 
     # DCD.
     dcd_report = report["dcd"]
@@ -321,7 +344,7 @@ def check_hab_structure(data, medium, csf, dcd=None):
                     add("csf", "fail", "; ".join(csf_problems))
                 else:
                     add("csf", "ok", f"CSF header at offset {_hex(csf_offset)}, length {csf_length}")
-                    if length_bd and csf_offset >= length_bd:
+                    if length_bd and csf_offset + prefix >= length_bd:
                         add("csf_range", "warn", f"the CSF starts at offset {_hex(csf_offset)}, outside the "
                                                  f"boot data length {_hex(length_bd)}; the ROM copies only "
                                                  "that many bytes on SD and eMMC, so this CSF may never be "
@@ -345,7 +368,7 @@ def check_hab_structure(data, medium, csf, dcd=None):
 
 def format_report(report, name="image"):
     lines = [f"HAB structure check: {name}",
-             f"medium {report['medium']}, expected IVT offset {_hex(report['expected_ivt_offset'])}, "
+             f"medium {report['medium']}, layout {report['layout']}, expected IVT offset {_hex(report['expected_ivt_offset'])}, "
              f"CSF declared {report['declared']['csf']}, DCD declared "
              f"{report['declared']['dcd'] or 'not declared'}, file size {report['file_size']} bytes"]
     for entry in report["checks"]:
@@ -366,6 +389,9 @@ def build_parser():
     check.add_argument("file")
     check.add_argument("--medium", required=True, choices=sorted(IVT_OFFSETS),
                        help="boot medium: sets the expected IVT offset (nor 0x1000, sd and emmc 0x400)")
+    check.add_argument("--layout", choices=LAYOUTS, default="image",
+                       help="image: a device image with the IVT at the medium's offset (default); container: "
+                            "a bare HAB container with the IVT at file offset 0, as nxpimage hab export writes it")
     check.add_argument("--csf", required=True, choices=("present", "absent"),
                        help="whether the image is declared to carry a CSF")
     check.add_argument("--dcd", choices=("present", "absent"),
@@ -386,7 +412,7 @@ def main(argv=None):
     except OSError as error:
         print(f"error: cannot read {args.file}: {error.strerror or error}", file=sys.stderr)
         return 2
-    report = check_hab_structure(data, args.medium, args.csf, dcd=args.dcd)
+    report = check_hab_structure(data, args.medium, args.csf, dcd=args.dcd, layout=args.layout)
     print(json.dumps(report, indent=2) if args.json else format_report(report, args.file))
     return 0 if report["ok"] else 1
 

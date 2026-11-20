@@ -1,0 +1,4 @@
+# Pinned SPSDK for the throwaway-key HAB signing test (tests/build/test_hab_signing.py).
+# Install with: pip install -r tests/target/hab-requirements.txt -c tests/target/hab-constraints.txt
+# SPSDK is BSD-3-Clause on PyPI as read; the licences of its binary dependencies are Not verified.
+spsdk==3.13.0

@@ -109,6 +109,8 @@ and trailer inspector and its slot fit decision, on synthetic images built in me
 
 `tests/build/test_hab_structure.py` holds the checks of `tests/target/check_hab_structure.py`, the offline structure check of the IVT, boot data, DCD and CSF pointers of a first-stage image, on synthetic images built in memory. They need no key, board, vendor tool or west workspace, and the checker verifies no signature. See the [HAB status page](../docs/boot-hab-status.md).
 
+`tests/build/test_hab_signing.py` signs a synthetic image with throwaway HAB keys that it creates in a temporary directory and deletes, using a pinned SPSDK (`tests/target/hab-requirements.txt` and `hab-constraints.txt`), and runs the structure checker on the result. It is skipped when SPSDK is not installed, and the `hab-signing` workflow installs it and requires it. It needs no board, fuse or stored key and verifies no signature. See the [HAB status page](../docs/boot-hab-status.md).
+
 `tests/build/test_compare_boot_builds.py` and `tests/build/test_check_boot_reproducibility.py` hold the checks of
 `tests/target/compare_boot_builds.py` and `tests/target/check_boot_reproducibility.sh`, the comparison of two builds
 of the boot composition, on fake build trees, a fake imgtool and a fake composition command. See

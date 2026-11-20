@@ -413,6 +413,77 @@ class Fcb(Base):
             self.assertEqual("info", self.status(self.check(build_image(medium), medium), "fcb"))
 
 
+class ContainerLayout(Base):
+    """A bare HAB container (the IVT at file offset 0), as `nxpimage hab export` writes it.
+
+    The synthetic container is the device image from the IVT on. The pointers and the boot data
+    length still count the bytes before the IVT, which are not in the file.
+    """
+
+    def container(self, medium, **kwargs):
+        return build_image(medium, **kwargs)[IVT_OFFSET[medium]:]
+
+    def check_container(self, data, medium="nor", csf="absent", dcd=None):
+        return self.mod.check_hab_structure(data, medium, csf, dcd=dcd, layout="container")
+
+    def test_consistent_for_every_medium(self):
+        for medium in ("nor", "sd", "emmc"):
+            for csf in (False, True):
+                with self.subTest(medium=medium, csf=csf):
+                    report = self.check_container(self.container(medium, csf=csf), medium,
+                                                  "present" if csf else "absent")
+                    self.assertTrue(report["ok"], json.dumps(report, indent=1))
+                    self.assertEqual(0, report["ivt"]["offset"])
+                    self.assertEqual(IVT_OFFSET[medium], report["ivt"]["device_offset"])
+                    self.assertEqual("container", report["layout"])
+
+    def test_csf_offset_is_counted_in_the_file(self):
+        report = self.check_container(self.container("nor", csf=True), "nor", "present")
+        self.assertEqual(0x3000 - 0x1000, report["csf"]["offset"])
+
+    def test_device_image_is_not_a_container(self):
+        self.assertFails(self.check_container(build_image("nor"), "nor", "absent"), "ivt")
+
+    def test_container_is_not_a_device_image(self):
+        self.assertFails(self.check(self.container("nor"), "nor", "absent"), "ivt")
+
+    def test_boot_data_length_counts_the_prefix(self):
+        # Longer than the whole device image fails. A length equal to the missing prefix alone does not
+        # cover the IVT and boot data, even though the file itself is longer than that.
+        self.assertFails(self.check_container(self.container("nor", bd_length=0x8000), "nor"), "boot_data")
+        self.assertFails(self.check_container(self.container("nor", bd_length=0x1000), "nor"), "boot_data")
+
+    def test_csf_mismatch_and_overlap_still_fail(self):
+        self.assertFails(self.check_container(self.container("nor"), "nor", "present"), "csf")
+        self.assertFails(self.check_container(self.container("nor", csf=True), "nor", "absent"), "csf")
+        image = self.container("nor", csf=True, csf_ptr=0x60000000 + 0x1020)
+        self.assertFails(self.check_container(image, "nor", "present"), "regions")
+
+    def test_fcb_is_not_examined(self):
+        report = self.check_container(self.container("nor"), "nor")
+        self.assertEqual("info", self.status(report, "fcb"))
+
+    def test_csf_pointer_beyond_the_container(self):
+        image = self.container("nor", csf=True, csf_ptr=0x60000000 + 0x8000)
+        self.assertFails(self.check_container(image, "nor", "present"), "csf")
+
+    def test_unknown_layout_is_a_value_error(self):
+        with self.assertRaises(ValueError):
+            self.mod.check_hab_structure(build_image("nor"), "nor", "absent", layout="slot")
+
+    def test_cli_layout_option(self):
+        mod = self.mod
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "c.bin"
+            path.write_bytes(self.container("emmc", csf=True))
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = mod.main(["check", str(path), "--medium", "emmc", "--layout", "container", "--csf", "present"])
+            self.assertEqual(0, code, out.getvalue())
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(1, mod.main(["check", str(path), "--medium", "emmc", "--csf", "present"]))
+
+
 class Cli(TempFiles):
     @classmethod
     def setUpClass(cls):

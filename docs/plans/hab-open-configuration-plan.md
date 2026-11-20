@@ -1,8 +1,8 @@
 # HAB signing in the open configuration: plan
 
-> **Status:** Proposed. A plan for the project owner. It adopts nothing beyond the decisions it cites and approves no key, tool run, hardware operation, fuse operation or CI change. Section 8 lists what the owner must decide or approve.
+> **Status:** Proposed. A plan for the project owner. It adopts nothing beyond the decisions it cites. Since 16 November 2026 one narrow approval is recorded (per-run throwaway keys in a software test, see section 8); it approves no hardware operation, fuse operation, persistent key or other CI change. Section 8 lists what the owner must decide or approve.
 > **Verified:** Only that the offline structure checker named in section 3 passes its host tests on synthetic images. Everything else is a plan or a citation of a desk record.
-> **Not verified:** That any tool named here accepts a Zephyr-built first-stage image, produces an image the boot ROM accepts, or yields any HAB event on a board; every HAB behaviour on the RT1060; the layouts the checker assumes. No key was generated, no tool was installed or run, and no board was used for this plan.
+> **Not verified:** (As of writing the plan; the software signing test added later is described on the status page.) That any tool named here accepts a Zephyr-built first-stage image, produces an image the boot ROM accepts, or yields any HAB event on a board; every HAB behaviour on the RT1060; the layouts the checker assumes. No key was generated, no tool was installed or run, and no board was used for this plan.
 > **Read this first / then:** the [HAB status page](../boot-hab-status.md), then the [secure boot development plan](secure-boot-development-plan.md) (phases 4 and 5, sections 3 and 6).
 
 | Field | Value |
@@ -33,8 +33,8 @@ Labels follow the boot records: Verified on pinned source, Verified by build, Ve
 | A later HAB event read in open configuration, without fuse writes, is allowed only as a separately approved hardware task, which may share a session with the ROM serial downloader check (#309). | #141 owner decision 8 (7 November 2026), plan section 2 |
 | Closed configuration is planned for production (D1), anti-rollback is application-side until D1 (D4), recovery stays signed-only and is decided with D1 (D5). None approves a fuse operation. | Plan section 6, owner answers of 15 November 2026 |
 | HAB key algorithm and size, key custody (D6): RSA-3072 or larger, offline keys in an HSM, up to four SRK slots; which slots are revocable stays Not verified. D6 creates and provisions no key. | Plan section 6 |
-| No production keys; development keys stay outside the repository. No key generation was approved for this work. | #296 boundaries; #141 owner decision 18 (as the plan cites it); this plan |
-| The SPSDK download was approved under #141 A2 (2 November 2026) and not used. CST and the Secure Provisioning tool have no approval. | [Boot and update investigation](../boot-update-investigation.md), A2 |
+| No production keys; development keys stay outside the repository. Throwaway keys that a software test creates in a temporary directory and deletes were approved on 16 November 2026 (second-hand quote on the [HAB status page](../boot-hab-status.md#software-signing-test-throwaway-keys-no-board)); no other key generation is approved. | #296 boundaries; #141 owner decision 18 (as the plan cites it); this plan |
+| The SPSDK download was approved under #141 A2 (2 November 2026); since 16 November 2026 SPSDK 3.13.0 is used for the software signing test only. CST and the Secure Provisioning tool have no approval. | [Boot and update investigation](../boot-update-investigation.md), A2 |
 | The RT1060-EVKB is open and stays open. A dedicated board for closed-configuration work is deferred. | Plan section 9; #141 decision 11 |
 | A new check script may be added within a task; an edit to an existing workflow, script or other protected path needs an explicit human approval; a new evidence record may be added within the task. | `AGENTS.md`, protected paths |
 | Physical programming, reset and other hardware operations need explicit authorisation for the current task, a verified target and a safe setup. | `AGENTS.md` |
@@ -58,11 +58,11 @@ Blocks A to F are board-free. Block G is the hardware block. Block H is not part
 | NXP Code Signing Tool (CST) | Fallback only if SPSDK output cannot be produced or processed. | Click-through licence; superseded by SPSDK as read; no approval. A licence review and a separate approval come first. |
 | MCUXpresso Secure Provisioning (GUI and `securep`) | Not used. Not in CI or the repository; not a reproducibility path. | Account and EULA. |
 
-Pin SPSDK by exact version and by the hash of the downloaded artefact in a requirements file added outside the protected paths. Committing that file adds a dependency pin to the repository and is part of O2. The version read in #299 was 3.13.0 (published 3 November 2026); the pin is decided at implementation time and recorded. Install into a virtual environment outside the repository and outside any container that mounts the user home directory (`AGENTS.md`). Disk space and Python 3.10 or later are preconditions (SPSDK's own requirement as read in stage 3).
+Pin SPSDK by exact version and by the hash of the downloaded artefact in a requirements file (the software signing test pins SPSDK and its dependencies by version only, without hashes; a hash lock is a possible follow-up) added outside the protected paths. Committing that file adds a dependency pin to the repository and is part of O2. The version read in #299 was 3.13.0 (published 3 November 2026); the pin is decided at implementation time and recorded. Install into a virtual environment outside the repository and outside any container that mounts the user home directory (`AGENTS.md`). Disk space and Python 3.10 or later are preconditions (SPSDK's own requirement as read in stage 3).
 
 Questions the first run answers offline, each Not verified today:
 
-- Q1: whether `nxpimage hab` accepts a Zephyr-built image that already has an FCB and an IVT (#141 A14), or needs the plain binary and writes its own headers, which would change the offsets of the Zephyr layout. The structure checker is the first test of the answer.
+- Q1: whether `nxpimage hab` accepts a Zephyr-built image that already has an FCB and an IVT (#141 A14), or needs the plain binary and writes its own headers, which would change the offsets of the Zephyr layout. Partly answered: it accepts a plain binary for `mimxrt1060` and writes a bare container (IVT at file offset 0). The Zephyr-image case is Not tested.
 - Q2: whether the SPSDK RT1060 device data is correct for the images it writes. The data is an alias chain, and its memory map disagrees with the manual (B-16, Inference). Any output must be compared with the layout the repository records (FCB `0x0`, IVT `0x1000`, boot data `0x1020`, DCD `0x1030` for NOR).
 - Q3: whether the tool fully replaces CST for the RT1060 (#141 B6).
 
@@ -161,7 +161,7 @@ The key algorithm for products and key custody (D6, approved as a recommendation
 
 ## 8. Decisions and approvals the owner must give
 
-Nothing below is given. Each row gives my recommendation, the reason and the alternative. "Approve" means approve the item as the row words it and nothing more.
+Nothing below is given, except the narrow part recorded after the table. Each row gives my recommendation, the reason and the alternative. "Approve" means approve the item as the row words it and nothing more.
 
 | # | Item | Recommendation | Reason | Alternative |
 | --- | --- | --- | --- | --- |
@@ -172,5 +172,7 @@ Nothing below is given. Each row gives my recommendation, the reason and the alt
 | O5 | Running the Block E check script, which creates and deletes ephemeral keys on every run, and a CI step that does so (an edit to a protected workflow). Writing the script is not covered by this row. | **Do not approve now.** | Block D has not run once by hand; running the script or a CI step before that fixes assumptions that are Not verified. | Approve after Block D, with the exact step reviewed. |
 | **O6** | **The hardware block H-HAB-1**: serial downloader, three images, no flash write, no fuse write, on the RT1060-EVKB in open configuration. | **Approve later, as its own task**, after Blocks B to D, the probe image and an independent review of the block text, and **accept the departure from the plan's saved-image and recovery-path preconditions for this RAM-only route** (see the paragraph above); the task names the board, the time window and its holder. It may share a session with #309. | Decision 8 allows it only as a separately approved task, and the route's value is unknown until the offline blocks show the images are well formed. | (a) Require the saved NOR image and the recovery path of plan section 9 first, which puts #309 and the recovery note (#459) before H-HAB-1. (b) Approve now in advance: not recommended, the images do not exist. (c) Skip the event read and record the deferral in #296, as #296's acceptance criteria allow ("HAB open-configuration event evidence or the recorded deferral"). |
 | O7 | Whether an SDP-layout medium is added to the structure checker (A1) before H-HAB-1. | Approve; it is board-free and small, but only after the pinned tool's documentation fixes the IVT offset. | The checker is the gate that stops a malformed image from being sent to the board. | Skip the structural gate for the three probe images: not recommended. |
+
+**Status of 16 November 2026.** The owner approved, second-hand, one narrow part of O1, O2 and O5: ephemeral per-run throwaway keys in a software test with a pinned SPSDK, in a new workflow, discarded after the test and never committed ([HAB status page](../boot-hab-status.md#software-signing-test-throwaway-keys-no-board) for the quote and the conditions). That is implemented as `tests/build/test_hab_signing.py` and `.github/workflows/hab-signing.yml`. The persistent key set of Block C, signing the real first-stage image, O4, O6 and O7 are still open.
 
 Already decided and not asked again: D1, D4, D5, D6 (section 2). Not asked, not approved: any fuse operation, any production key, closed configuration, a tag.

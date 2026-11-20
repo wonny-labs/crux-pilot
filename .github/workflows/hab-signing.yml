@@ -1,0 +1,53 @@
+name: hab-signing
+
+# Software only. Signs a synthetic image with throwaway HAB keys that the test generates in a
+# temporary directory outside the repository and deletes afterwards, then runs the structure
+# checker. No board, fuse, SRK hash write, closed configuration or stored secret is involved.
+# SPSDK is a pinned test dependency: see tests/target/hab-requirements.txt and docs/boot-hab-status.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/hab-signing.yml
+      - tests/build/test_hab_signing.py
+      - tests/build/test_hab_structure.py
+      - tests/target/check_hab_structure.py
+      - tests/target/hab-requirements.txt
+      - tests/target/hab-constraints.txt
+  pull_request:
+    paths:
+      - .github/workflows/hab-signing.yml
+      - tests/build/test_hab_signing.py
+      - tests/build/test_hab_structure.py
+      - tests/target/check_hab_structure.py
+      - tests/target/hab-requirements.txt
+      - tests/target/hab-constraints.txt
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  hab-signing:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the pinned SPSDK into a virtual environment
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/hab-tools"
+          "${RUNNER_TEMP}/hab-tools/bin/pip" install -r tests/target/hab-requirements.txt -c tests/target/hab-constraints.txt
+          echo "${RUNNER_TEMP}/hab-tools/bin" >> "$GITHUB_PATH"
+      - name: Sign a synthetic image with throwaway keys and check its structure
+        env:
+          CRUX_REQUIRE_SPSDK: "1"
+        run: python3 -m unittest discover -s tests/build -p test_hab_signing.py -v
+      - name: Check the structure checker's own tests
+        run: python3 -m unittest discover -s tests/build -p test_hab_structure.py -v
