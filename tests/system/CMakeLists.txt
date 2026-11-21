@@ -1,7 +1,7 @@
 add_executable(crux_system_common common.c ../../components/system/src/system.c)
 target_include_directories(crux_system_common PRIVATE ../../components/system/src)
 target_link_libraries(crux_system_common PRIVATE crux_system_api)
-target_compile_options(crux_system_common PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(crux_system_common PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
 foreach(case IN ITEMS status validation lifecycle unready prearmed start_failure post_failure
         lock_failure probe_failure post_probe_failure post_expired
         feed_failure lost expiry causes cause_failure unsupported_cause clear_failure reset context)
@@ -11,7 +11,7 @@ endforeach()
 add_executable(crux_system_host_test host.c)
 target_link_libraries(crux_system_host_test PRIVATE crux::system Threads::Threads)
 target_link_options(crux_system_host_test PRIVATE -Wl,--wrap=clock_gettime)
-target_compile_options(crux_system_host_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(crux_system_host_test PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
 foreach(case IN ITEMS low mid high expiry late clock_failure backwards unsupported concurrent)
     add_test(NAME System.Host.${case} COMMAND crux_system_host_test ${case})
     set_tests_properties(System.Host.${case} PROPERTIES TIMEOUT 10)
