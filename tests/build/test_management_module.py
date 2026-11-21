@@ -259,7 +259,9 @@ def listed_sources(component, directory):
 def host_c_files(component):
     """Return every portable source that the Host CMake of a component names."""
     text = (REPO / "components" / component / "CMakeLists.txt").read_text()
-    return set(re.findall(r"(?<![\w/.-])((?:src|access_store|ports/\w+)/[\w./-]+\.c)", text))
+    # A source may be named through the component's own directory, as the Zephyr-direct reboot service does.
+    return set(re.findall(
+        r"(?<![\w/.-])(?:\$\{CMAKE_CURRENT_LIST_DIR\}/)?((?:src|access_store|ports/\w+)/[\w./-]+\.c)", text))
 
 
 class Slice2KconfigTest(unittest.TestCase):

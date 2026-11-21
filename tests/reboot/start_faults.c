@@ -1,72 +1,37 @@
-/* A start that cannot create its semaphore. The service creates a mutex and then a semaphore, and
- * a failure of the second must not keep the first: each retry would otherwise use up one Sync
- * slot for good. --wrap=crux_semaphore_create fails a set number of creations with the result
- * of an exhausted pool, and the wraps of the mutex calls count the mutexes that are alive. */
+/* A start that is refused, and a retry. On Crux Sync the service created a mutex and a semaphore at
+ * the start, and a start that failed on the second had to give the first back, or each retry would
+ * use up a Sync slot for good (the fault of #513). The Zephyr-direct service (pilot of ADR-0002 P9)
+ * defines its lock, its signal and its worker statically, so a start creates nothing and cannot
+ * fail for want of an object. What is left to hold is the invariant behind that fix: a refused
+ * start leaves no service and no state that a retry would meet, any number of refused starts cost
+ * nothing, and the start that follows them works. */
 #include "reboot_test.h"
 
-// NOLINTBEGIN(bugprone-reserved-identifier): GNU linker wrapping ABI
-crux_status_t __real_crux_mutex_create(crux_mutex_t *out);
-crux_status_t __wrap_crux_mutex_create(crux_mutex_t *out);
-crux_status_t __real_crux_mutex_destroy(crux_mutex_t *mutex);
-crux_status_t __wrap_crux_mutex_destroy(crux_mutex_t *mutex);
-crux_status_t __real_crux_semaphore_create(uint32_t initial, uint32_t maximum,
-                                           crux_semaphore_t *out);
-crux_status_t __wrap_crux_semaphore_create(uint32_t initial, uint32_t maximum,
-                                           crux_semaphore_t *out);
-// NOLINTEND(bugprone-reserved-identifier)
-
-static int live_mutexes;
-static unsigned semaphore_failures_left;
-
-crux_status_t __wrap_crux_mutex_create(crux_mutex_t *out)
+static void refused_starts_leave_nothing_and_a_later_start_works(void)
 {
-    crux_status_t status = __real_crux_mutex_create(out);
-    if (status == CRUX_OK) {
-        ++live_mutexes;
-    }
-    return status;
-}
+    crux_reboot_config_t refused = reboot_config();
+    crux_reboot_state_t state;
 
-crux_status_t __wrap_crux_mutex_destroy(crux_mutex_t *mutex)
-{
-    crux_status_t status = __real_crux_mutex_destroy(mutex);
-    if (status == CRUX_OK) {
-        --live_mutexes;
-    }
-    return status;
-}
-
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the signature is the public one
-crux_status_t __wrap_crux_semaphore_create(uint32_t initial, uint32_t maximum,
-                                           crux_semaphore_t *out)
-{
-    if (semaphore_failures_left == 0u) {
-        return __real_crux_semaphore_create(initial, maximum, out);
-    }
-    --semaphore_failures_left;
-    return CRUX_ERR_NO_RESOURCES;
-}
-
-static void a_failed_semaphore_does_not_keep_the_mutex(void)
-{
     reboot_boot();
-    const int before = live_mutexes;
-    const crux_reboot_config_t config = reboot_config();
+    refused.policy = NULL; /* A callback kind with no callback states no policy. */
 
-    semaphore_failures_left = 3u;
-    for (unsigned attempt = 0; attempt < 3u; ++attempt) {
-        CHECK(crux_reboot_start(&config) == CRUX_REBOOT_ERR_NOT_READY);
-        CHECK(live_mutexes == before);
+    for (unsigned attempt = 0; attempt < 100u; ++attempt) {
+        CHECK(crux_reboot_start(&refused) == CRUX_REBOOT_ERR_NO_POLICY);
+        CHECK(crux_reboot_get(s_admin, &state) == CRUX_REBOOT_ERR_NOT_READY);
+        CHECK(crux_reboot_start_worker() == CRUX_REBOOT_ERR_NOT_READY);
     }
 
-    /* Once the semaphore can be created again, a start succeeds and keeps one mutex. */
+    /* The start that follows works, and a second one changes nothing. */
+    const crux_reboot_config_t config = reboot_config();
     CHECK(crux_reboot_start(&config) == CRUX_REBOOT_OK);
-    CHECK(live_mutexes == before + 1);
+    CHECK(crux_reboot_get(s_admin, &state) == CRUX_REBOOT_OK);
+    CHECK(crux_reboot_start(&config) == CRUX_REBOOT_OK);
+    CHECK(crux_reboot_get(s_admin, &state) == CRUX_REBOOT_OK);
 }
 
 int main(void)
 {
-    reboot_run_case("a failed semaphore does not keep the mutex",
-                    a_failed_semaphore_does_not_keep_the_mutex);
+    reboot_run_case("refused starts leave nothing and a later start works",
+                    refused_starts_leave_nothing_and_a_later_start_works);
     return reboot_finish("reboot_start_faults");
 }

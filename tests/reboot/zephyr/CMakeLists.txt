@@ -1,13 +1,17 @@
-# Stage A of the reboot pilot (ADR-0002 P9): the existing reboot suites of tests/reboot, compiled
-# unchanged, on native_sim over the Crux Thread and Sync Zephyr providers. The sources of the service
-# are not touched and no assertion of a suite is changed. What differs from the Host is how a case is
-# isolated, since Zephyr has no fork(): zephyr_case.c runs one case for each process, and
-# scripts/test-reboot-native.sh starts the image once for each case.
+# The reboot suites of tests/reboot, compiled unchanged, on native_sim. Stage A ran them over the Crux
+# Thread and Sync Zephyr providers; Stage B (ADR-0002 P9) runs them over the Zephyr-direct service
+# (components/reboot/ports/zephyr: k_mutex, k_sem, k_thread, k_msleep). No assertion of a suite is
+# changed. What differs from the Host is how a case is isolated, since Zephyr has no fork():
+# zephyr_case.c runs one case for each process, and scripts/test-reboot-native.sh starts the image once
+# for each case.
 #
 # One image for each wrapping set. REBOOT_IMAGE selects it:
 #   core            service, steps, concurrency and reason, as on the Host
-#   lock_faults     the suite whose link wraps crux_mutex_lock
-#   sleep_provider  the sleep provider, whose link wraps crux_semaphore_take
+#   lock_faults     the suite whose link wraps crux_mutex_lock; fault_bridge.c carries the wrap to the
+#                   kernel's lock, which the service takes now
+#   sleep_provider  the Zephyr-direct sleep port and the worker's priority, checked by ztest cases of
+#                   their own (main_sleep_provider.c). The old suite of the Crux sleep provider has no
+#                   take to wrap and runs nowhere
 #   pending         the suite that takes the network settings and configuration saves as wait
 #                   sources, with crux_mutex_lock wrapped
 #   web             the two GET and POST /api/v1/system/reboot suites of tests/web/reboot, on the
@@ -29,13 +33,14 @@ target_include_directories(app PRIVATE ${reboot_tests} ${access_tests}
     ${repo}/components/reboot/src ${repo}/components/reboot/include
     ${repo}/components/access/src ${repo}/components/access/include ${repo}/components/access/adapter
     ${repo}/components/configuration/include)
+# The placement is for the network settings worker of the pending image. The reboot worker needs none.
 target_link_libraries(app PRIVATE crux::thread crux::sync crux_service_priority_placement)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 
 if(REBOOT_IMAGE MATCHES "^(core|lock_faults|pending|web|web_no_service)$")
     # The service and the Access core, as the Host test composition builds them.
     target_sources(app PRIVATE
-        ${repo}/components/reboot/src/reboot.c
+        ${repo}/components/reboot/ports/zephyr/reboot_zephyr.c
         ${repo}/components/configuration/src/configuration_text.c
         ${repo}/components/access/src/access.c
         ${repo}/components/access/src/access_accounts.c
@@ -46,7 +51,8 @@ if(REBOOT_IMAGE MATCHES "^(core|lock_faults|pending|web|web_no_service)$")
         ${access_tests}/fake_ports.c ${access_tests}/access_test.c
         ${reboot_tests}/fake_port.c)
     target_sources(app PRIVATE zephyr_case.c compat_pthread.c)
-    target_compile_definitions(app PRIVATE CRUX_ACCESS_TESTING=1 CRUX_ACCESS_TEST_COMPOSITION=1)
+    target_compile_definitions(app PRIVATE CRUX_ACCESS_TESTING=1 CRUX_ACCESS_TEST_COMPOSITION=1
+        CRUX_REBOOT_TESTING=1)
     # reboot_test.c forks each case on the Host. Its two entry points are renamed away and
     # zephyr_case.c supplies the Zephyr ones.
     if(NOT REBOOT_IMAGE STREQUAL "pending")
@@ -68,7 +74,8 @@ elseif(REBOOT_IMAGE STREQUAL "lock_faults")
     set_source_files_properties(${reboot_tests}/lock_faults.c PROPERTIES COMPILE_DEFINITIONS
         "main=reboot_lock_faults_main;_GNU_SOURCE")
     # app is a static library: the wrap has to reach the final link.
-    target_link_options(app PUBLIC -Wl,--wrap=crux_mutex_lock)
+    target_sources(app PRIVATE ${reboot_tests}/fault_bridge.c)
+    target_link_options(app PUBLIC -Wl,--wrap=crux_mutex_lock -Wl,--wrap=z_impl_k_mutex_lock)
 elseif(REBOOT_IMAGE STREQUAL "pending")
     set(net_tests "${repo}/tests/network_settings")
     target_sources(app PRIVATE
@@ -93,7 +100,8 @@ elseif(REBOOT_IMAGE STREQUAL "pending")
         "net_run_case=net_host_run_case;net_finish=net_host_finish")
     set_source_files_properties(${reboot_tests}/pending.c PROPERTIES COMPILE_DEFINITIONS
         "main=reboot_pending_main;_GNU_SOURCE")
-    target_link_options(app PUBLIC -Wl,--wrap=crux_mutex_lock)
+    target_sources(app PRIVATE ${reboot_tests}/fault_bridge.c)
+    target_link_options(app PUBLIC -Wl,--wrap=crux_mutex_lock -Wl,--wrap=z_impl_k_mutex_lock)
 elseif(REBOOT_IMAGE STREQUAL "web" OR REBOOT_IMAGE STREQUAL "web_no_service")
     # The routes on the real Web core and session module, over the fake transport and fake session ports
     # of tests/web, as crux_web_reboot_core() builds them for the Host.
@@ -130,12 +138,17 @@ elseif(REBOOT_IMAGE STREQUAL "web" OR REBOOT_IMAGE STREQUAL "web_no_service")
     target_sources(app PRIVATE ${web}/session/web_session_routes.c)
     crux_web_routes(app SOURCES ${routes} ${web_tests}/session/test_routes.c
         FAKE_MANIFEST REVIEWED ${web_tests}/reboot/reviewed-routes.txt)
-    target_link_options(app PUBLIC -Wl,--wrap=crux_web_respond -Wl,--wrap=crux_mutex_lock)
+    # The service takes a k_mutex now: fault_bridge.c carries the crux_mutex_lock wrap of reboot_web.c to it.
+    target_sources(app PRIVATE ${reboot_tests}/fault_bridge.c)
+    target_link_options(app PUBLIC -Wl,--wrap=crux_web_respond -Wl,--wrap=crux_mutex_lock
+        -Wl,--wrap=z_impl_k_mutex_lock)
 elseif(REBOOT_IMAGE STREQUAL "sleep_provider")
-    target_sources(app PRIVATE ${reboot_tests}/sleep_provider.c ${repo}/components/reboot/src/reboot_sleep.c)
-    set_source_files_properties(${reboot_tests}/sleep_provider.c PROPERTIES COMPILE_DEFINITIONS
-        "main=reboot_sleep_provider_main")
-    target_link_options(app PUBLIC -Wl,--wrap=crux_semaphore_take)
+    # The service over its real sleep port, and the three ports and the permission check that it calls,
+    # which main_sleep_provider.c supplies.
+    target_sources(app PRIVATE ${repo}/components/reboot/ports/zephyr/reboot_zephyr.c
+        ${repo}/components/reboot/ports/zephyr/reboot_sleep_zephyr.c
+        ${repo}/components/configuration/src/configuration_text.c)
+    target_compile_definitions(app PRIVATE CRUX_REBOOT_TESTING=1)
 else()
     message(FATAL_ERROR "unknown REBOOT_IMAGE ${REBOOT_IMAGE}")
 endif()

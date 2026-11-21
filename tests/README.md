@@ -442,8 +442,8 @@ Access core, with fake ports for the reset, the sleep, the events that are still
 the delay and the bounded wait are held to exact numbers. `Reboot.pending` runs the wait against the real network settings and
 configuration saves. `scripts/test-reboot.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
 `Web.reboot_*` ones. `Web.reboot_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
-`Web.reboot_no_service` shows that a composition without the service has no reboot route. `Reboot.start_faults` fails the creation
-of the service's semaphore and counts the live Sync mutexes, which shows that a failed start gives back the mutex it had created.
+`Web.reboot_no_service` shows that a composition without the service has no reboot route. `Reboot.start_faults` makes 100 refused starts and then a good one, which shows that a refused start leaves no
+state for a retry to meet (the service creates no kernel object at the start, so the fault of #513 has no path left).
 Nothing here resets a device or operates a board. See [reboot service](../docs/reboot-service.md).
 
 ### Reboot suites on `native_sim` (pilot, Stage A)
@@ -456,6 +456,14 @@ each case, which is what the Host's forked child does, and it fails if a suite l
 a C library that the host toolchain does not have. This is not a Host result: `native_sim` runs one Zephyr thread at a time and has no
 ThreadSanitizer. `Reboot.nodiscard` and the C++ header check stay Host only. See
 [the pilot record](../docs/research/reboot-native-sim-stage-a.md).
+
+**Stage B (Zephyr-direct, a Draft PR).** The same script now runs the same suites over the Zephyr-direct service
+(`components/reboot/ports/zephyr`, `k_mutex`, `k_sem`, `k_thread`, `k_msleep`). `tests/reboot/fault_bridge.c` carries the
+`crux_mutex_lock` wraps of `lock_faults` and `pending` to `z_impl_k_mutex_lock`, told by the address of the service's lock. The image
+named `sleep_provider` holds three ztest cases of the new sleep port and the worker's priority, because `sleep_provider.c`, which wrapped
+Sync's semaphore take, has no take to wrap and is built nowhere. The Host builds the same service core over the test-only kernel stub
+`tests/reboot/host_kernel`, so `Reboot.*` and `Web.reboot_*` keep running on the Host. See
+[the Stage B record](../docs/research/reboot-zephyr-direct-stage-b.md).
 
 ## Packaged web assets
 

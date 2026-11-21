@@ -1,5 +1,5 @@
-# The reboot service on Zephyr (ADR-0004 phase 0, Experimental): the portable core, the sleep of its worker
-# on Crux Sync, the reset over crux_system_reset(), and the providers of its event port and of the question
+# The reboot service on Zephyr (ADR-0004 phase 0, Experimental): the core and the sleep of its worker, both
+# Zephyr-direct over kernel objects and k_msleep() (pilot of ADR-0002 P9), the reset over crux_system_reset(), and the providers of its event port and of the question
 # whether events are still pending. The module's CMake adds this directory only under CONFIG_CRUX_REBOOT,
 # which needs CONFIG_CRUX_ACCESS and refuses an image without Crux System, whose reset it calls.
 #
@@ -7,9 +7,8 @@
 # worker's priority is the Kconfig symbol of ADR-0002 P3, CONFIG_CRUX_REBOOT_WORKER_PRIORITY, through
 # crux_service_priority_placement.
 #
-# Publishes the portable target crux::reboot. The sources are
-# the ones the Host build lists in components/reboot/CMakeLists.txt, and
-# tests/build/test_management_module.py holds the two lists together.
+# Publishes the portable target crux::reboot. The core and the sleep are the two files that
+# components/reboot/CMakeLists.txt names, CRUX_REBOOT_SOURCES and CRUX_REBOOT_SLEEP_SOURCE.
 get_filename_component(CRUX_REBOOT_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 get_filename_component(CRUX_COMPONENTS_DIR "${CRUX_REBOOT_COMPONENT_DIR}/.." ABSOLUTE)
 include("${CRUX_COMPONENTS_DIR}/../cmake/CruxAccessBoundary.cmake")
@@ -31,8 +30,8 @@ if(NOT CONFIG_CRUX_REBOOT)
 endif()
 
 add_library(crux_reboot_zephyr STATIC
-  ../../src/reboot.c
-  ../../src/reboot_sleep.c
+  reboot_zephyr.c
+  reboot_sleep_zephyr.c
   ../../src/reboot_system_reset.c
   ../../src/reboot_events.c
 )
