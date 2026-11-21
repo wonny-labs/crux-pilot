@@ -930,3 +930,5 @@ configdefault NET_SOCKETS_TLS_CONNECT_TIMEOUT
 
 
 rsource "fs/reliance_edge/Kconfig"
+
+rsource "boot/Kconfig"

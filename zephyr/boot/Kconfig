@@ -1,0 +1,22 @@
+config CRUX_BOOT_FLEXSPI_CONFIG_IN_RAM
+	bool "Move the FlexSPI configuration object to the XIP memory (candidate, #165)"
+	depends on CRUX_PILOT_MODULE && MEMC_MCUX_FLEXSPI
+	default n
+	help
+	  Candidate for issue #165. Not built, Not verified, not for merge. Experimental.
+
+	  Zephyr's FlexSPI MEMC driver keeps the register and AHB base addresses in a const
+	  object (memc_flexspi_config_<n>) that lives in the NOR Flash. The NOR driver's busy
+	  poll reads it through the device record while the NOR may be busy, which is the
+	  data-closure failure that docs/flash-xip-evidence.md records for the application and
+	  docs/evidence/boot-update/stage6-layout-and-write-analysis.md records for MCUboot.
+
+	  This symbol asks for that one object to be placed in the memory that already holds
+	  the driver's code (CONFIG_FLASH_MCUX_FLEXSPI_XIP_MEM, ITCM on the RT1060-EVK), with
+	  Zephyr's own code relocation. It is meant for the MCUboot image only, through
+	  zephyr/boot/mcuboot-flexspi-config-in-ram.conf. It is meant to remove that one edge and
+	  nothing else in the matrix (see docs/plans/mcuboot-flexspi-write-path-closure.md,
+	  proposed in PR #491, not yet on main).
+
+	  Kconfig hides the symbol without MEMC_MCUX_FLEXSPI, and the build refuses it without
+	  CONFIG_FLASH, CONFIG_FLASH_MCUX_FLEXSPI_XIP and CONFIG_CODE_DATA_RELOCATION.

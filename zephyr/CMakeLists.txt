@@ -278,3 +278,6 @@ if(CONFIG_CRUX_SSH)
                             "add components/ssh/ports/zephyr/wolf-ssh.conf to EXTRA_CONF_FILE")
     endif()
 endif()
+
+# Candidate for #165: the FlexSPI configuration object to the XIP memory (default off).
+include("${CMAKE_CURRENT_LIST_DIR}/boot/flexspi_config_relocation.cmake")
