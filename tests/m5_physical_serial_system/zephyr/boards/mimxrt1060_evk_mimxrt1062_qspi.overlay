@@ -1,0 +1,16 @@
+/* Physical M5 Serial (Group B) and Watchdog/reset (Group D) fixture.
+ * LPUART1 stays the Logging UART (DAPLink VCOM). LPUART3 is the dedicated Crux Serial port in the
+ * peripheral's internal loopback mode (nxp,loopback): the LPUART3 transmitter, receiver and driver
+ * are exercised, the board pins, connector and an external peer are NOT. */
+/ {
+    aliases { crux-watchdog0 = &wdog0; crux-serial0 = &lpuart3; };
+    chosen { zephyr,log-uart = &m5_logging_uarts; };
+    m5_logging_uarts: m5-logging-uarts {
+        compatible = "zephyr,log-uart";
+        uarts = <&lpuart1>;
+    };
+};
+
+&lpuart1 { status = "okay"; current-speed = <115200>; parity = "none"; };
+&lpuart3 { status = "okay"; current-speed = <115200>; nxp,loopback; };
+&wdog0 { status = "okay"; };
