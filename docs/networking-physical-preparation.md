@@ -534,7 +534,7 @@ accepted M3 runners. Not shown on a device: real Commander output for a verify m
 The image manifest of the M5 image froze the west workspace as exactly the four pinned dependencies
 (zephyr, cmsis, cmsis_6, hal_nxp). Since then `west.yml` has made more projects active (littlefs and fatfs in
 the default groups), and the provenance recorder lists every active project, so a real freeze on current `main`
-was refused with "Unexpected/missing/duplicate dependencies". Owner decision of 2026-11-08 (Korea time), relayed second-hand: approve option A.
+was refused with "Unexpected/missing/duplicate dependencies". Owner decision of 2026-11-08 (Korea time), recorded second-hand: approve option A.
 
 | Rule in `prepare_m5_network.frozen_inputs` | Before | Now |
 | --- | --- | --- |

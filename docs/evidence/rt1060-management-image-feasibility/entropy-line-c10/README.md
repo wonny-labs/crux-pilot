@@ -1,6 +1,6 @@
 # Row C10: the entropy line before the refusal (D-a)
 
-**What this is.** `main()` of the RT1060-EVKB bench image now calls `crux_entropy_boot_check()` right after the banner and **before** the refusal (`run_refused`). The refused image therefore prints the banner, one `CRUX-ENTROPY` line, then its refusal. The refusal still stops the address, the store, HTTPS and SSH. Owner decision of 2026-11-09, quote: "1-8까지 너의 추천대로 진행해줘". **Nothing here ran on a board, on a serial port or with a J-Link.** The only runs are host unit tests, the guard mutation script, and one cross-build.
+**What this is.** `main()` of the RT1060-EVKB bench image now calls `crux_entropy_boot_check()` right after the banner and **before** the refusal (`run_refused`). The refused image therefore prints the banner, one `CRUX-ENTROPY` line, then its refusal. The refusal still stops the address, the store, HTTPS and SSH. Approved by the maintainer on 2026-11-09 (items 1 to 8, as recommended). **Nothing here ran on a board, on a serial port or with a J-Link.** The only runs are host unit tests, the guard mutation script, and one cross-build.
 
 ## Result
 

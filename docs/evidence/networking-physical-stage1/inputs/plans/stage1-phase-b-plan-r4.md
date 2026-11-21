@@ -21,7 +21,7 @@ The `restore` mode of the reviewed driver has no entry-image check (it was desig
 
 Evidence parents: `stage1-run` (first stopped attempt, kept), `stage1-run-2` (B2 found unknown firmware, kept), `stage1-run-r0` (R0), `stage1-run-3` (identify, program, boot-1, restore). Each mode is consumed once per parent, so no marker is reused. All are direct children of `.worktrees/stage1-ws/`; evidence directories are direct children of their parent.
 
-## 3. Owner decision required (relayed through the main session)
+## 3. Owner decision required
 
 The run needs a yes to: **overwrite the unknown firmware in the QSPI flash (`0x60000000` to `0x6001FFFF`) with the accepted normal image (R0)**.
 

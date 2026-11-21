@@ -6,7 +6,7 @@ Each section below names the section of the record that the text came from. Wher
 
 ## Status line (rewritten in place)
 
-Status: **Accepted** on 14 November 2026, as recommended: S1 to S9. See [the owner's decisions](../decisions/0005-native-sim-test-watchdog-for-system-consumers.md#the-owners-decisions). Baseline: `origin/main` at `5c09d431049adee62f87332968e0235bb53cc0aa`. Author: Claude Code, model `claude-sonnet-5-5` (a lower model than a design record deserves; the independent review is by the `reviewer` agent on Opus). The owner asked for this in the Crux Controller chat on 14 November 2026 ("Crux에 요청", relayed) and approved writing this proposal, and only the proposal, in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC ("추천대로 승인할게", relayed by that session), with the order that the work starts after [ADR-0004](../decisions/0004-product-composition-of-management-services.md) merges (it merged as #403). The same words and time are recorded in ADR-0004 for its acceptance; I did not see the chat and cannot say whether one message or two carried them.
+Status: **Accepted** on 14 November 2026, as recommended: S1 to S9. See [the owner's decisions](../decisions/0005-native-sim-test-watchdog-for-system-consumers.md#the-owners-decisions). Baseline: `origin/main` at `5c09d431049adee62f87332968e0235bb53cc0aa`. Author: Claude Code. The maintainer asked for this while working on `crux-controller` on 14 November 2026 and approved writing this proposal, and only the proposal, with the order that the work starts after [ADR-0004](../decisions/0004-product-composition-of-management-services.md) merges (it merged as #403).
 
 ## Opening paragraph (rewritten in place)
 
@@ -97,11 +97,7 @@ The recommendation comes first in each row.
 
 ##### The owner's decisions
 
-The owner accepted this record as recommended, in the Crux Pilot main session chat on 14 November 2026 at about 18:37 UTC. The time is the one the Crux Pilot main session read from its shell (18:37:03Z) when it acted, moments after the owner's message, and the owner's time zone was not recorded. The owner's words, relayed by that session, answered its question "accept ADR-0005 as recommended (S1-S9)". In that message the main session had pointed out S4 and S6 for a second look:
-
-> 추천대로 승인할게
-
-This means "I approve as you recommended". Acceptance was recorded from the owner's words as that session relayed them; I did not see the chat.
+The maintainer accepted this record as recommended on 14 November 2026. The recommendation had pointed out S4 and S6 for a second look.
 
 | # | Decision |
 | --- | --- |
@@ -131,8 +127,8 @@ On native macOS, in the worktree at `5c09d431`: `git fetch`, reads of the files 
 | --- | --- |
 | Baseline | `5c09d431049adee62f87332968e0235bb53cc0aa` |
 | Skills and agents used | `ecc:architecture-decision-records` (record shape, with this repository's convention and `docs/decisions/` taking precedence over its defaults), `ecc:search-first` (search of existing seams, tests, targets and precedents before proposing anything new, with no install or dependency) |
-| Model | `claude-sonnet-5-5`, Claude Code |
 | Independent review | The `reviewer` agent, verdict in the pull request |
-| Approval | Proposal only, by the owner in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC: "추천대로 승인할게", relayed by that session. The request came from the Crux Controller chat ("Crux에 요청"), relayed. This row records the approval to write the proposal only; acceptance is the next row |
-| Acceptance | The owner, as recommended (S1 to S9), 14 November 2026 at about 18:37 UTC in the Crux Pilot main session chat: "추천대로 승인할게". Relayed by that session. See [the owner's decisions](../decisions/0005-native-sim-test-watchdog-for-system-consumers.md#the-owners-decisions) |
-| Amendment | The owner amended the T4 row of section 4 (line 145) that read `-Wl,--wrap=sys_reboot` so that it matches S6 as merged in #434 (the row now reads `-Wl,--wrap=crux_system_probe`, any `crux_` symbol, and says that a wrap of a Zephyr symbol is accepted on purpose). Approved on 15 November 2026 in the Crux Pilot main session chat, relayed by that session: "모두 추천대로 승인할테니 진행해줘." (2026-11-15 09:39 UTC; I approve everything as recommended, go ahead) for the row, and "추천대로 모두 승인할께" (2026-11-15 about 10:55 UTC; I approve everything as recommended) for recording it as a dated line here with the in-place edit, which is an exception to the rule of `docs/decisions/README.md` that an accepted record is not rewritten. Nothing else in this record changed. Pull request #442 |
+| Approval | Proposal only, by the maintainer on 14 November 2026. The request came from the `crux-controller` project. This row records the approval to write the proposal only; acceptance is the next row |
+| Acceptance | The maintainer, as recommended (S1 to S9), on 14 November 2026. See [the owner's decisions](../decisions/0005-native-sim-test-watchdog-for-system-consumers.md#the-owners-decisions) |
+| Amendment | The owner amended the T4 row of section 4 (line 145) that read `-Wl,--wrap=sys_reboot` so that it matches S6 as merged in #434 (the row now reads `-Wl,--wrap=crux_system_probe`, any `crux_` symbol, and says that a wrap of a Zephyr symbol is accepted on purpose). Approved by the maintainer on 15 November 2026 for the row, and for recording it as a dated line here with the in-place edit, which is an exception to the rule of `docs/decisions/README.md` that an accepted record is not rewritten. Nothing else in this record changed. Pull request #442 |
+| Revision | 18 November 2026: chat quotes, relay wording and model names replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed. |

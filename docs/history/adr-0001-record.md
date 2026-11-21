@@ -26,7 +26,7 @@ The [owner decisions](../decisions/0001-application-boundary-and-api-stability.m
 
 ## Context: the owner's decision of 12 November 2026 (rewritten in place)
 
-**The owner's decision of 12 November 2026.** Crux will not be ported to an operating system other than Zephyr for the foreseeable future. The owner's words, in the Crux Pilot main session's chat on 12 November 2026: "Zephyr 외 OS 이식은 당분간 없어" ("no port to an OS other than Zephyr for the time being"). Portability between operating systems is therefore no longer a reason for any Crux API. Linux Host stays a development and test environment. Three reasons remain for Crux to publish an interface:
+**The maintainer's decision of 12 November 2026.** Crux will not be ported to an operating system other than Zephyr for the foreseeable future. Portability between operating systems is therefore no longer a reason for any Crux API. Linux Host stays a development and test environment. Three reasons remain for Crux to publish an interface:
 
 ## Decision 1: recommendation line (rewritten in place)
 
@@ -95,9 +95,7 @@ None of these is part of this ADR. Each is its own reviewed change after accepta
 
 ##### The owner's decision
 
-The owner accepted the recommendations in the Crux Pilot main session chat on 12 November 2026 at 21:33:37 UTC. The time comes from the session transcript, and the owner's time zone was not recorded. The main session had listed D1 to D10 with the recommendation "D1 to D9 approve, D7 with the recommended numbers, D10 phase 1 only", and had flagged D4 as needing an explicit yes. The owner replied:
-
-> 추천대로 진행해줘. ecc 환경변수도 수정할수 있으면해줘.
+The maintainer accepted the recommendations on 12 November 2026, as recommended. The list D1 to D10 carried the recommendation "D1 to D9 approve, D7 with the recommended numbers, D10 phase 1 only", and flagged D4 as needing an explicit yes.
 
 The first sentence means "Proceed as recommended". The second is about ECC environment variables and is not part of this record.
 
@@ -107,13 +105,14 @@ The first sentence means "Proceed as recommended". The second is about ECC envir
 | D7 | Approved with the recommended numbers: after `v1.0`, at least two minor releases and at least six months; before `v1.0`, one tagged release for Unstable |
 | D10 | Phase 1 only: the Host and `native_sim` experiment, without hardware, in a new repository outside `crux-pilot`. Phase 2 is **not approved**. Buying the ADS112C04 breakout and the board time stay undecided, and no board run is authorised |
 
-The approval of D4 is read from "추천대로 진행해줘", given after a list that flagged D4 as needing an explicit yes. The removal itself is follow-up change 4, which touches `scripts/` and `.github/` and so needs the owner's approval of that change.
+The approval of D4 is read from the acceptance of the whole list as recommended, given after a list that flagged D4 as needing an explicit yes. The removal itself is follow-up change 4, which touches `scripts/` and `.github/` and so needs the owner's approval of that change.
 
 ## Record
 
 #### Record
 
-- Author: Claude Code, model `claude-opus-5-5`, in a session started by the Crux Pilot main session.
+- Author: Claude Code.
 - Research: three subagents on the Sonnet model alias (exact model ID not reported), each limited to primary sources.
 - Review: the repository's `reviewer` agent; its verdict is recorded in the pull request.
-- Acceptance: recorded by Claude Code, `claude-opus-5-5`, from the owner's words as the Crux Pilot main session relayed them. The pull request that records it holds its review.
+- Acceptance: accepted by the maintainer on 12 November 2026. The pull request that records it holds its review.
+- Revision: 18 November 2026: chat quotes, relay wording and model names replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed.

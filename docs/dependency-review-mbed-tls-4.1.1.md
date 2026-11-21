@@ -28,7 +28,7 @@ This record is documentation only. It moves no pin, edits no `west.yml`, `cmake/
 
 For each advisory: read the upstream text for its affected versions, conditions, work-around and fix commits. Read the Crux configuration for what the Mbed profile compiles and what Crux calls. Check the fix commits against both pins with `gh api repos/zephyrproject-rtos/<module>/compare/<fix>...<pin>`: a status of `ahead` or `identical` means the commit is an ancestor of the pin, `diverged` or `behind` means it is not. I tested every hash that the 4.1.x and 1.1.x columns list, and both ends of a range, but not each commit inside a range. In a range `A..B` the commit A is excluded from the fix and `B` is its last commit, so the hash A that I tested is a range start, not a fix commit. My script skipped a hash shorter than 12 characters: one such range start (`b2e36d7d7a`, in the advisory of row 12) was not tested under that name, and its full hash was tested under rows 9 and 13. The method is in the [guide](dependency-review.md#check-that-a-revision-holds-a-fix).
 
-I used no ECC skill that produced a result. `ecc:security-review` is web and npm oriented and I did not use it; the checklist is the guide's step list. I did not download or run any proof-of-concept code, and the advisory texts contain no secrets.
+No skill produced a result; the checklist is the guide's step list. I did not download or run any proof-of-concept code, and the advisory texts contain no secrets.
 
 ## 3. What the Crux Mbed profile compiles and calls
 
@@ -184,6 +184,5 @@ On native macOS, in the worktree at `8b48e331`: `git fetch`, reads of the files 
 | Item | Value |
 | --- | --- |
 | Baseline | `8b48e33175031a0b9d32876789b03f5eb3d4f997` |
-| Skills and agents used | None that produced a result. `ecc:security-review` and `ecc:deep-research` were considered and not used (see section 2) |
 | Independent review | An independent reviewer, verdict in the pull request |
 | Approval | This record approves nothing. As reported to the author (the report is quoted in the description of [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416)), the project owner gave advance approval on 14 November 2026 for the pin move and the `scripts/test-psa-crypto.sh` change of that PR, and on 15 November 2026 decided to run the Mbed HTTPS build first and grant no waiver (see section 6). The owner's confirmation of the merge at Gate 2 is still needed |

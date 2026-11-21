@@ -5,7 +5,7 @@ Physical-board evidence for the RT1060-EVKB microSD composition ([composition](.
 ## Setup
 - Board: MIMXRT1060-EVKB Rev B per the owner (not independently verified by the agent; a build option cannot identify the fitted board), QSPI, SEGGER J-Link PLUS (serial `<probe-serial>`) on J2, SWD 400 kHz (the `-speed 400` argument below), device `MIMXRT1062xxx6A`. Both images were built for `mimxrt1060_evk@B//qspi`; only Run 1's image contains the Rev B build guard of the open pull request #160. Target read over SWD: Cortex-M7 r1p1, CPUID 0x411FC271, VTref 3.32 V. Console: the on-board DAPLink virtual COM port at 115200 baud.
 - Card: 15.9 GB, MBR, one FAT32 partition, formatted by the owner. The `files` and `settings` directories were created on the Mac before the run (the firmware never creates them).
-- Owner approval: J-Link check, flash and the following steps for this task, and then the write/read/restart image and the host inspection (session chat, 2 November 2026; the chat does not carry a retained clock time).
+- Owner approval: J-Link check, flash and the following steps for this task, and then the write/read/restart image and the host inspection (2 November 2026; no clock time was retained).
 
 ## Commands
 

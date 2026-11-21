@@ -7,7 +7,7 @@ Issue [#298](https://github.com/wonny-labs/crux-pilot/issues/298). Read on 7 Nov
 
 **The i.MX RT1060 Reference Manual (IMXRT1060RM) was first not retrievable, and was then read in a third-party-hosted copy.**
 `https://www.nxp.com/docs/en/reference-manual/IMXRT1060RM.pdf` returned HTTP 404, and NXP's download link redirects to a
-sign-in page. A third-party-hosted copy of Rev. 3 exists. The owner approved downloading that one file in chat on 7 November
+sign-in page. A third-party-hosted copy of Rev. 3 exists. The maintainer approved downloading that one file on 7 November
 2026, after being told its name, host and size. The author then read chapter 9 "System Boot" in it, see
 [the manual rows](#rt1060-reference-manual-rev-3-third-party-copy). **That copy has not been compared with a copy from
 `nxp.com` and its revision is not the newest one, if a newer one exists.** The sections of this file that cite only the
@@ -56,7 +56,7 @@ What was read:
 
 Source: `https://www.pjrc.com/teensy/IMXRT1060RM_rev3.pdf`, 29,973,751 bytes, SHA-256
 `a2e342e492eded2a1d626cf955de953ca28d8db8675b10937a5176fd6f2c9200`, 3,522 pages, footer "i.MX RT1060 Processor Reference
-Manual, Rev. 3, 07/2021". Downloaded on 7 November 2026 into the author's scratchpad with the owner's approval in chat, read
+Manual, Rev. 3, 07/2021". Downloaded on 7 November 2026 into the author's scratchpad with the maintainer's approval, read
 as text extracted with macOS PDFKit, never executed. It is a copy hosted by a third party. It was not compared with a copy
 from `nxp.com`. Tables are partly garbled in the extraction and figures are text only, so box order in flow figures is taken
 from the surrounding prose and from the order in the text. PR [#302](https://github.com/wonny-labs/crux-pilot/pull/302)

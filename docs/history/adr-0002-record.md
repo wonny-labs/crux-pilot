@@ -42,9 +42,7 @@ None of these is part of this ADR. Each is its own reviewed change. Protected pa
 
 #### The owner's decision
 
-The owner approved P1 to P10 as recommended in the Crux Pilot main session chat on 13 November 2026 at 08:12:55 UTC. The time comes from the session transcript, and the owner's time zone was not recorded. The main session had asked "P1~P10을 추천대로 승인할까요?" ("Approve P1 to P10 as recommended?"). The owner replied:
-
-> 추천대로 승인
+The maintainer approved P1 to P10 as recommended on 13 November 2026.
 
 This means "approve as recommended". Hardware, phase 2 of D10 and merging stay outside it.
 
@@ -54,6 +52,7 @@ After the approval, P2, P4 and P6 in the review's section 9 were reworded to app
 
 #### Record
 
-- Author: Claude Code, model `claude-sonnet-5-5`, from the review, whose recommendations the owner approved.
+- Author: Claude Code, from the review, whose recommendations the maintainer approved.
 - Review: the repository's `reviewer` agent passed the review document before the owner's decision. This record's own review is in its pull request.
-- Acceptance: recorded from the owner's words as the Crux Pilot main session relayed them.
+- Acceptance: accepted by the maintainer on 13 November 2026.
+- Revision: 18 November 2026: chat quotes, relay wording and model names replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed.

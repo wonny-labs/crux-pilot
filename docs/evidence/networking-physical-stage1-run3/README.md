@@ -6,7 +6,7 @@ Third hardware window of the reduced, **non-qualifying** one-boot run of the M5 
 
 ## 1. Authorisation
 
-The owner's approval of the stage 1 board operations and the standing approval to proceed after independent PASS (relayed by the main session; quotes in the first record), the owner's re-arm of guard-3 with sudo, and the main session's instruction of 2026-11-08 to continue with the fix PRs, a re-freeze, a new plan and its independent check, and to start the board window no later than 14:30 UTC. The owner's relayed decision "지워서 진행해줘" covered deleting the author's own merged worktrees and scratch copies to restore the disk floor (the author's read-only inventory at about 12:50Z showed 3.83 GiB free against the 5 GB floor of the plan, and 7.98 GiB after the deletion; that inventory was not saved as a file in this record). The plan's independent check had handed back its PASS before that and no plan content changed.
+The maintainer's approval of the stage 1 board operations and the standing approval to proceed after independent PASS (see the first record) and the maintainer's re-arm of guard-3 with sudo; in addition, the main session's instruction of 2026-11-08 to continue with the fix PRs, a re-freeze, a new plan and its independent check, and to start the board window no later than 14:30 UTC. The maintainer's decision of 2026-11-08 covered deleting the author's own merged worktrees and scratch copies to restore the disk floor (the author's read-only inventory at about 12:50Z showed 3.83 GiB free against the 5 GB floor of the plan, and 7.98 GiB after the deletion; that inventory was not saved as a file in this record). The plan's independent check had handed back its PASS before that and no plan content changed.
 
 ## 2. Source, artefacts and plan
 

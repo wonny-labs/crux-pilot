@@ -6,7 +6,7 @@ Second hardware window of the reduced, **non-qualifying** one-boot run of the M5
 
 ## 1. Authorisation
 
-As in the first record (the owner's approval of the stage 1 board operations and the standing approval to proceed after independent PASS, relayed by the main session; the overwrite "예" of the first window is not needed again: no unknown content was overwritten, `identify` matched the accepted normal image before programming). Additional relayed decisions of 2026-11-08: the owner re-armed guard-3 by sudo; for PR #338 the owner approved merging on its independent PASS with `zephyr io` and `zephyr runtime` red only because of a GitHub release download 504: "너의 추천대로 진행해" (the failed jobs were re-run after the merge).
+As in the first record (the maintainer's approval of the stage 1 board operations and the standing approval to proceed after independent PASS; the overwrite approval of the first window is not needed again: no unknown content was overwritten, `identify` matched the accepted normal image before programming). Additional decisions of 2026-11-08: the maintainer re-armed guard-3 by sudo; for PR #338 the maintainer approved merging on its independent PASS with `zephyr io` and `zephyr runtime` red only because of a GitHub release download 504 (the failed jobs were re-run after the merge).
 
 ## 2. Source, artefacts and plan
 

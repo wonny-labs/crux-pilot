@@ -4,15 +4,15 @@ This record keeps the raw evidence of the first real hardware use of the Crux ma
 
 **Result in one paragraph.** The board's Ethernet link came up and the M5 image reached its first checkpoints (boot, link up with address 192.168.77.2, phase 1 idle baseline, the ticket for phase 2), but the echo phases 2 to 6 did not run: the host-side test peer crashed on `Can't assign requested address` most likely because macOS drops the manual address of the adapter while the link is down after the reset (the real link-down inventory shows no `inet` line) and restores it a moment after the link returns, and the runner started the peer in that gap. The address was present again when it was next inventoried, about a minute later (`06-main-run-program-capture-restore/restore/acquire-nic.txt`, 09:15:33; the link-down inventories without an `inet` line are `05-restore-fixed-driver/restore/03-verify-normal-nic.txt` and `06-main-run-program-capture-restore/restore/03-verify-normal-nic.txt`); no inventory was taken between the reset (09:14:25) and the crash (09:14:31), so its absence at the moment of the bind was not captured and this is the best-fitting explanation, not a recorded fact. The reduced run is therefore **INCONCLUSIVE** for the echo, timeout and close behaviour. The accepted normal image was restored afterwards, verified twice and replayed offline through the accepted oracles.
 
-## 1. Authorisation (relayed through the main session, quotes)
+## 1. Authorisation (approved by the maintainer)
 
-| Date (chat) | Quote | Covers |
+| Date | Approval | Covers |
 | --- | --- | --- |
-| 2026-11-08 | "단계 1 먼저 하고 싶어. 케이블 상태 확인할게.보드 조작 모두 승인할게." | all board operations of stage 1 |
-| 2026-11-08 | "방안 A로 진행해줘" / "방안 A승인" / "1번으로 진행해줘" / "모두 승인할게" | identity block and reduced mode, replacement mount guard, driver scope, frozen-input rule, narrow checks |
-| 2026-11-08 | "자는 동안 필요한 승인은 사전에 미리해줄께. 검토가 필요한건 독립리뷰를 거치고 pass하면 ... 내 승인 기다리지 말고 해줘." | proceed after an independent PASS without waiting |
-| 2026-11-08 | "마운트보호명령실행했어. 허락할테니 계속진행해줘." | the owner started the guard; permission for exactly the pyserial 3.5 wheel (PyPI, hash-pinned, new venv outside the repository) |
-| 2026-11-08 | "예" | overwrite the unknown flash content with the accepted normal image, without a separate backup (plan revision 4a, section 3, `inputs/plans/stage1-phase-b-plan-r4.md`) |
+| 2026-11-08 | Approved by the maintainer, who said the cable state would be checked | all board operations of stage 1 |
+| 2026-11-08 | Approved by the maintainer in several messages (plan option A, item 1, and the rest as listed) | identity block and reduced mode, replacement mount guard, driver scope, frozen-input rule, narrow checks |
+| 2026-11-08 | Approved in advance by the maintainer, for the night | proceed after an independent PASS without waiting for further approval |
+| 2026-11-08 | Approved by the maintainer, after the mount guard was started | permission for exactly the pyserial 3.5 wheel (PyPI, hash-pinned, new venv outside the repository) |
+| 2026-11-08 | Approved by the maintainer | overwrite the unknown flash content with the accepted normal image, without a separate backup (plan revision 4a, section 3, `inputs/plans/stage1-phase-b-plan-r4.md`) |
 
 ## 2. Source, artefacts and plan of the run
 
@@ -37,7 +37,7 @@ Earlier freezes of the same image code, void after the fixes below: `f720c95` (B
 | 06:41 | owner starts the arm-mode guard, DAPLink enumerates, guard vetoes the mount and reports READY | OK (no power command by the agent) | `inputs/guard-2.log` |
 | 06:43:07 | B2 `identify` on the first freeze (`f720c95`) | stopped before any J-Link command: `Exclusive UART ownership changed` (the failing check kept no output, so the cause was found afterwards: `lsof -Fp` prints `f<fd>` lines and `lsof` exits 1 when the never-opened `tty` node is named; the real answers of the fixed check are the `01-identity-only-owners-cu.txt` and `...-tty.txt` files of `02-identify-found-unknown-firmware/identify/`) | `01-first-identify-stopped-lsof/` |
 | 08:01:32 | B2 `identify` on the second freeze (`1b3ea3a`, after PR #333) | identity matched (CPUID `0x411FC271`, DPIDR `0x0BD11477`, S/N `<probe-serial>`, VTref 3.322 V); `verifybin` of the normal image: `Verify failed @ address 0x60001024`, Commander exit non-zero, driver stopped: the flash held another image (probably the PSA test image of 2026-11-07, not proven) | `02-identify-found-unknown-firmware/` |
-| 08:21:25 | R0 `restore` (owner "예"), driver of `1b3ea3a` | flash written (0x60000000 to 0x6001FFFF), `Verify successful.`, then `****** Error: Could not start CPU core. (ErrorCode: -1)` after `q` with exit 0; the M3 wrapper stopped | `03-restore-stopped-diagnostic/` |
+| 08:21:25 | R0 `restore` (approved by the maintainer), driver of `1b3ea3a` | flash written (0x60000000 to 0x6001FFFF), `Verify successful.`, then `****** Error: Could not start CPU core. (ErrorCode: -1)` after `q` with exit 0; the M3 wrapper stopped | `03-restore-stopped-diagnostic/` |
 | 08:27:15 | read-only `identify` (plan amendment 4b, `inputs/plans/stage1-phase-b-plan-r4b.md`) | matched byte for byte (second verification); `IsHalted`: `CPU is halted (PC = 0x600156C2).` | `04-identify-matched/` |
 | 09:12:26 | R0' `restore` with the fixed driver (PR #336, freeze `3ef758d`) | write skipped (`Contents already match`), `Verify successful.` twice, one start, 15 s capture shows the normal boot banner | `05-restore-fixed-driver/` |
 | 09:13:15 | B2' `identify` | matched | `06-main-run-program-capture-restore/identify/` |
@@ -88,7 +88,7 @@ Earlier freezes of the same image code, void after the fixes below: `f720c95` (B
 
 The independent check of plan revision 5 handed back its PASS (no blocking finding) at 09:12:03Z, before the first board step that used the plan (R0', 09:12:26Z); the notes it contained were appended to the plan file at 09:12:17Z. The other plans each had their independent PASS before the board step that used them: r3 at 08:00:28Z (B2 at 08:01:32), r4a at 08:09:13Z after a REVISE at 08:08:22Z (R0 at 08:21:25), r4b at 08:27:05Z (identify at 08:27:15). The times are those of the reviewers' hand-back messages.
 
-**Correction after the run, stated openly:** the plan r5 file was edited once more at 09:29:49Z, after the run, in a single place: the heading of its section 6, which read `Independent check (Opus, read-only, 2026-11-08T09:2xZ): PASS ...` (the placeholder `09:2xZ` was a mistake) and now reads `... 2026-11-08, received before 09:12Z (R0 prime started 09:12:26Z) ...`. The committed copy `inputs/plans/stage1-phase-b-plan-r5.md` is the corrected file; the run-time version was overwritten in place and is not retained, so its row in `SHA256SUMS.tsv` has no original hash and is marked as corrected after the run. The accurate check time is the 09:12:03Z hand-back above, not the corrected heading's wording. The plan documents are session notes of the author; editing them after the fact is recorded here and reported to the main session.
+**Correction after the run, stated openly:** the plan r5 file was edited once more at 09:29:49Z, after the run, in a single place: the heading of its section 6, which read `Independent check (Opus, read-only, 2026-11-08T09:2xZ): PASS ...` (the placeholder `09:2xZ` was a mistake) and now reads `... 2026-11-08, received before 09:12Z (R0 prime started 09:12:26Z) ...`. The committed copy `inputs/plans/stage1-phase-b-plan-r5.md` is the corrected file; the run-time version was overwritten in place and is not retained, so its row in `SHA256SUMS.tsv` has no original hash and is marked as corrected after the run. The accurate check time is the 09:12:03Z hand-back above, not the corrected heading's wording. The plan documents are session notes of the author; editing them after the fact is recorded here and reported to the main session. The same file, and the other plan files named in [chat-quote-removal.md](../chat-quote-removal.md), were edited later to replace quoted chat messages with a neutral statement of the approval.
 
 ## 10. Files
 

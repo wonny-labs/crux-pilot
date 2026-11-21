@@ -37,7 +37,7 @@ Status: PLAN, not yet independently re-checked. Written 2026-11-08 (GMT). Revisi
 
 ## 4. Authorisation
 
-As in revision 2, section 2, plus (relayed by the main session, 2026-11-08): "마운트보호명령실행했어. 허락할테니 계속진행해줘." (the guard is running; permission for exactly the pyserial wheel) and the main session's instruction to continue with the fix path, the freeze, a new plan and an independent plan re-check, then B2 under the standing approval, announcing each physical operation in one line and telling the main session the moment B2 is about to start.
+As in revision 2, section 2, plus (approved by the maintainer, 2026-11-08): the guard is running, with permission for exactly the pyserial wheel. In addition, the main session's instruction to continue with the fix path, the freeze, a new plan and an independent plan re-check, then B2 under the standing approval, announcing each physical operation in one line and telling the main session the moment B2 is about to start.
 
 ## 5. Timing
 

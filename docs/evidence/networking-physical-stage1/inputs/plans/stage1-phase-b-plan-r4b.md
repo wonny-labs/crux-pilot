@@ -1,6 +1,6 @@
 # Stage 1 Phase B plan, revision 4b (one-line amendment over revision 4a)
 
-Status: PLAN, needs its narrow independent check. Written 2026-11-08 (GMT). Authorised by the main session after the R0 stop (relayed): "(B) GO for the one read-only `identify` of the normal image in a new parent `stage1-run-r0b` ... it must not write, reset or start anything beyond what identify does, and may leave the core halted ... If the narrow check asks for more than that, skip B."
+Status: PLAN, needs its narrow independent check. Written 2026-11-08 (GMT). Authorised by the main session after the R0 stop: "(B) GO for the one read-only `identify` of the normal image in a new parent `stage1-run-r0b` ... it must not write, reset or start anything beyond what identify does, and may leave the core halted ... If the narrow check asks for more than that, skip B."
 
 ## What happened (record)
 

@@ -1,6 +1,6 @@
 # ADR-0006: How Crux handles its cryptographic dependencies over time (proposal)
 
-Status: **Accepted** on 14 November 2026, as recommended: Q1 to Q8. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `8a6fc5a59142963ebe49d6d0041ad29c952f47d4`. Author: Claude Code, model `claude-sonnet-5-5`. The owner approved writing this proposal, and only the proposal, in the Crux Pilot main session chat on 14 November 2026 at about 18:37 UTC (relayed by that session as the words "추천대로 승인할게", meaning "I approve as you recommended", for the item it recommended: a short crypto dependency policy, to be written after the phase 0 and System proposals and allowed to start now). The question behind it came from the owner through the Crux Controller session: is wolfSSL used, and what does Crux do about Mbed TLS support ending in 2027?
+Status: **Accepted** on 14 November 2026, as recommended: Q1 to Q8. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `8a6fc5a59142963ebe49d6d0041ad29c952f47d4`. Author: Claude Code. The maintainer approved writing this proposal, and only the proposal, on 14 November 2026, for the item recommended: a short crypto dependency policy, to be written after the phase 0 and System proposals and allowed to start now. The question behind it was the maintainer's, asked while working on `crux-controller`: is wolfSSL used, and what does Crux do about Mbed TLS support ending in 2027?
 
 This record is documentation only. It adds no code, check, target or Kconfig symbol, changes no `west.yml` pin, changes no protected path and opens no GitHub issue. Accepting it decides the policy and nothing else: it adopts no pin move and no code. Every change it puts forward would be its own reviewed change, listed under [Follow-up changes](#follow-up-changes). The number 0006 is used because ADR-0005 is taken by the open Draft PR #404 (**Verified** with `gh pr list` on 14 November 2026).
 
@@ -219,11 +219,7 @@ The recommendation comes first in each row.
 
 ### The owner's decisions
 
-The owner accepted this record as recommended, in the Crux Pilot main session chat on 14 November 2026 at about 19:10 UTC. The time is the one that session read from its shell (19:10:08Z) when it acted, moments after the owner's message, and the owner's time zone was not recorded. The owner's words, relayed by that session, answered its question "accept ADR-0006 as recommended (Q1-Q8)", and its second question whether, once the policy is accepted, the first pin move to the `v4.4-branch` revisions is started as its own PR after the dependency review (Q2):
-
-> 추천대로 승인할게
-
-This means "I approve as you recommended". Acceptance was recorded from the owner's words as that session relayed them, and the session read the single reply as accepting the recommendation of each of Q1 to Q8.
+Accepted by the maintainer on 14 November 2026, as recommended (Q1 to Q8). The questions put to the maintainer were whether to accept ADR-0006 as recommended (Q1-Q8), and whether, once the policy is accepted, the first pin move to the `v4.4-branch` revisions is started as its own PR after the dependency review (Q2). The single reply was read as accepting the recommendation of each of Q1 to Q8.
 
 | # | Decision |
 | --- | --- |
@@ -247,7 +243,6 @@ On native macOS, in the worktree at `8a6fc5a5`: `git fetch`, reads of the files 
 | Item | Value |
 | --- | --- |
 | Baseline | `8a6fc5a59142963ebe49d6d0041ad29c952f47d4` |
-| Skills and agents used | `ecc:architecture-decision-records` (record format, with this repository's convention taking precedence over its `docs/adr/` default), `ecc:search-first` (search of existing scripts, checks and decisions for what already covers the topic, with no install or dependency). `ecc:deep-research` was not used: it needs firecrawl or exa tools, and I used `gh api` and `curl` on public URLs instead |
-| Model | `claude-sonnet-5-5`, Claude Code. This is below what a policy record deserves. The independent review is Opus |
 | Independent review | The `reviewer` agent, verdict in the pull request |
-| Acceptance | The owner, as recommended (Q1 to Q8), 14 November 2026 at about 19:10 UTC in the Crux Pilot main session chat: "추천대로 승인할게". Relayed by that session. See [the owner's decisions](#the-owners-decisions) |
+| Acceptance | Accepted by the maintainer on 14 November 2026, as recommended (Q1 to Q8). See [the owner's decisions](#the-owners-decisions) |
+| Revision | 18 November 2026: chat quotes, relay wording, model names and skill lists replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed |

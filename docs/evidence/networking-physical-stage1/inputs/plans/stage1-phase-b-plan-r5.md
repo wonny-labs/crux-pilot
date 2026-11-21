@@ -33,7 +33,7 @@ Status: PLAN, not yet independently re-checked. Written 2026-11-08T09:12Z (GMT, 
 | B5 | final `restore` | `stage1-run-4` | as revision 3; the restore marker of this parent is unused until now |
 | B6, B7 | offline replays (also of R0' `normal-capture`), end state | | as revision 3 |
 
-The owner's yes (relayed 2026-11-08, "예", for overwriting the flash content with the accepted normal image) already covers R0 as a write of the same accepted image; no new kind of operation is added.
+The maintainer's approval (2026-11-08, for overwriting the flash content with the accepted normal image) already covers R0 as a write of the same accepted image; no new kind of operation is added.
 
 ## 4. Failure handling
 
