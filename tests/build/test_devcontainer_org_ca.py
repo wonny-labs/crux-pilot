@@ -1,11 +1,11 @@
 """Checks for trusting an organisation's root CA in the Dev Container image.
 
-A developer drops the CA, as a PEM .crt file, into .devcontainer/certs/ and rebuilds the
+A developer drops the CA, as a PEM or DER .crt file, into .devcontainer/certs/ and rebuilds the
 container. These tests prove that the Dockerfile installs it with
 .devcontainer/install-org-ca.sh after the package install and before every download, that
 Git keeps certificates out of the repository, that the image points run-time tools at the
 system bundle, and that the install script accepts PEM certificates in .crt, .pem and .cer
-files, converts DER with openssl, and refuses keys and other content. They run the script with stubbed openssl and update-ca-certificates
+files, converts exactly one DER certificate with openssl, and refuses keys, PKCS#7, PKCS#12 and other content. They run the script with stubbed openssl and update-ca-certificates
 commands, and, where openssl is installed, with a throw-away self-signed certificate. They
 use no network and prove nothing about a real TLS-inspecting proxy.
 """
@@ -155,12 +155,18 @@ class InstallScriptTest(unittest.TestCase):
         (self.src / ".gitkeep").write_text("")
         # openssl stub: a certificate whose body says BROKEN does not parse.
         # "-inform der" converts a file whose text starts with DER (a stand-in for DER bytes)
-        # and fails on anything else.
+        # and fails on anything else. Like the real openssl, it reads only the first object
+        # (here: the first line) and ignores the rest; "-outform der" gives that object back.
         self.stub("openssl", 'echo "openssl $*" >>"$CALLS"\n'
                   'case " $* " in *" -inform der "*)\n'
                   '  while [ $# -gt 0 ]; do case $1 in -in) i=$2;; -out) o=$2;; esac; shift; done\n'
                   '  grep -q "^DER" "$i" || { echo "unable to load certificate" >&2; exit 1; }\n'
                   '  printf "%s\\n" "-----BEGIN CERTIFICATE-----" MIIBconverted "-----END CERTIFICATE-----" >"$o"\n'
+                  '  head -n 1 "$i" >"$o.der"\n'
+                  '  exit 0;;\n'
+                  '*" -outform der "*)\n'
+                  '  while [ $# -gt 0 ]; do case $1 in -in) i=$2;; -out) o=$2;; esac; shift; done\n'
+                  '  cat "$i.der" >"$o"\n'
                   '  exit 0;;\n'
                   'esac\n'
                   'for a; do f=$a; done\n'
@@ -228,6 +234,33 @@ class InstallScriptTest(unittest.TestCase):
         self.assertEqual(self.installed(), ["crux-org-root.crt"])
         self.assertIn("MIIBconverted", (self.dest / "crux-org-root.crt").read_text())
         self.assertIn("converted from DER", result.stdout)
+
+    def test_der_in_a_crt_file_is_converted_and_the_file_left_unchanged(self):
+        (self.src / "root.crt").write_bytes(b"DER binary stand-in\n")
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.installed(), ["crux-org-root.crt"])
+        self.assertIn("-----BEGIN CERTIFICATE-----", (self.dest / "crux-org-root.crt").read_text())
+        self.assertEqual((self.src / "root.crt").read_bytes(), b"DER binary stand-in\n")
+
+    def test_der_with_data_after_the_certificate_stops_the_build(self):
+        # openssl converts the first DER object and ignores the rest; the script must not install part of a file.
+        (self.src / "a-good.crt").write_text(PEM)
+        (self.src / "root.crt").write_text("DER binary stand-in\nsecond object\n")
+        result = self.run_install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("root.crt", result.stderr)
+        self.assertIn("exactly one DER certificate", result.stderr)
+        self.assertEqual(self.installed(), [])
+        self.assertNotIn("update-ca-certificates", "\n".join(self.calls()))
+
+    def test_other_binary_content_names_pkcs7_and_pkcs12(self):
+        (self.src / "root.crt").write_bytes(b"\x30\x82 not a certificate")
+        result = self.run_install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("PKCS#7", result.stderr)
+        self.assertIn("PKCS#12", result.stderr)
+        self.assertEqual(self.installed(), [])
 
     def test_der_file_is_skipped_without_openssl(self):
         (self.src / "root.crt").write_text("DER binary stand-in\n")
@@ -335,6 +368,48 @@ class InstallScriptRealOpensslTest(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in self.dest.iterdir()), ["crux-org-root.crt"])
         self.assertIn("-----BEGIN CERTIFICATE-----", (self.dest / "crux-org-root.crt").read_text())
         self.assertIn("Crux Test Root", result.stdout)
+
+    def der(self, name):
+        path = self.tmp / name
+        subprocess.run(["openssl", "x509", "-in", str(self.tmp / "root.pem"), "-outform", "der", "-out", str(path)],
+                       check=True, capture_output=True)
+        return path.read_bytes()
+
+    def assert_refused(self, result, needle):
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(needle, result.stderr)
+        self.assertEqual(list(self.dest.iterdir()), [])
+
+    def test_der_in_a_crt_file_is_converted_and_the_file_left_unchanged(self):
+        data = self.der("root.der")
+        (self.src / "root.crt").write_bytes(data)
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("-----BEGIN CERTIFICATE-----", (self.dest / "crux-org-root.crt").read_text())
+        self.assertIn("converted from DER", result.stdout)
+        self.assertEqual((self.src / "root.crt").read_bytes(), data)
+
+    def test_two_der_certificates_in_one_file_are_refused(self):
+        data = self.der("root.der")
+        (self.src / "root.crt").write_bytes(data + data)
+        self.assert_refused(self.run_install(), "exactly one DER certificate")
+
+    def test_der_with_trailing_bytes_is_refused(self):
+        (self.src / "root.crt").write_bytes(self.der("root.der") + b"junk")
+        self.assert_refused(self.run_install(), "exactly one DER certificate")
+
+    def test_pkcs7_bundle_is_refused(self):
+        subprocess.run(["openssl", "crl2pkcs7", "-nocrl", "-certfile", str(self.tmp / "root.pem"), "-outform", "der",
+                        "-out", str(self.src / "root.crt")], check=True, capture_output=True)
+        self.assert_refused(self.run_install(), "PKCS#7")
+
+    def test_pkcs12_file_is_refused_and_its_key_never_installed(self):
+        made = subprocess.run(["openssl", "pkcs12", "-export", "-in", str(self.tmp / "root.pem"), "-inkey",
+                               str(self.tmp / "key.pem"), "-passout", "pass:test", "-out", str(self.src / "root.crt")],
+                              capture_output=True)
+        if made.returncode != 0:
+            self.skipTest("this openssl cannot write PKCS#12")
+        self.assert_refused(self.run_install(), "PKCS#12")
 
     def test_random_bytes_are_refused(self):
         (self.src / "root.cer").write_bytes(b"\x00\x01" + bytes(range(2, 64)))
