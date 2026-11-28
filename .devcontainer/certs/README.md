@@ -17,15 +17,14 @@ Downloads in the image build or the container fail with a certificate error, for
    ~~~
 
    If the issuer is your organisation, you need the root CA at the top of that issuer's chain.
-2. Export it as PEM. On Windows: run `certmgr.msc`, open **Trusted Root Certification Authorities** > **Certificates**, right-click the CA, **All Tasks** > **Export...**, and choose **Base-64 encoded X.509 (.CER)**.
-3. Check that the file starts with `-----BEGIN CERTIFICATE-----`. A binary (DER) file, which the **DER encoded binary X.509** export gives, does not; convert it, for example in WSL2:
+2. Export it. On Windows: run `certmgr.msc`, open **Trusted Root Certification Authorities** > **Certificates**, right-click the CA, **All Tasks** > **Export...**, and choose **Base-64 encoded X.509 (.CER)** or **DER encoded binary X.509 (.CER)**. Do not choose PKCS #7 or PKCS #12 (.PFX): the build refuses them.
+3. Copy the file into this folder with the extension `.crt` (for example `cp <path-to>/org-root.cer .devcontainer/certs/org-root.crt`). The build converts a binary (DER) file to PEM in the image and leaves your file unchanged. A DER file must hold exactly one certificate. If the build log says it cannot convert the file, convert it yourself, for example in WSL2:
 
    ~~~sh
    openssl x509 -inform der -in org-root.cer -out org-root.crt
    ~~~
 
-4. Copy the PEM file, the export from step 2 or the `.crt` file from step 3, into this folder with the extension `.crt` (for example `cp <path-to>/org-root.crt .devcontainer/certs/`).
-5. Run **Dev Containers: Rebuild Container**. The build log prints the subject of each CA it installs.
+4. Run **Dev Containers: Rebuild Container**. The build log prints the subject of each CA it installs.
 
 Each developer adds their own file on their own machine. Never commit a certificate. Git ignores every file in this folder except `.gitkeep` and this README, and the image build reads the folder through a bind mount: the image stores the installed CA certificates and no other file from the folder. With no certificate here, the build installs none.
 

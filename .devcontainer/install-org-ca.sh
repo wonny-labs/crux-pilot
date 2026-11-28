@@ -5,11 +5,13 @@
 #
 # Every *.crt, *.pem and *.cer file in the folder is read. A file holding one or more
 # PEM certificates (-----BEGIN CERTIFICATE-----) is split into one certificate per
-# file; a DER file is converted to PEM with openssl, or skipped with a message when the
-# image has no openssl. Each certificate is copied to crux-org-<name>[-<n>].crt in the
-# destination, then update-ca-certificates adds it to /etc/ssl/certs/ca-certificates.crt.
-# A file that holds a private key, is neither PEM nor DER or does not parse as a
-# certificate stops the build, and nothing is installed. Files with other extensions
+# file; a binary (DER) file must hold exactly one certificate and is converted to PEM
+# in the build stage with openssl (the developer's file is never changed), or skipped
+# with a message when the image has no openssl. Each certificate is copied to
+# crux-org-<name>[-<n>].crt in the destination, then update-ca-certificates adds it to
+# /etc/ssl/certs/ca-certificates.crt. A file that holds a private key, is neither PEM
+# nor DER (for example PKCS#7 or PKCS#12), has data after its DER certificate or does
+# not parse as a certificate stops the build, and nothing is installed. Files with other extensions
 # are skipped with a message; README.md and .gitkeep are skipped silently. With no
 # certificate the script installs nothing.
 # See .devcontainer/certs/README.md.
@@ -74,9 +76,17 @@ for file in "$src"/* "$src"/.[!.]*; do
              "Convert it yourself with: $convert" >&2
         continue
     elif "$openssl" x509 -inform der -in "$file" -out "$stage/split/part-0001.pem" >/dev/null 2>&1; then
-        note=" (converted from DER)"
+        # openssl reads the first DER object and ignores what follows: encode the result
+        # again and require the same bytes, so that no file is installed in part.
+        if "$openssl" x509 -in "$stage/split/part-0001.pem" -outform der -out "$stage/again.der" >/dev/null 2>&1 \
+            && cmp -s "$file" "$stage/again.der"; then
+            note=" (converted from DER)"
+        else
+            refuse "$name" "is not exactly one DER certificate: it has data after the certificate or more than one object."
+            continue
+        fi
     else
-        refuse "$name" "is neither a PEM nor a DER certificate."
+        refuse "$name" "is neither a PEM nor a DER certificate. PKCS#7 (.p7b) and PKCS#12 (.pfx, .p12) files are not accepted; export the CA alone as X.509."
         continue
     fi
     stem=${name%.*}

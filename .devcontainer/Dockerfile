@@ -67,6 +67,16 @@ RUN --mount=type=bind,source=.devcontainer/certs,target=/tmp/crux-certs \
     --mount=type=bind,source=.devcontainer/install-org-ca.sh,target=/tmp/crux-install-org-ca.sh \
     sh /tmp/crux-install-org-ca.sh /tmp/crux-certs
 
+# 32-bit native_sim (the default native_sim/native target) needs a host compiler with
+# multilib support; scripts/test-storage-simulators.sh builds it. Zephyr's Ubuntu host
+# packages include gcc-multilib and g++-multilib, which do not exist on arm64, so they are
+# installed only in an amd64 image (tests/build/test_devcontainer_multilib.py checks it).
+RUN if [ "$(dpkg --print-architecture)" = amd64 ]; then \
+        apt-get update \
+        && apt-get install -y --no-install-recommends gcc-multilib g++-multilib \
+        && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 RUN python3 -m pip install --break-system-packages --no-cache-dir \
         west==1.4.0 \
         pytest==8.3.5
