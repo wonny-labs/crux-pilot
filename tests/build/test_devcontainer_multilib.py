@@ -44,6 +44,10 @@ class DockerfileMultilibTest(unittest.TestCase):
         step = multilib_steps()[0]
         self.assertRegex(step, r'if \[ "\$\(dpkg --print-architecture\)" = amd64 \]; then')
         self.assertLess(step.index("dpkg --print-architecture"), step.index("apt-get install"))
+        # The install sits between "then" and the closing "fi", so arm64 never runs it.
+        self.assertRegex(step, r"; then .*apt-get install [^;]*gcc-multilib[^;]*;? fi$")
+        self.assertLess(step.index("; then"), step.index("apt-get update"))
+        self.assertEqual(step.count(" fi"), 1)
 
     def test_the_main_package_list_has_no_multilib_package(self):
         main = next(s for s in steps() if s.startswith("RUN apt-get"))
